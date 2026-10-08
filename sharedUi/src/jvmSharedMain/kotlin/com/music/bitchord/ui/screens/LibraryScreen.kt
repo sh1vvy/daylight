@@ -41,6 +41,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -121,7 +123,7 @@ fun LibraryScreen(
     deviceItems: List<ShelfItem>,
     /** The big "Library" heading; the desktop's pages carry none. */
     showTitle: Boolean = true,
-    /** Actual creation history supplied by Android; absent on other platforms. */
+    /** Successful creation/addition history supplied by Android; absent on other platforms. */
     createdPlaylistIds: List<String> = emptyList(),
 ) {
     val pinnedPlaylists by AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
@@ -199,7 +201,7 @@ fun LibraryScreen(
                     // makes one — so the row is drawn either way, empty but
                     // for the tile that creates the first playlist.
                     val shelves = state.data.shelves
-                    if (shelves.none { it.title == PLAYLISTS }) {
+                    if (shelves.none { it.isPlaylistLibraryShelf() }) {
                         item(key = "shelf:$PLAYLISTS") {
                             val emptyPlaylists = HomeShelf(PLAYLISTS, emptyList())
                             PlaylistShelf(
@@ -214,7 +216,7 @@ fun LibraryScreen(
                     }
                     shelves.forEach { shelf ->
                         item(key = "shelf:${shelf.title}") {
-                            if (shelf.title == PLAYLISTS) {
+                            if (shelf.isPlaylistLibraryShelf()) {
                                 val ordered = remember(shelf, pinnedPlaylists, createdPlaylistIds) {
                                     shelf.orderedForLibrary(pinnedPlaylists, LibrarySort.DEFAULT, createdPlaylistIds)
                                 }
@@ -388,14 +390,13 @@ internal fun LibraryGridShelf(
     val itemKeys = remember(visibleItems) { shelfItemKeys(visibleItems) }
     val rowState = rememberLazyListState()
     // LazyRow retains the old first visible key after a prepend. Reveal an
-    // actual new creation once, while retaining scroll on normal refreshes,
-    // renames and revisiting the page.
-    val observedCreations = remember {
-        mutableSetOf<String>().apply { newestCreatedPlaylistId?.let(::add) }
-    }
+    // real recent activity, retaining scroll on normal refreshes/renames.
+    // A playlist can become newest repeatedly after other playlists are edited.
+    var observedNewest by remember { mutableStateOf(newestCreatedPlaylistId) }
     LaunchedEffect(newestCreatedPlaylistId) {
+        if (observedNewest == newestCreatedPlaylistId) return@LaunchedEffect
+        observedNewest = newestCreatedPlaylistId
         val createdId = newestCreatedPlaylistId ?: return@LaunchedEffect
-        if (!observedCreations.add(createdId)) return@LaunchedEffect
         val index = visibleItems.indexOfFirst { item ->
             item.browseId?.let(::playlistCreationOrderKey) == createdId
         }
@@ -450,12 +451,19 @@ fun LibraryGridPage(
     // immediately rather than waiting for the row underneath to be revisited.
     val pinnedPlaylists by AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
     val librarySort by AppUi.host.librarySort.collectAsStateWithLifecycle()
-    // New playlists stay easy to find even after a title sort or provider
+    // Recently created/updated playlists stay easy to find after a title sort or provider
     // refresh. Pins and explicit sorting still arrange the older collections.
     val sortedShelf = remember(shelf, pinnedPlaylists, librarySort, createdPlaylistIds) {
         shelf.orderedForLibrary(pinnedPlaylists, librarySort, createdPlaylistIds)
     }
     val itemKeys = remember(sortedShelf.items) { shelfItemKeys(sortedShelf.items) }
+    val newestActivity = sortedShelf.newestCreatedPlaylistId(createdPlaylistIds)
+    var observedNewest by remember(gridState) { mutableStateOf(newestActivity) }
+    LaunchedEffect(newestActivity) {
+        if (observedNewest == newestActivity) return@LaunchedEffect
+        observedNewest = newestActivity
+        if (newestActivity != null) gridState.scrollToItem(0)
+    }
     BoxWithConstraints(modifier.fillMaxSize()) {
         val grid = libraryGrid(maxWidth - PAGE_GUTTER * 2)
         LazyVerticalGrid(

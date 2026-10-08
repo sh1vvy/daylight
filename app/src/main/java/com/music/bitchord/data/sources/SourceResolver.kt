@@ -63,7 +63,9 @@ object SourceResolver {
         // sources. It was a switch whose only real effect was to downgrade the
         // one source that could do better.
         return when {
-            ceiling == AudioQuality.LOSSLESS -> StreamRequest.Lossless
+            // A saved Lossless preference now requests YouTube's best offered
+            // rendition. It cannot start a fruitless alternate-provider race.
+            ceiling == AudioQuality.LOSSLESS -> StreamRequest.Best
             ceiling.maxKbps == Int.MAX_VALUE -> StreamRequest.Best
             else -> StreamRequest.Capped(ceiling.maxKbps)
         }
@@ -519,6 +521,7 @@ object SourceResolver {
         // already what [rankedAbove] says about a config that isn't in the list.
         val youtubeId = active.firstOrNull { it.kind == SourceKind.YOUTUBE }?.configId
         val ranked = rankedAbove(youtubeId.orEmpty(), active)
+        if (ranked.isEmpty()) return@coroutineScope null
         val strictLength = target.durationSec != null
 
         // Who is in the bit-exact walk, and who is left to the race below it.

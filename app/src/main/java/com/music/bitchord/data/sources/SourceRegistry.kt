@@ -74,15 +74,10 @@ data class SourceConfig(
 }
 
 /**
- * The user's sources, always tried in the fixed order [SourceKind] declares:
- * their own addons first, then JioSaavn, then YouTube Music.
- *
- * [SourceKind.YOUTUBE] is seeded on first run and cannot be deleted, only
- * disabled — it needs no configuration, so a "remove" would delete something
- * the user could not then re-create by typing anything in, it would just be a
- * switch that hides itself. Addons are entirely optional: with none
- * configured, YouTube is the only active source on a fresh install. JioSaavn
- * is present but off until the user accepts its catalogue-matching risk.
+ * Daylight's Android online catalogue is YouTube Music. Legacy custom source
+ * configuration remains stored for compatibility, but is never activated by
+ * playback, downloads, prefetching or a restored source priority.
+ * Device files and saved downloads are selected before this online registry.
  */
 object SourceRegistry {
 
@@ -103,6 +98,8 @@ object SourceRegistry {
      * tracks instead of re-probing on every resolve.
      */
     private var instances: Map<String, MusicSource> = emptyMap()
+    private val defaultYouTubeConfig = SourceConfig(id = "daylight-youtube", kind = SourceKind.YOUTUBE)
+    private val defaultYouTubeSource by lazy { YouTubeSource(defaultYouTubeConfig) }
 
     fun init(context: Context) {
         // Same repair and degradation as AuthStore; see EncryptedPrefs.
@@ -175,29 +172,13 @@ object SourceRegistry {
         }
     }
 
-    /**
-     * The enabled sources, module first and YouTube last, however they're stored.
-     *
-     * The user's standing choice and nothing else. Both playback and downloads
-     * start here, so disabling JioSaavn or an addon excludes it from both. A
-     * stream is budgeted further by [activeForPlayback]; downloads deliberately
-     * apply no connection-quality ceiling — see [SourceResolver.forDownload].
-     */
+    /** The Android online source walk, independent of legacy enabled/priority preferences. */
     fun active(): List<MusicSource> =
         enabledConfigs(configs.value)
-            // Not in the walk at all while it would be refused anyway: an addon
-            // that asked for a lossless output costs nothing — not even a timed
-            // out search — while there isn't one. See [SourceConfig.checkValidLossless].
-            .filterNot { it.awaitsLosslessOutput }
-            .sortedBy { it.kind.rank }
-            .mapNotNull { instances[it.id] }
+            .map { instances[it.id] ?: defaultYouTubeSource }
 
-    /**
-     * [active], minus the addons whose manifest said `allowDownloads: 0`. A
-     * download walks this instead, so the next source in line serves it.
-     */
-    fun activeForDownload(): List<MusicSource> =
-        active().filter { config(it.configId)?.allowDownloads != false }
+    /** YouTube Music is also the online download source; addon manifest flags no longer apply. */
+    fun activeForDownload(): List<MusicSource> = active()
 
     /**
      * Records what an addon's manifest said about downloads and lossless
@@ -222,9 +203,17 @@ object SourceRegistry {
         )
     }
 
-    /** The common eligibility gate used by playback and download source walks. */
+    /**
+     * The same policy is applied every time, including after an upgrade or
+     * restore. Normalizing a runtime copy preserves all saved custom sources
+     * and credentials while preventing them from receiving background calls.
+     */
     internal fun enabledConfigs(configs: List<SourceConfig>): List<SourceConfig> =
-        configs.filter { it.enabled && it.isComplete }
+        listOf(
+            configs.firstOrNull { it.kind == SourceKind.YOUTUBE }
+                ?.copy(enabled = true, allowDownloads = true, checkValidLossless = false)
+                ?: defaultYouTubeConfig,
+        )
 
     /**
      * [active], minus the sources the ceiling on the connection in hand does
@@ -341,7 +330,9 @@ object SourceRegistry {
         // the instance it already had, rather than being replaced by an
         // identical-but-cold one every time an unrelated row is toggled.
         val previous = instances
-        instances = next.associate { config ->
+        // Keep legacy configuration on disk, but do not create its clients or
+        // module runtimes now that their settings entry is removed.
+        instances = enabledConfigs(next).associate { config ->
             val existing = previous[config.id]?.takeIf { it.configuredBy(config) }
             config.id to (existing ?: build(config))
         }

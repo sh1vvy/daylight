@@ -627,7 +627,7 @@ class SourcesTest {
     }
 
     @Test
-    fun `disabled JioSaavn and addons are excluded from the source list used by downloads`() {
+    fun `Android source list excludes addons and JioSaavn regardless of their saved switches`() {
         val disabledJio = SourceConfig(kind = SourceKind.JIOSAAVN, enabled = false)
         val disabledAddon = SourceConfig(
             kind = SourceKind.ADDON,
@@ -645,7 +645,7 @@ class SourcesTest {
             listOf(disabledJio, disabledAddon, enabledAddon, youtube),
         )
 
-        assertEquals(listOf(enabledAddon.id, youtube.id), enabled.map { it.id })
+        assertEquals(listOf(youtube.id), enabled.map { it.id })
     }
 
     @Test

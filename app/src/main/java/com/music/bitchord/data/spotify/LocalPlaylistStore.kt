@@ -38,7 +38,10 @@ object LocalPlaylistStore {
 
     private val persistenceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     @Volatile private var writer: LocalPlaylistSnapshotWriter? = null
-    private val collection = LocalPlaylistCollection { snapshot -> writer?.enqueue(snapshot) }
+    private val collection = LocalPlaylistCollection(
+        persistSnapshot = { snapshot -> writer?.enqueue(snapshot) },
+        onActivity = LibraryPlaylistOrderStore::recordActivity,
+    )
     val playlists = collection.playlists
 
     @Synchronized
@@ -60,8 +63,7 @@ object LocalPlaylistStore {
     }
 
     @Synchronized
-    fun savePlaylist(title: String, songs: List<Song>): LocalPlaylist =
-        collection.savePlaylist(title, songs).also { LibraryPlaylistOrderStore.recordCreated(it.browseId) }
+    fun savePlaylist(title: String, songs: List<Song>): LocalPlaylist = collection.savePlaylist(title, songs)
     fun deletePlaylist(id: String) = collection.deletePlaylist(id)
     fun renamePlaylist(id: String, newTitle: String) = collection.renamePlaylist(id, newTitle)
     fun getPlaylist(id: String): LocalPlaylist? = collection.getPlaylist(id)
@@ -71,7 +73,9 @@ object LocalPlaylistStore {
 /** Mutations publish immediately; the only work under the lock is copying lists. */
 internal class LocalPlaylistCollection(
     private val persistSnapshot: (List<LocalPlaylist>) -> Unit,
+    private val onActivity: (String) -> Unit,
 ) {
+    constructor(persistSnapshot: (List<LocalPlaylist>) -> Unit) : this(persistSnapshot, {})
     private val mutationLock = Any()
     private val _playlists = MutableStateFlow<List<LocalPlaylist>>(emptyList())
     val playlists = _playlists.asStateFlow()
@@ -88,6 +92,7 @@ internal class LocalPlaylistCollection(
         val updated = listOf(playlist) + _playlists.value
         _playlists.value = updated
         persistSnapshot(updated)
+        onActivity(playlist.browseId)
         playlist
     }
 
@@ -120,12 +125,15 @@ internal class LocalPlaylistCollection(
         val cleanId = id.removePrefix("local:playlist:").removePrefix("VL")
         val index = _playlists.value.indexOfFirst { it.id == cleanId || it.id == id || it.browseId == id }
         if (index < 0) return@synchronized false
-        val updated = _playlists.value.mapIndexed { position, playlist ->
-            if (position == index) playlist.copy(songs = playlist.songs + song.copy(setVideoId = null))
-            else playlist
+        val changed = _playlists.value[index].let { playlist ->
+            playlist.copy(songs = playlist.songs + song.copy(setVideoId = null))
         }
+        // Persist recent activity in the local collection itself as well, so
+        // a restart and any reader outside Library keep the same order.
+        val updated = listOf(changed) + _playlists.value.filterIndexed { position, _ -> position != index }
         _playlists.value = updated
         persistSnapshot(updated)
+        onActivity(changed.browseId)
         true
     }
 }

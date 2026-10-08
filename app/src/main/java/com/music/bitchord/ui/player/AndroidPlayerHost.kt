@@ -19,6 +19,7 @@ import com.music.bitchord.data.lyrics.LyricLine
 import com.music.bitchord.data.lyrics.LyricsTranslation
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.data.settings.AndroidOnlineQuality
 import com.music.bitchord.data.settings.LastPlayerScreen
 import com.music.bitchord.playback.AudioOutputStatus
 import com.music.bitchord.playback.AudioRouting
@@ -52,11 +53,20 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
     // appLanguageTag() in composition, including language changes at runtime.
     private val spotifyCanvasUnavailable = MutableStateFlow(false).asStateFlow()
     private val followAppLanguage = MutableStateFlow("").asStateFlow()
+    // A legacy Lossless preference cannot start an online quality upgrade on
+    // the YouTube-only catalogue. Actual local lossless badges still read the
+    // decoded format from NerdStats, independently of this preference.
+    private val audioQualityWifi = AppSettings.audioQualityWifi
+        .map(AndroidOnlineQuality::streamingSelection)
+        .stateIn(scope, SharingStarted.Eagerly, AndroidOnlineQuality.streamingSelection(AppSettings.audioQualityWifi.value))
+    private val audioQualityCellular = AppSettings.audioQualityCellular
+        .map(AndroidOnlineQuality::streamingSelection)
+        .stateIn(scope, SharingStarted.Eagerly, AndroidOnlineQuality.streamingSelection(AppSettings.audioQualityCellular.value))
 
     override val settings: PlayerSettingsSource = object : PlayerSettingsSource {
         override val animatedCanvas get() = AppSettings.animatedCanvas
-        override val audioQualityCellular get() = AppSettings.audioQualityCellular
-        override val audioQualityWifi get() = AppSettings.audioQualityWifi
+        override val audioQualityCellular get() = this@AndroidPlayerHost.audioQualityCellular
+        override val audioQualityWifi get() = this@AndroidPlayerHost.audioQualityWifi
         override val canvasOverCellular get() = AppSettings.canvasOverCellular
         override val fullBleedArtwork get() = AppSettings.fullBleedArtwork
         override val hideSongStatus get() = AppSettings.hideSongStatus

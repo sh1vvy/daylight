@@ -61,10 +61,17 @@ without changing the listener's saved expansion choices. Account & integrations
 and Jam remain directly accessible; Credits is at the bottom of Account & integrations.
 Replay opens from the Library, including when there is no listening history yet.
 
-New playlist creations are recorded locally and displayed newest first, including
-after a server refresh or restart. Renaming and adding songs do not change creation
-order. Older playlists retain their existing ordering. The same policy applies to
-the Library preview and Show all; local playlists lead the On device shelf.
+Successful playlist creations and song additions are recorded locally and displayed
+most recently updated first, including after a server refresh or restart. Viewing,
+renaming, cancelled duplicate additions and failed writes do not change this order.
+The Library preview and Show all use the same order, and Show all opens at the top.
+New creations remain visible while the server's library feed catches up.
+
+Settings uses soft tonal cards and spaced subsections instead of dark dividing
+lines. Category icons and descriptions distinguish the groups from their controls.
+The Playback Sources menu is removed: YouTube Music is the online playback and
+download source, independently of older saved provider preferences. Local files
+and network folders remain available; WebDAV and SMB setup is in Downloads & storage.
 
 Playlist credits open a small creator profile using the playlist header's owner,
 with available avatar, description and public playlists. Local playlists use a

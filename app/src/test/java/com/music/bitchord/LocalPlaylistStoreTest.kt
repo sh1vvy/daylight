@@ -170,4 +170,39 @@ class LocalPlaylistStoreTest {
         assertFalse(collection.addSong("missing", song("two")))
         assertEquals(2, saved.size)
     }
+
+    @Test
+    fun `successful additions make an older local playlist first and preserve that order on disk`() {
+        val snapshots = mutableListOf<List<LocalPlaylist>>()
+        val activities = mutableListOf<String>()
+        val collection = LocalPlaylistCollection(
+            persistSnapshot = { snapshots += it },
+            onActivity = { activities += it },
+        )
+        val earlier = collection.savePlaylist("Z earlier", listOf(song("one")))
+        val latest = collection.savePlaylist("A latest", listOf(song("two")))
+        assertEquals(listOf(latest.id, earlier.id), collection.playlists.value.map { it.id })
+        assertTrue(collection.addSong(earlier.browseId, song("three")))
+        assertEquals(listOf(earlier.id, latest.id), collection.playlists.value.map { it.id })
+        assertEquals(listOf(earlier.browseId, latest.browseId, earlier.browseId), activities)
+        val restarted = LocalPlaylistCollection { }
+        restarted.restore(LocalPlaylistSnapshotCodec.decode(LocalPlaylistSnapshotCodec.encode(snapshots.last())))
+        assertEquals(collection.playlists.value, restarted.playlists.value)
+    }
+
+    @Test
+    fun `restore viewing rename deletion and failed additions never emit playlist activity`() {
+        val activities = mutableListOf<String>()
+        val collection = LocalPlaylistCollection(
+            persistSnapshot = {},
+            onActivity = { activities += it },
+        )
+        val existing = LocalPlaylist("existing", "Before", listOf(song("one")))
+        collection.restore(listOf(existing))
+        collection.getPlaylist(existing.id)
+        collection.renamePlaylist(existing.id, "After")
+        assertFalse(collection.addSong("missing", song("two")))
+        collection.deletePlaylist(existing.id)
+        assertTrue(activities.isEmpty())
+    }
 }

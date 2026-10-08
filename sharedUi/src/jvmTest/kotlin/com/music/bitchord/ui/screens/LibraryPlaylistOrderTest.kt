@@ -100,4 +100,65 @@ class LibraryPlaylistOrderTest {
         assertNull(shelf(item("VLFIRST")).newestCreatedPlaylistId(listOf("SECOND", "FIRST")))
         assertNull(playlists.newestCreatedPlaylistId(listOf("local:playlist:new", "SECOND", "FIRST")))
     }
+
+    @Test
+    fun `existing playlist touched by a song addition outranks a newly created playlist in every sort`() {
+        val playlists = shelf(item("VLNEW", "A newest creation"), item("VLOLD", "Z updated"), item("VLOTHER", "Other"))
+        LibrarySort.entries.forEach { sort ->
+            assertEquals(
+                listOf("VLOLD", "VLNEW", "VLOTHER"),
+                playlists.orderedForLibrary(listOf("VLNEW"), sort, listOf("OLD", "NEW")).ids(),
+            )
+        }
+        assertEquals("OLD", playlists.newestCreatedPlaylistId(listOf("OLD", "NEW")))
+    }
+
+    @Test
+    fun `localized remote playlist shelf and raw playlist cards use the same activity order`() {
+        val localized = HomeShelf("Listes de lecture", listOf(
+            item("PLnew", "A first alphabetically"), item("VLPLold", "Z recently updated"),
+        ))
+        assertEquals(true, localized.isPlaylistLibraryShelf())
+        assertEquals(
+            listOf("VLPLold", "PLnew"),
+            localized.orderedForLibrary(emptyList(), LibrarySort.TITLE_ASC, listOf("PLold", "VLPLnew")).ids(),
+        )
+    }
+
+    @Test
+    fun `local activity survives localized mixed on-device shelves and live show-all snapshots`() {
+        val device = HomeShelf("Sur cet appareil", listOf(
+            item("local:playlist:new", "A newer creation"),
+            item("download:album", "B album"),
+            item("local:playlist:old", "Z recent addition"),
+        ))
+        assertEquals(false, device.isPlaylistLibraryShelf())
+        val activity = listOf("local:playlist:old", "local:playlist:new")
+        assertEquals(listOf("local:playlist:old", "local:playlist:new", "download:album"),
+            device.orderedForLibrary(emptyList(), LibrarySort.TITLE_ASC, activity).ids())
+        assertEquals("local:playlist:old", device.newestCreatedPlaylistId(activity))
+    }
+
+    @Test
+    fun `catalogue albums backed by VLOLAK never become playlist shelves`() {
+        val albums = HomeShelf("Albums", listOf(item("VLOLAKfirst", "A"), item("VLOLAKsecond", "Z")))
+        assertEquals(false, albums.isPlaylistLibraryShelf())
+        assertEquals(albums.ids(), albums.orderedForLibrary(
+            emptyList(), LibrarySort.DEFAULT, listOf("OLAKsecond")).ids())
+    }
+
+    @Test
+    fun `an updated remote playlist is first in its downloaded on-device show-all shelf too`() {
+        val onDevice = HomeShelf("On device", listOf(
+            item("local:playlist:sp_local_recent", "A local creation"),
+            item("local:playlist:VLPLremote", "Z updated remote playlist"),
+            item("local:playlist:MPREbalbum", "B downloaded album"),
+        ))
+        val activity = listOf("PLremote", "local:playlist:sp_local_recent")
+        assertEquals(
+            listOf("local:playlist:VLPLremote", "local:playlist:sp_local_recent", "local:playlist:MPREbalbum"),
+            onDevice.orderedForLibrary(emptyList(), LibrarySort.TITLE_ASC, activity).ids(),
+        )
+        assertEquals("PLremote", onDevice.newestCreatedPlaylistId(activity))
+    }
 }

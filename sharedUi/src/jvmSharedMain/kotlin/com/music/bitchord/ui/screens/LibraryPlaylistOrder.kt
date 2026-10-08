@@ -5,20 +5,27 @@ import com.music.bitchord.data.model.HomeShelf
 import com.music.bitchord.data.model.playlistCreationOrderKey
 import com.music.bitchord.data.settings.LibrarySort
 
-/** Deleting an item or creating in another shelf must not reveal an older playlist. */
+/** IDs identify collection shelves even when their display title is localized. */
+fun HomeShelf.isPlaylistLibraryShelf(): Boolean = title == YtMusicRepository.PLAYLISTS_SHELF ||
+    (items.isNotEmpty() && items.all { it.browseId?.isPlaylistLibraryId() == true })
+
+private fun String.isPlaylistLibraryId(): Boolean = startsWith("local:playlist:") ||
+    startsWith("spotify:playlist:") || startsWith("PL") ||
+    (startsWith("VL") && !startsWith("VLOLAK") && !startsWith("VLMPRE"))
+
+/** Deleting an item or changing another shelf must not reveal an older playlist. */
 internal fun HomeShelf.newestCreatedPlaylistId(createdPlaylistIds: List<String>): String? {
     val newest = createdPlaylistIds.firstOrNull()?.let(::playlistCreationOrderKey) ?: return null
     return newest.takeIf { key -> items.any { it.browseId?.let(::playlistCreationOrderKey) == key } }
 }
 
-/** Only known creation events override sorting; old collections retain provider order. */
+/** Only successful creation/addition events override sorting; other cards keep their normal order. */
 internal fun HomeShelf.orderedForLibrary(
     pinned: List<String>,
     sort: LibrarySort,
     createdPlaylistIds: List<String>,
 ): HomeShelf {
-    val hasPlaylists = title == YtMusicRepository.PLAYLISTS_SHELF ||
-        items.any { it.browseId?.startsWith("local:playlist:") == true }
+    val hasPlaylists = isPlaylistLibraryShelf() || items.any { it.browseId?.isPlaylistLibraryId() == true }
     val pinRank = if (hasPlaylists) {
         pinned.withIndex().associate { playlistCreationOrderKey(it.value) to it.index }
     } else emptyMap()

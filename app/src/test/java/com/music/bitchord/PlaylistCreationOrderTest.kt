@@ -1,6 +1,7 @@
 package com.music.bitchord
 
 import com.music.bitchord.data.library.PlaylistCreationOrder
+import com.music.bitchord.data.library.playlistActivityHistory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -63,5 +64,51 @@ class PlaylistCreationOrderTest {
         } finally {
             workers.shutdownNow()
         }
+    }
+
+    @Test
+    fun `adding to an existing playlist promotes it and persists its new position`() {
+        val snapshots = mutableListOf<List<String>>()
+        val order = PlaylistCreationOrder { snapshots += it }
+        order.restore(listOf("NEWEST", "OLDER", "local:playlist:local"))
+        order.recordActivity("VLOLDER")
+        assertEquals(listOf("OLDER", "NEWEST", "local:playlist:local"), order.createdPlaylistIds.value)
+        order.recordActivity("local:playlist:local")
+        assertEquals(listOf("local:playlist:local", "OLDER", "NEWEST"), order.createdPlaylistIds.value)
+        order.recordActivity("VLOLDER")
+        assertEquals(listOf("OLDER", "local:playlist:local", "NEWEST"), snapshots.last())
+        val restarted = PlaylistCreationOrder { }
+        restarted.restore(snapshots.last())
+        assertEquals(order.createdPlaylistIds.value, restarted.createdPlaylistIds.value)
+    }
+
+    @Test
+    fun `repeated writes to the newest playlist do not duplicate it or rewrite an identical order`() {
+        val snapshots = mutableListOf<List<String>>()
+        val order = PlaylistCreationOrder { snapshots += it }
+        order.restore(listOf("OTHER"))
+        order.recordActivity("KNOWN")
+        order.recordActivity("VLKNOWN")
+        order.recordActivity("   ")
+        assertEquals(listOf("KNOWN", "OTHER"), order.createdPlaylistIds.value)
+        assertEquals(1, snapshots.size)
+    }
+
+    @Test
+    fun `activity history migrates earlier creation preferences without losing their order`() {
+        val legacy = """["SECOND","FIRST","local:playlist:old"]"""
+        assertEquals(listOf("SECOND", "FIRST", "local:playlist:old"), playlistActivityHistory(null, legacy))
+        assertEquals(listOf("MODIFIED", "SECOND"), playlistActivityHistory("""["MODIFIED","SECOND"]""", legacy))
+        assertEquals(listOf("SECOND", "FIRST", "local:playlist:old"), playlistActivityHistory("bad json", legacy))
+        assertEquals(emptyList<String>(), playlistActivityHistory(null, null))
+    }
+
+    @Test
+    fun `a successful addition before initialization wins over disk history`() {
+        val snapshots = mutableListOf<List<String>>()
+        val order = PlaylistCreationOrder { snapshots += it }
+        order.recordActivity("MODIFIED")
+        order.restore(listOf("OLD", "VLMODIFIED", "ANOTHER"))
+        assertEquals(listOf("MODIFIED", "OLD", "ANOTHER"), snapshots.last())
     }
 }

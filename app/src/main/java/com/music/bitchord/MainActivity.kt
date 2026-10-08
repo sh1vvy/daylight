@@ -142,6 +142,7 @@ import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.isUnresolvedSpotify
 import com.music.bitchord.data.model.UiState
 import com.music.bitchord.data.model.UserPlaylist
+import com.music.bitchord.data.model.playlistCreationOrderKey
 import com.music.bitchord.data.model.EntityType
 import com.music.bitchord.data.model.SearchHistoryEntity
 import kotlinx.coroutines.Dispatchers
@@ -168,8 +169,6 @@ import com.music.bitchord.ui.screens.CACHE_FOLDER_BROWSE_ID
 import com.music.bitchord.ui.screens.ListenTogetherScreen
 import com.music.bitchord.ui.screens.PartyServerEditor
 import com.music.bitchord.ui.screens.SettingsScreen
-import com.music.bitchord.ui.screens.SourceEditorAlert
-import com.music.bitchord.ui.screens.SourcesScreen
 import com.music.bitchord.data.sources.TrackMatcher
 import com.music.bitchord.ui.screens.CreatorProfileScreen
 import com.music.bitchord.ui.screens.SpotifyLibraryScreen
@@ -242,9 +241,6 @@ import com.music.bitchord.ui.components.backdrop.backdrops.LayerBackdrop
 import com.music.bitchord.ui.components.backdrop.backdrops.layerBackdrop
 import com.music.bitchord.ui.components.backdrop.backdrops.rememberLayerBackdrop
 import com.music.bitchord.ui.components.isGlassSupported
-import com.music.bitchord.data.sources.SourceConfig
-import com.music.bitchord.data.sources.SourceKind
-import com.music.bitchord.data.sources.SourceRegistry
 import com.music.bitchord.ui.components.MiniPlayer
 import com.music.bitchord.ui.components.QueueActionNotice
 import com.music.bitchord.ui.components.QueueActionNoticeHost
@@ -556,17 +552,9 @@ private fun BitChordApp(
     // null = no sub-screen overlay; non-null = that key is rendered as overlay.
     var settingsSubScreen by rememberSaveable { mutableStateOf<String?>(null) }
     var showAccountScrobbling by rememberSaveable { mutableStateOf(false) }
-    var showSources by rememberSaveable { mutableStateOf(false) }
     var showListenTogether by rememberSaveable { mutableStateOf(false) }
     var showEqualizer by rememberSaveable { mutableStateOf(false) }
 
-    // Hosted here rather than inside SourcesScreen so its frosted card has
-    // something to blur: that screen is drawn inside the `hazeSource` subtree,
-    // and a haze effect sampling the layer it is itself part of renders with no
-    // background at all. Hosting it here also puts the scrim over the tab bar
-    // and the mini player, like every other alert in the app.
-    var editingSource by remember { mutableStateOf<SourceConfig?>(null) }
-    var confirmJioSaavn by remember { mutableStateOf(false) }
     var editingPartyServer by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
     // A Library shelf's "Show all" — the shelf it was opened from, so its own
@@ -735,7 +723,6 @@ private fun BitChordApp(
         replayStory = null
         showReplayShare = false
         showAccountScrobbling = false
-        showSources = false
         showEqualizer = false
         showHistory = false
         showDiscord = false
@@ -832,7 +819,7 @@ private fun BitChordApp(
     // Playlists imported without (or instead of) a YouTube Music account live
     // in the app's own store, and sit on the same shelf as the downloaded ones.
     val localPlaylists by com.music.bitchord.data.spotify.LocalPlaylistStore.playlists.collectAsStateWithLifecycle()
-    val createdPlaylistIds by com.music.bitchord.data.library.LibraryPlaylistOrderStore.createdPlaylistIds.collectAsStateWithLifecycle()
+    val createdPlaylistIds by com.music.bitchord.data.library.LibraryPlaylistOrderStore.recentPlaylistIds.collectAsStateWithLifecycle()
     val configuration = LocalConfiguration.current
     val localPlaylistItems = remember(localPlaylists, configuration, context) {
         localPlaylists.map { playlist ->
@@ -1041,6 +1028,19 @@ private fun BitChordApp(
     val libraryListState = rememberLazyListState()
     val historyListState = rememberLazyListState()
     val libraryShowAllGridState = rememberLazyGridState()
+    var lastPlaylistActivity by remember { mutableStateOf(createdPlaylistIds.firstOrNull()) }
+    LaunchedEffect(createdPlaylistIds.firstOrNull()) {
+        val newest = createdPlaylistIds.firstOrNull()
+        if (newest == lastPlaylistActivity) return@LaunchedEffect
+        lastPlaylistActivity = newest
+        val shelf = libraryShowAll ?: return@LaunchedEffect
+        if (newest == null) return@LaunchedEffect
+        val localActivity = newest.startsWith("local:playlist:")
+        val belongsToShelf = (!localActivity && shelf.title == YtMusicRepository.PLAYLISTS_SHELF) ||
+            (localActivity && shelf.title == context.getString(R.string.on_device)) ||
+            shelf.items.any { it.browseId?.let(::playlistCreationOrderKey) == newest }
+        if (belongsToShelf) libraryShowAllGridState.requestScrollToItem(0)
+    }
     val searchListState = rememberLazyListState()
     val currentListState = when (selectedTab) {
         TAB_HOME -> homeListState
@@ -2463,7 +2463,6 @@ private fun BitChordApp(
                 viewModel.clearDetail()
                 showSettings = false
                 showAccountScrobbling = false
-                showSources = false
                 showListenTogether = false
                 showEqualizer = false
                 showReplay = false
@@ -2552,7 +2551,7 @@ private fun BitChordApp(
             }
         }
         BackHandler(
-            enabled = detail != null && !showSettings && !showAccountScrobbling && !showSources && !showListenTogether &&
+            enabled = detail != null && !showSettings && !showAccountScrobbling && !showListenTogether &&
                 !showEqualizer && !showReplay,
         ) { viewModel.closeDetail() }
         BackHandler(enabled = selectedMoodGenre != null && detail == null && !showSettings && !showReplay) {
@@ -2568,10 +2567,6 @@ private fun BitChordApp(
             showAccountScrobbling = false
             if (settingsSubScreen == "account_scrobbling") settingsSubScreen = null
         }
-        BackHandler(enabled = showSources) {
-            showSources = false
-            if (settingsSubScreen == "sources") settingsSubScreen = null
-        }
         BackHandler(enabled = showListenTogether) {
             showListenTogether = false
             if (settingsSubScreen == "listen_together") settingsSubScreen = null
@@ -2586,7 +2581,7 @@ private fun BitChordApp(
         // One back step out of Settings, or out of any tab but Home, lands on
         // Home rather than exiting — only Home itself hands back to the system,
         // which is what actually closes/minimizes the app.
-        BackHandler(enabled = showSettings && settingsSubScreen != "credits" && !showSpotify && !showAccountScrobbling && !showSources && !showListenTogether && !showEqualizer && !showReplay) {
+        BackHandler(enabled = showSettings && settingsSubScreen != "credits" && !showSpotify && !showAccountScrobbling && !showListenTogether && !showEqualizer && !showReplay) {
             showSettings = false
             // Only when Settings was the whole of what was on screen. Opened
             // over Replay or over a release page, closing it reveals that again
@@ -2595,7 +2590,7 @@ private fun BitChordApp(
         }
         BackHandler(
             enabled = detail == null && !showSettings && !showAccountScrobbling && !showSpotify &&
-                !showSources && !showListenTogether && !showEqualizer && !showReplay && selectedMoodGenre == null &&
+                !showListenTogether && !showEqualizer && !showReplay && selectedMoodGenre == null &&
                 selectedTab != TAB_HOME,
         ) {
             selectedTab = TAB_HOME
@@ -2603,7 +2598,6 @@ private fun BitChordApp(
         BackHandler(enabled = showUpdateDialog) { showUpdateDialog = false }
         BackHandler(enabled = showLastfmLogin) { showLastfmLogin = false }
         BackHandler(enabled = discordDialog != null) { discordDialog = null }
-        BackHandler(enabled = editingSource != null) { editingSource = null }
         BackHandler(enabled = editingPartyServer) { editingPartyServer = false }
         BackHandler(enabled = showHistory) { showHistory = false }
         // Disabled while a detail page is open over the grid: that one's own
@@ -2636,7 +2630,6 @@ private fun BitChordApp(
                     settingsSubScreen == "credits" && !showSettings && showAccountScrobbling -> "account_scrobbling"
                     settingsSubScreen != null -> "settings"
                     showAccountScrobbling -> "account_scrobbling"
-                    showSources -> "sources"
                     showListenTogether -> "listen_together"
                     showEqualizer -> "equalizer"
                     // Above Replay, not below it. The top bar's account
@@ -2837,14 +2830,6 @@ private fun BitChordApp(
                             onCredits = { settingsSubScreen = "credits" },
                             contentPadding = listPadding,
                         )
-                    } else if (key == "sources") {
-                        SourcesScreen(
-                            contentPadding = listPadding,
-                            onEditSource = { editingSource = it },
-                            onEditWebDav = { showWebDavEditor = true },
-                            onEditSmb = { showSmbEditor = true },
-                            onConfirmJioSaavn = { confirmJioSaavn = true },
-                        )
                     } else if (key == "listen_together") {
                         ListenTogetherScreen(
                             signedIn = signedIn,
@@ -2884,10 +2869,8 @@ private fun BitChordApp(
                                     showEqualizer = true
                                 },
                                 onLyricsSources = { showLyricsSources = true },
-                                onSources = {
-                                    settingsSubScreen = "sources"
-                                    showSources = true
-                                },
+                                onWebDav = { showWebDavEditor = true },
+                                onSmb = { showSmbEditor = true },
                                 onListenTogether = {
                                     settingsSubScreen = "listen_together"
                                     showListenTogether = true
@@ -3367,7 +3350,10 @@ private fun BitChordApp(
                             onShelfItemLongPress = onBrowseLongPress,
                             onNewPlaylist = { creatingPlaylist = true },
                             onImportSpotifyPlaylist = { showSpotifyImportDialog = true },
-                            onShowAll = { shelf -> libraryShowAll = shelf },
+                            onShowAll = { shelf ->
+                                libraryShowAllGridState.requestScrollToItem(0)
+                                libraryShowAll = shelf
+                            },
                             replay = {
                                 LibraryReplayEntry(
                                     cards = replayCards,
@@ -3440,20 +3426,6 @@ private fun BitChordApp(
                             ) {
                                 CreditsScreen(contentPadding = listPadding)
                             }
-                        }
-                    }
-                    "sources" -> {
-                        Surface(
-                            modifier = Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.background,
-                        ) {
-                            SourcesScreen(
-                                contentPadding = listPadding,
-                                onEditSource = { editingSource = it },
-                                onEditWebDav = { showWebDavEditor = true },
-                                onEditSmb = { showSmbEditor = true },
-                                onConfirmJioSaavn = { confirmJioSaavn = true },
-                            )
                         }
                     }
                     "listen_together" -> {
@@ -3532,7 +3504,7 @@ private fun BitChordApp(
                         detail.type == BrowseType.PLAYLIST ||
                         detail.type == BrowseType.ARTIST) &&
                     !isLocalDetail && !showDiscord && !showHistory && !showSettings &&
-                    !showAccountScrobbling && !showSources && !showListenTogether && !showEqualizer && !showReplay
+                    !showAccountScrobbling && !showListenTogether && !showEqualizer && !showReplay
                 val chromePageColor = when {
                     isDetailVisible -> detailPalette.background
                     pageKey == "$TAB_KEY$TAB_HOME" -> daylightHomeBackground(MaterialTheme.colorScheme.background, LocalPinkCloud.current)
@@ -3576,7 +3548,6 @@ private fun BitChordApp(
                         showHistory -> stringResource(R.string.history)
                         libraryShowAll != null && detail == null -> libraryShowAll?.title.orEmpty()
                         showAccountScrobbling -> stringResource(R.string.account_scrobbling)
-                        showSources -> stringResource(R.string.sources)
                         showListenTogether -> stringResource(R.string.listen_together)
                         showEqualizer -> stringResource(R.string.equalizer)
                         showSettings -> stringResource(R.string.settings)
@@ -3597,7 +3568,7 @@ private fun BitChordApp(
                     // Search has no large in-list header to hand the title back to —
                     // the field takes that space — so its bar title is always up.
                     scrolled = when {
-                        showSettings || showAccountScrobbling || showSources || showListenTogether ||
+                        showSettings || showAccountScrobbling || showListenTogether ||
                             showEqualizer ||
                             showDiscord || showHistory ||
                             (libraryShowAll != null && detail == null) ||
@@ -3620,7 +3591,6 @@ private fun BitChordApp(
                         showHistory -> ({ showHistory = false })
                         libraryShowAll != null && detail == null -> ({ libraryShowAll = null })
                         showAccountScrobbling -> ({ showAccountScrobbling = false })
-                        showSources -> ({ showSources = false })
                         showListenTogether -> ({ showListenTogether = false })
                         showEqualizer -> ({ showEqualizer = false })
                         settingsSubScreen != null -> ({ settingsSubScreen = null })
@@ -3636,7 +3606,7 @@ private fun BitChordApp(
                     accessory = if (
                         selectedTab == TAB_SEARCH && detail == null && selectedMoodGenre == null &&
                         libraryShowAll == null && !showSettings && !showAccountScrobbling &&
-                        !showSources && !showListenTogether && !showEqualizer && !showDiscord &&
+                        !showListenTogether && !showEqualizer && !showDiscord &&
                         !showHistory && !showReplay
                     ) {
                         {
@@ -3728,7 +3698,7 @@ private fun BitChordApp(
                         }
                         // Only worth surfacing where there's room for it and it won't
                         // be mistaken for a per-page action — Home, at rest.
-                        if (!showSettings && !showAccountScrobbling && !showSources && !showListenTogether && !showEqualizer &&
+                        if (!showSettings && !showAccountScrobbling && !showListenTogether && !showEqualizer &&
                             detail == null && selectedTab == TAB_HOME
                         ) {
                             updateNotice?.let { update ->
@@ -3885,7 +3855,6 @@ private fun BitChordApp(
                     viewModel.closeMoodGenre()
                     showSettings = false
                     showAccountScrobbling = false
-                    showSources = false
                     showListenTogether = false
                     showEqualizer = false
                     showReplay = false
@@ -5280,35 +5249,6 @@ private fun BitChordApp(
             )
         }
 
-        editingSource?.let { config ->
-            SourceEditorAlert(
-                hazeState = hazeState,
-                config = config,
-                onDismiss = { editingSource = null },
-                onSaved = { editingSource = null },
-                onDelete = {
-                    SourceRegistry.remove(config.id)
-                    editingSource = null
-                },
-                scope = scope,
-            )
-        }
-
-        if (confirmJioSaavn) {
-            ConfirmationAlert(
-                hazeState = hazeState,
-                title = stringResource(R.string.enable_jiosaavn),
-                description = stringResource(R.string.jiosaavn_mismatch_warning),
-                confirmLabel = stringResource(R.string.enable_anyway),
-                onConfirm = {
-                    SourceRegistry.configs.value
-                        .firstOrNull { it.kind == SourceKind.JIOSAAVN }
-                        ?.let { SourceRegistry.setEnabled(it.id, true) }
-                    confirmJioSaavn = false
-                },
-                onDismiss = { confirmJioSaavn = false },
-            )
-        }
 
     }
 }

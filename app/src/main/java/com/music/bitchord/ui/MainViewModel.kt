@@ -551,6 +551,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _library = MutableStateFlow<UiState<LibraryPage>>(UiState.Loading)
     val library: StateFlow<UiState<LibraryPage>> = _library.asStateFlow()
+    private val latestLibraryRequest = LatestLibraryRequest()
 
     /** In-memory cache is partitioned by account and profile; it is never shared. */
     private data class ListenerSnapshot(
@@ -860,6 +861,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** The account's own playlists, for the picker and the library tab. */
     private val _playlists = MutableStateFlow<List<UserPlaylist>>(emptyList())
     val playlists: StateFlow<List<UserPlaylist>> = _playlists.asStateFlow()
+    private val pendingPlaylistCreations = PendingPlaylistCreations()
 
     private val _playlistsLoading = MutableStateFlow(false)
     val playlistsLoading: StateFlow<Boolean> = _playlistsLoading.asStateFlow()
@@ -870,7 +872,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val identity = listenerKey()
         _playlistsLoading.value = true
         viewModelScope.launch {
-            YtMusicRepository.userPlaylists().onSuccess { if (identity == listenerKey()) _playlists.value = it }
+            YtMusicRepository.userPlaylists().onSuccess {
+                if (identity == listenerKey()) _playlists.value = pendingPlaylistCreations.mergeOwnPlaylists(identity, it)
+            }
             if (identity == listenerKey()) _playlistsLoading.value = false
         }
     }
@@ -920,6 +924,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * bar both, which read [DetailPage.title].
      */
     private fun setPlaylistTitle(playlist: UserPlaylist, title: String) {
+        pendingPlaylistCreations.rename(listenerKey(), playlist.browseId, title)
         _playlists.value = _playlists.value.map {
             if (it.playlistId == playlist.playlistId) it.copy(title = title) else it
         }
@@ -981,6 +986,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         if (!requireSignIn() || plan.accountKey != listenerKey()) return@executePlaylistAdd false
                         YtMusicRepository.addToPlaylist(playlist.playlistId, listOf(song.videoId)).fold(
                             onSuccess = { added ->
+                                com.music.bitchord.data.library.LibraryPlaylistOrderStore.recordActivity(playlist.browseId)
                                 libraryStale = true
                                 appendToOpenPlaylist(playlist.browseId, song, added[song.videoId])
                                 _detailStack.value = _detailStack.value.map { page ->
@@ -1022,7 +1028,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 } else if (identity != listenerKey()) {
                     Result.failure(IllegalStateException("Account changed"))
                 } else {
-                    YtMusicRepository.createPlaylist(name, privacy, listOfNotNull(song?.videoId)).map { playlistId ->
+                    YtMusicRepository.createPlaylist(name, privacy, listOfNotNull(song?.videoId)).mapCatching { playlistId ->
+                        check(identity == listenerKey()) { "Account changed" }
                         setPlaylistOwned("VL$playlistId", true)
                         libraryStale = true
                         val created = UserPlaylist(
@@ -1032,6 +1039,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                             thumbnailUrl = song?.thumbnailUrl,
                         )
                         com.music.bitchord.data.library.LibraryPlaylistOrderStore.recordCreated(created.browseId)
+                        pendingPlaylistCreations.remember(identity, created)
                         _playlists.value = listOf(created) + _playlists.value.filterNot { it.playlistId == created.playlistId }
                         editPlaylistShelf { items ->
                             listOf(ShelfItem(
@@ -1059,14 +1067,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         onResult: ((browseId: String?, title: String, savedLocally: Boolean, remoteAddedCount: Int?) -> Unit)? = null,
     ) {
         val name = title.trim().ifBlank { text(R.string.new_playlist) }
+        val identity = listenerKey()
         viewModelScope.launch {
             if (authStore.isSignedIn) {
                 com.music.bitchord.data.spotify.createPlaylistInBatches(
                     videoIds = videoIds,
-                    create = { initial -> YtMusicRepository.createPlaylist(name, privacy, initial) },
-                    append = { id, chunk -> YtMusicRepository.addToPlaylist(id, chunk).map { Unit } },
+                    create = { initial ->
+                        if (identity == listenerKey()) YtMusicRepository.createPlaylist(name, privacy, initial)
+                        else Result.failure(IllegalStateException("Account changed"))
+                    },
+                    append = { id, chunk ->
+                        if (identity == listenerKey()) YtMusicRepository.addToPlaylist(id, chunk).map { Unit }
+                        else Result.failure(IllegalStateException("Account changed"))
+                    },
                 ).fold(
                     onSuccess = { result ->
+                        if (identity != listenerKey()) return@launch
                         val playlistId = result.playlistId
                         setPlaylistOwned("VL$playlistId", true)
                         libraryStale = true
@@ -1077,6 +1093,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                             thumbnailUrl = songs.firstOrNull()?.thumbnailUrl,
                         )
                         com.music.bitchord.data.library.LibraryPlaylistOrderStore.recordCreated(created.browseId)
+                        pendingPlaylistCreations.remember(identity, created)
                         _playlists.value = listOf(created) +
                             _playlists.value.filterNot { it.playlistId == created.playlistId }
                         editPlaylistShelf { items ->
@@ -1099,6 +1116,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         }
                     },
                     onFailure = {
+                        if (identity != listenerKey()) return@launch
                         val local = com.music.bitchord.data.spotify.LocalPlaylistStore.savePlaylist(name, songs)
                         onResult?.invoke(local.browseId, local.title, true, null)
                     },
@@ -1252,6 +1270,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             YtMusicRepository.deletePlaylist(playlist.playlistId).fold(
                 onSuccess = {
+                    pendingPlaylistCreations.remove(listenerKey(), playlist.browseId)
                     _playlists.value = _playlists.value
                         .filterNot { it.playlistId == playlist.playlistId }
                     // The card in the library tab, which is the surface the
@@ -1727,19 +1746,26 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun fetchLibrary(identity: String?) {
-        val next = YtMusicRepository.library().fold(
+        if (identity != listenerKey()) return
+        val request = latestLibraryRequest.begin()
+        val response = YtMusicRepository.library()
+        // Check before merging: an obsolete response must not acknowledge
+        // pending creates, start a liked-song sync, or overwrite newer state.
+        if (identity != listenerKey() || !latestLibraryRequest.isCurrent(request)) return
+        val next = response.fold(
             onSuccess = { page ->
+                val merged = pendingPlaylistCreations.mergeLibrary(identity, page)
                 // Liked Music is published with just its first page on the tab;
                 // the rest of the collection is synced into LikeState here, in
                 // this ViewModel's scope, so it is cancelled with the screen and
                 // a liked track past the first page still reads as liked.
                 page.likedContinuation?.let { token -> syncLikedMusic(identity, token) }
-                if (page.isEmpty) UiState.Error(text(R.string.library_empty))
-                else UiState.Success(page.copy(likedContinuation = null))
+                if (merged.isEmpty) UiState.Error(text(R.string.library_empty))
+                else UiState.Success(merged.copy(likedContinuation = null))
             },
             onFailure = { UiState.Error(it.friendly()) },
         )
-        if (identity == listenerKey()) _library.value = next
+        if (identity == listenerKey() && latestLibraryRequest.isCurrent(request)) _library.value = next
     }
 
     /**
@@ -3287,6 +3313,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun clearListenerState(restoreCached: Boolean = false) {
+        latestLibraryRequest.invalidate()
+        pendingPlaylistCreations.clear()
         clearDetail()
         YtMusicRepository.clearBrowseCache()
         _account.value = null
@@ -3337,6 +3365,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         authStore.signOut()
+        latestLibraryRequest.invalidate()
+        pendingPlaylistCreations.clear()
         clearDetail()
         YtMusicRepository.clearBrowseCache()
         Innertube.cookie = null

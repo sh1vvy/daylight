@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,8 +31,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.ScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Notes
-import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.Animation
+import androidx.compose.material.icons.rounded.AccessibilityNew
+import androidx.compose.material.icons.rounded.Backup
+import androidx.compose.material.icons.rounded.FastForward
+import androidx.compose.material.icons.rounded.FolderOpen
+import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.rounded.HighQuality
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.LibraryBooks
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.SyncAlt
+import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BlurOff
@@ -40,6 +53,7 @@ import androidx.compose.material.icons.rounded.Brightness4
 import androidx.compose.material.icons.rounded.Cached
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Download
@@ -56,10 +70,10 @@ import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.Lan
 import androidx.compose.material.icons.rounded.LocalOffer
 import androidx.compose.material.icons.rounded.MusicOff
 import androidx.compose.material.icons.rounded.MotionPhotosOff
-import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Person
@@ -101,6 +115,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -142,9 +157,9 @@ import com.music.bitchord.data.settings.AutomixPerformanceMode
 import com.music.bitchord.R
 import com.music.bitchord.data.sources.DeviceCodecs
 import com.music.bitchord.data.settings.AudioQuality
+import com.music.bitchord.data.settings.AndroidOnlineQuality
 import com.music.bitchord.data.settings.DownloadQuality
 import com.music.bitchord.data.settings.ThemeMode
-import com.music.bitchord.ui.theme.LocalPinkCloud
 import com.music.bitchord.data.stats.Backup
 import com.music.bitchord.playback.AudioCache
 import com.music.bitchord.ui.player.fullBleedArtworkAvailable
@@ -171,9 +186,10 @@ fun SettingsScreen(
     onAccountScrobbling: () -> Unit,
     onEqualizer: () -> Unit,
     onLyricsSources: () -> Unit,
-    onSources: () -> Unit,
     onListenTogether: () -> Unit,
     onAppLanguage: () -> Unit,
+    onWebDav: () -> Unit,
+    onSmb: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
@@ -409,8 +425,8 @@ fun SettingsScreen(
         CollapsibleSettingsGroup(
             search = search,
             header = stringResource(R.string.appearance),
-            icon = Icons.Rounded.Brightness4,
-            summary = stringResource(R.string.theme) + " · " + stringResource(R.string.app_language) + " · " + stringResource(R.string.liquid_glass),
+            icon = Icons.Rounded.Palette,
+            summary = stringResource(R.string.settings_category_appearance_subtitle),
             expanded = categoryExpansion.isExpanded("appearance", searchQuery),
             onToggle = { categoryExpansion = categoryExpansion.toggle("appearance") },
         ) {
@@ -428,7 +444,7 @@ fun SettingsScreen(
             val liquidGlassTitle = stringResource(R.string.liquid_glass)
             row(liquidGlassTitle, "glass", "blur") {
                 SettingsRow(
-                    icon = Icons.Rounded.AutoAwesome,
+                    icon = Icons.Rounded.WaterDrop,
                     title = liquidGlassTitle,
                     subtitle = stringResource(
                         if (liquidGlassSupported) {
@@ -547,21 +563,11 @@ fun SettingsScreen(
         CollapsibleSettingsGroup(
             search = search,
             header = stringResource(R.string.playback),
-            icon = Icons.Rounded.GraphicEq,
-            summary = stringResource(R.string.audio_quality) + " · " + stringResource(R.string.equalizer) + " · " + stringResource(R.string.prefer_music_only),
+            icon = Icons.Rounded.Headphones,
+            summary = stringResource(R.string.settings_category_playback_subtitle),
             expanded = categoryExpansion.isExpanded("playback", searchQuery),
             onToggle = { categoryExpansion = categoryExpansion.toggle("playback") },
         ) {
-            val sourceTitle = stringResource(R.string.source)
-            val sourceSubtitle = stringResource(R.string.sources_subtitle)
-            row(sourceTitle, sourceSubtitle, "addon", "lossless") {
-                SettingsRow(
-                    icon = Icons.Rounded.Extension,
-                    title = sourceTitle,
-                    subtitle = sourceSubtitle,
-                    onClick = onSources,
-                )
-            }
             val onWifiTitle = stringResource(R.string.on_wifi)
             row(onWifiTitle, "wi-fi", "streaming quality") {
                 SettingsRow(
@@ -642,7 +648,7 @@ fun SettingsScreen(
             val outputPrecisionTitle = stringResource(R.string.output_precision)
             row(outputPrecisionTitle, "pcm", "bit depth", "sample rate", "dac") {
                 SettingsRow(
-                    icon = Icons.Rounded.GraphicEq,
+                    icon = Icons.Rounded.HighQuality,
                     title = outputPrecisionTitle,
                     subtitle = buildString {
                         append(outputStatus.sink)
@@ -741,7 +747,7 @@ fun SettingsScreen(
             val automixPerformanceTitle = stringResource(R.string.automix_performance)
             row(automixPerformanceTitle, "cpu", "battery") {
                 SettingsRow(
-                    icon = Icons.Rounded.Tune,
+                    icon = Icons.Rounded.Memory,
                     title = automixPerformanceTitle,
                     subtitle = stringResource(R.string.automix_performance_subtitle),
                     value = automixPerformance.localizedLabel(),
@@ -751,7 +757,7 @@ fun SettingsScreen(
             val skipSilenceTitle = stringResource(R.string.skip_silence)
             row(skipSilenceTitle, "silence") {
                 SettingsRow(
-                    icon = Icons.AutoMirrored.Rounded.VolumeOff,
+                    icon = Icons.Rounded.FastForward,
                     title = skipSilenceTitle,
                     // Silence skipping is Media3's own processor, and
                     // `DefaultAudioSink.configure` appends that processor list
@@ -927,11 +933,12 @@ fun SettingsScreen(
         CollapsibleSettingsGroup(
             search = search,
             header = stringResource(R.string.settings_category_lyrics_accessibility),
-            icon = Icons.AutoMirrored.Rounded.Notes,
-            summary = stringResource(R.string.synced_lyrics) + " · " + stringResource(R.string.lyric_language_buttons) + " · " + stringResource(R.string.reduce_animation),
+            icon = Icons.Rounded.AccessibilityNew,
+            summary = stringResource(R.string.settings_category_lyrics_subtitle),
             expanded = categoryExpansion.isExpanded("lyrics_accessibility", searchQuery),
             onToggle = { categoryExpansion = categoryExpansion.toggle("lyrics_accessibility") },
-        ) {            val syncedLyricsTitle = stringResource(R.string.synced_lyrics)
+        ) {
+            val syncedLyricsTitle = stringResource(R.string.synced_lyrics)
             row(syncedLyricsTitle, "lyrics", "translation", "lrclib", "musixmatch") {
                 SettingsRow(
                     icon = Icons.AutoMirrored.Rounded.Notes,
@@ -976,7 +983,7 @@ fun SettingsScreen(
                 val lyricsSourcesTitle = stringResource(R.string.lyrics_sources)
                 row(lyricsSourcesTitle, "lyrics", "lrclib", "musixmatch") {
                     SettingsRow(
-                        icon = Icons.Rounded.Language,
+                        icon = Icons.Rounded.LibraryBooks,
                         title = lyricsSourcesTitle,
                         subtitle = lyricsSources
                             .sortedBy { it.ordinal }
@@ -1051,17 +1058,17 @@ fun SettingsScreen(
         CollapsibleSettingsGroup(
             search = search,
             header = stringResource(R.string.settings_category_downloads_storage),
-            icon = Icons.Rounded.Download,
-            summary = stringResource(R.string.downloads) + " · " + stringResource(R.string.local_music) + " · " + stringResource(R.string.storage),
+            icon = Icons.Rounded.FolderOpen,
+            summary = stringResource(R.string.settings_category_downloads_subtitle),
             expanded = categoryExpansion.isExpanded("downloads_storage", searchQuery),
             onToggle = { categoryExpansion = categoryExpansion.toggle("downloads_storage") },
         ) {
             val downloadQualityTitle = stringResource(R.string.download_quality)
-            row(downloadQualityTitle, "offline", "lossless") {
+            row(downloadQualityTitle, "offline", "youtube") {
                 SettingsRow(
                     icon = Icons.Rounded.Download,
                     title = downloadQualityTitle,
-                    subtitle = stringResource(R.string.download_quality_subtitle, downloadQuality.perTrack),
+                    subtitle = stringResource(R.string.download_quality_dialog_subtitle),
                     value = downloadQuality.localizedLabel(),
                     onClick = { pickingDownloadQuality = true },
                 )
@@ -1129,6 +1136,25 @@ fun SettingsScreen(
                 )
             }
 
+            val webDavTitle = stringResource(R.string.webdav)
+            row(webDavTitle, "server", "cloud", "nextcloud", "folder") {
+                SettingsRow(
+                    icon = Icons.Rounded.Cloud,
+                    title = webDavTitle,
+                    subtitle = stringResource(R.string.webdav_subtitle),
+                    onClick = onWebDav,
+                )
+            }
+            val smbTitle = stringResource(R.string.smb)
+            row(smbTitle, "server", "nas", "network", "share", "folder") {
+                SettingsRow(
+                    icon = Icons.Rounded.Lan,
+                    title = smbTitle,
+                    subtitle = stringResource(R.string.smb_subtitle),
+                    onClick = onSmb,
+                )
+            }
+
             val cacheUnlimited = cacheLimitBytes == AppSettings.UNLIMITED_CACHE_LIMIT_BYTES
             // One slider stop above the largest fixed size represents Unlimited.
             val cacheLimitMb = if (cacheUnlimited) {
@@ -1193,7 +1219,7 @@ fun SettingsScreen(
             val clearImageCacheTitle = stringResource(R.string.clear_image_cache)
             row(clearImageCacheTitle, "cache", "artwork", "free space") {
                 SettingsRow(
-                    icon = Icons.Rounded.DeleteSweep,
+                    icon = Icons.Rounded.Image,
                     title = clearImageCacheTitle,
                     subtitle = stringResource(R.string.clear_image_cache_subtitle),
                     onClick = {
@@ -1209,8 +1235,8 @@ fun SettingsScreen(
         CollapsibleSettingsGroup(
             search = search,
             header = stringResource(R.string.performance),
-            icon = BitChordIcons.Performance,
-            summary = stringResource(R.string.high_performance_mode) + " · " + stringResource(R.string.advanced_options),
+            icon = Icons.Rounded.Speed,
+            summary = stringResource(R.string.settings_category_performance_subtitle),
             expanded = categoryExpansion.isExpanded("performance", searchQuery),
             onToggle = { categoryExpansion = categoryExpansion.toggle("performance") },
         ) {
@@ -1274,7 +1300,7 @@ fun SettingsScreen(
             val smartAlignmentTitle = stringResource(R.string.smart_version_alignment)
             row(smartAlignmentTitle, "alignment", "sync", "waveform", "video", "audio", "skit", "intro") {
                 SettingsRow(
-                    icon = Icons.Rounded.GraphicEq,
+                    icon = Icons.Rounded.SyncAlt,
                     title = smartAlignmentTitle,
                     subtitle = stringResource(R.string.smart_version_alignment_subtitle),
                     trailing = {
@@ -1314,8 +1340,8 @@ fun SettingsScreen(
         CollapsibleSettingsGroup(
             search = search,
             header = stringResource(R.string.your_data),
-            icon = Icons.Rounded.FileUpload,
-            summary = stringResource(R.string.export_data) + " · " + stringResource(R.string.import_data),
+            icon = Icons.Rounded.Backup,
+            summary = stringResource(R.string.settings_category_data_subtitle),
             expanded = categoryExpansion.isExpanded("your_data", searchQuery),
             onToggle = { categoryExpansion = categoryExpansion.toggle("your_data") },
         ) {
@@ -1588,21 +1614,14 @@ private fun QualityTarget.localizedTitle(): String = stringResource(
 
 @Composable
 private fun AudioQuality.localizedLabel(): String = stringResource(
-    when (this) {
-        AudioQuality.LOW -> R.string.low
-        AudioQuality.MEDIUM -> R.string.medium
-        AudioQuality.HIGH -> R.string.high
-        AudioQuality.LOSSLESS -> R.string.lossless
-    },
+    if (AndroidOnlineQuality.streamingSelection(this) == AudioQuality.LOW) R.string.low
+    else R.string.high,
 )
 
 @Composable
 private fun DownloadQuality.localizedLabel(): String = stringResource(
-    when (this) {
-        DownloadQuality.STANDARD -> R.string.standard
-        DownloadQuality.HIGH -> R.string.high
-        DownloadQuality.LOSSLESS -> R.string.lossless
-    },
+    if (AndroidOnlineQuality.downloadSelection(this) == DownloadQuality.STANDARD) R.string.standard
+    else R.string.high,
 )
 
 @Composable
@@ -1703,8 +1722,7 @@ internal fun AccountCard(
                     .size(52.dp)
                     .clip(CircleShape)
                     .background(
-                        if (LocalPinkCloud.current) MaterialTheme.colorScheme.surfaceVariant
-                        else MaterialTheme.colorScheme.outline,
+                        MaterialTheme.colorScheme.surfaceVariant,
                     ),
                 contentAlignment = Alignment.Center,
             ) {
@@ -1744,7 +1762,7 @@ internal fun AccountCard(
     }
 }
 
-/** The quality options for one connection, with what each costs in data. */
+/** The available YouTube Music quality choices for one connection. */
 @Composable
 private fun QualitySheet(
     target: QualityTarget,
@@ -1780,11 +1798,11 @@ private fun QualitySheet(
                 )
             }
         }
-        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
+        HorizontalDivider(thickness = 0.5.dp, color = settingsOutlineColor())
 
         // Best first — the option most people want shouldn't be last.
-        AudioQuality.entries.reversed().forEach { quality ->
-            val chosen = quality == selected
+        AndroidOnlineQuality.streamingOptions.forEach { quality ->
+            val chosen = quality == AndroidOnlineQuality.streamingSelection(selected)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1802,7 +1820,10 @@ private fun QualitySheet(
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                     Text(
-                        text = stringResource(R.string.quality_hourly, quality.detail, quality.hourly),
+                        text = stringResource(
+                            if (quality == AudioQuality.LOW) R.string.quality_data_saver_description
+                            else R.string.quality_best_available_description,
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1853,7 +1874,7 @@ private fun AutomixPerformanceSheet(
                 )
             }
         }
-        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
+        HorizontalDivider(thickness = 0.5.dp, color = settingsOutlineColor())
         AutomixPerformanceMode.entries.forEach { mode ->
             val chosen = mode == selected
             Row(
@@ -1898,15 +1919,7 @@ private fun AutomixPerformanceSheet(
     }
 }
 
-/**
- * What to keep when a track is saved, with what each rung costs on disk.
- *
- * Priced per track rather than per hour, the way [QualitySheet] is. That sheet
- * is answering "what will listening cost me this hour", because a stream is
- * spent again on every replay; this one is answering "what will keeping this
- * cost me", and the answer is charged once. Same widget, different question, so
- * the numbers beside the options are in different units on purpose.
- */
+/** Best available audio or smaller files for tracks saved to the device. */
 @Composable
 private fun DownloadQualitySheet(
     selected: DownloadQuality,
@@ -1938,12 +1951,12 @@ private fun DownloadQualitySheet(
                 )
             }
         }
-        HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline)
+        HorizontalDivider(thickness = 0.5.dp, color = settingsOutlineColor())
 
         // Best first, matching [QualitySheet] — and here the best rung is also
         // the default, so the checkmark starts where the eye does.
-        DownloadQuality.entries.reversed().forEach { quality ->
-            val chosen = quality == selected
+        AndroidOnlineQuality.downloadOptions.forEach { quality ->
+            val chosen = quality == AndroidOnlineQuality.downloadSelection(selected)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1961,7 +1974,10 @@ private fun DownloadQualitySheet(
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                     Text(
-                        text = stringResource(R.string.quality_per_track, quality.detail, quality.perTrack),
+                        text = stringResource(
+                            if (quality == DownloadQuality.STANDARD) R.string.quality_smaller_download_description
+                            else R.string.quality_best_available_description,
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1982,7 +1998,7 @@ private fun DownloadQualitySheet(
 
 // ---- Building blocks --------------------------------------------------------
 
-internal val GroupShape = RoundedCornerShape(14.dp)
+internal val GroupShape = RoundedCornerShape(22.dp)
 internal val GROUP_INSET = 16.dp
 internal val ROW_INSET = 16.dp
 internal val ICON_SIZE = 22.dp
@@ -2022,10 +2038,8 @@ private class SettingsGroupScope(
 }
 
 /**
- * A [SettingsGroup] whose rows are filtered by the search field, and which
- * takes itself off the screen when none of them are left. Dividers fall
- * between the rows that survived rather than around the gaps left by the ones
- * that didn't, so a filtered card is indistinguishable from a hand-written one.
+ * A [SettingsGroup] whose rows are filtered by the search field. Remaining
+ * controls stay with their related sub-controls; an empty card is omitted.
  */
 @Composable
 private fun SearchableSettingsGroup(
@@ -2058,43 +2072,97 @@ private fun CollapsibleSettingsGroup(
     scope.content()
     if (scope.entries.isEmpty()) return
     SettingsGroup(topSpacing = 12.dp) {
-        SettingsRow(
+        SettingsCategoryHeader(
             icon = icon,
             title = header,
-            subtitle = summary.takeUnless { expanded },
+            summary = summary,
+            expanded = expanded,
             onClick = onToggle.takeUnless { search.active },
-            trailing = {
-                Icon(
-                    imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                    contentDescription = stringResource(
-                        if (expanded) R.string.settings_collapse_category else R.string.settings_expand_category,
-                        header,
-                    ),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
         )
         if (expanded) {
-            RowDivider()
             SettingsEntries(scope.entries)
         }
     }
 }
 
 @Composable
-private fun SettingsEntries(entries: List<SettingsGroupScope.Entry>) {
-    entries.forEachIndexed { index, entry ->
-        when {
-            index > 0 && entry.divided -> RowDivider()
-            index == 0 && !entry.divided -> Spacer(Modifier.height(10.dp))
+private fun SettingsCategoryHeader(
+    icon: ImageVector,
+    title: String,
+    summary: String,
+    expanded: Boolean,
+    onClick: (() -> Unit)?,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = ROW_INSET, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.09f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
         }
-        entry.content()
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Icon(
+            imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+            contentDescription = stringResource(
+                if (expanded) R.string.settings_collapse_category else R.string.settings_expand_category,
+                title,
+            ),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+@Composable
+private fun SettingsEntries(entries: List<SettingsGroupScope.Entry>) {
+    val sections = mutableListOf<MutableList<SettingsGroupScope.Entry>>()
+    entries.forEach { entry ->
+        if (sections.isEmpty() || entry.divided) sections.add(mutableListOf(entry))
+        else sections.last().add(entry)
+    }
+    Column(Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+        sections.forEachIndexed { index, section ->
+            if (index > 0) Spacer(Modifier.height(8.dp))
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(lerp(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surface, 0.5f)),
+            ) {
+                if (!section.first().divided) Spacer(Modifier.height(10.dp))
+                section.forEach { it.content() }
+            }
+        }
     }
 }
 
 /**
- * One inset card of rows, with an uppercase header above and an optional
- * plain-language [footer] below. Rows are separated by [RowDivider].
+ * One softly outlined inset card, with a quiet header above and an optional
+ * plain-language [footer] below.
  */
 @Composable
 internal fun SettingsGroup(
@@ -2106,8 +2174,8 @@ internal fun SettingsGroup(
 ) {
     if (header != null) {
         Text(
-            text = header.uppercase(Locale.ROOT),
-            style = MaterialTheme.typography.labelSmall,
+            text = header,
+            style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(
                 start = GROUP_INSET + 4.dp,
@@ -2124,7 +2192,9 @@ internal fun SettingsGroup(
             .fillMaxWidth()
             .padding(horizontal = GROUP_INSET)
             .clip(GroupShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(MaterialTheme.colorScheme.surface)
+            .border(0.75.dp, settingsOutlineColor(), GroupShape)
+            .padding(vertical = 4.dp),
     ) {
         content()
     }
@@ -2145,11 +2215,14 @@ internal fun SettingsGroup(
 @Composable
 internal fun RowDivider() {
     HorizontalDivider(
-        modifier = Modifier.padding(start = TEXT_INSET),
+        modifier = Modifier.padding(start = TEXT_INSET, end = ROW_INSET),
         thickness = 0.5.dp,
-        color = MaterialTheme.colorScheme.outline,
+        color = settingsOutlineColor(),
     )
 }
+
+@Composable
+private fun settingsOutlineColor(): Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f)
 
 /**
  * The standard row: glyph, title, optional subtitle, and on the right either
@@ -2335,7 +2408,7 @@ internal fun SliderRow(
     val colors = SliderDefaults.colors(
         thumbColor = MaterialTheme.colorScheme.primary,
         activeTrackColor = MaterialTheme.colorScheme.primary,
-        inactiveTrackColor = MaterialTheme.colorScheme.outline,
+        inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f),
     )
     Column(Modifier.padding(start = ROW_INSET, end = ROW_INSET, top = 12.dp, bottom = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -2426,8 +2499,7 @@ internal fun SegmentedControl(
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(
-                if (LocalPinkCloud.current) MaterialTheme.colorScheme.surfaceVariant
-                else MaterialTheme.colorScheme.outline,
+                MaterialTheme.colorScheme.surfaceVariant,
             )
             // Enough of a margin for the track to read as a track. At 2dp the
             // selected pill sat all but flush against the container's own edge,

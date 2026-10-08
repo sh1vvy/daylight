@@ -13,7 +13,7 @@ import org.junit.Test
 /**
  * What "only the host controls the music" means on this side of the wire.
  *
- * The enforcement itself is the server's — see `backend/party.MayControl` — so
+ * The enforcement itself is the server's — see `cloudflare-jam/src/party.js control authorization` — so
  * what is worth pinning down here is the derivation every player surface reads,
  * and the two compatibility cases that decide whether a party is locked or not
  * when the answer is missing.

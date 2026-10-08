@@ -196,7 +196,7 @@ object ListenTogether {
          * it — the host is never locked out of their own party, and a device
          * that is not in one is not in this feature's business at all. The
          * server enforces the same rule, so this is what the app shows rather
-         * than what makes it true; see `backend/party.MayControl`.
+         * than what makes it true; see `cloudflare-jam/src/party.js control authorization`.
          *
          * Host is reassigned when a host leaves, so this can go false under a
          * listener mid-party. Everything reading it has to follow.

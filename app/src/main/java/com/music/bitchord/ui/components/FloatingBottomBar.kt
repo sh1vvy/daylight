@@ -72,7 +72,7 @@ data class BottomTab(
  * closer to the edge on all four sides rather than floating in the middle of a
  * wide margin.
  *
- * Shared with [GlassNavBar], which is meant to measure the same as this bar
+ * Shared with [PlayerNavigationBar], which is meant to measure the same as this bar
  * rather than merely near it.
  */
 internal val PILL_INSET = 6.dp

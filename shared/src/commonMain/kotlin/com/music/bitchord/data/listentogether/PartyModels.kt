@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
  * The server speaks camelCase for exactly this reason — it has no other client
  * — so these carry no `@SerialName` and will not need any. If a field ever has
  * to be renamed on one side, rename it on both rather than papering over the
- * difference here; the protocol is documented in `backend/README.md` and that
+ * difference here; the protocol is documented in `docs/JAM_PROTOCOL.md` and that
  * document is the contract.
  */
 

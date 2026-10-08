@@ -21,7 +21,7 @@
  *
  * Taken from EchoMusicApp/Echo-Music, which carries the three modifications
  * listed above; BitChord's own use of it is in
- * [com.music.bitchord.ui.components.GlassNavBar]. One further change here:
+ * [com.music.bitchord.ui.components.PlayerNavigationBar]. One further change here:
  *
  * - `tabBarContentModifier` is a `@Composable () -> Modifier` factory rather
  *   than a single Modifier value. It is applied to three surfaces of three
@@ -118,6 +118,7 @@ import com.music.bitchord.ui.components.LocalGlassExport
 import com.music.bitchord.ui.components.backdrop.backdrops.layerBackdrop
 import com.music.bitchord.ui.components.backdrop.backdrops.rememberLayerBackdrop
 import com.music.bitchord.ui.components.isGlassSupported
+import com.music.bitchord.ui.components.LocalLiquidGlassEnabled
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
 import kotlin.math.roundToInt
@@ -760,7 +761,7 @@ private fun SharedTransitionScope.ExpandedTabs(
     pill.reduceMotion = reduceAnimation
     // The lens samples the recorded page, and "reduce dynamic blur" stops that
     // recording. There the flat pill carries the whole motion on its own.
-    val glassPill = isGlassSupported() && !reduceDynamicBlur
+    val glassPill = LocalLiquidGlassEnabled.current && isGlassSupported() && !reduceDynamicBlur
     val barGlass = rememberLayerBackdrop()
     val tabRow = rememberLayerBackdrop()
 
@@ -863,7 +864,7 @@ private fun SharedTransitionScope.ExpandedTabs(
                     modifier = Modifier
                         .fillMaxWidth()
                         .onSizeChanged { rowSize = it }
-                        .layerBackdrop(tabRow)
+                        .then(if (glassPill) Modifier.layerBackdrop(tabRow) else Modifier)
                         .pointerInput(tabCount, tabStepPx, currentSelectedTabIndex, isRtl) {
                             if (currentSelectedTabIndex < 0 || tabStepPx <= 0f) return@pointerInput
 

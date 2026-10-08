@@ -118,8 +118,11 @@ can override the JSON array as a deployment variable. Never upload private keys.
 
 ## Source and licensing
 
-`src/party.js` adapts `../backend/party/party.go`; `src/worker.js` adapts the HTTP
-and WebSocket protocol from `../backend/main.go`. The original Go server remains
-in `../backend` as a reference/alternative deployment. Original authors and
-licenses are retained in [UPSTREAM.md](../UPSTREAM.md) and [LICENSE](../LICENSE).
+`src/party.js` and `src/worker.js` adapt the original Go party server's room,
+HTTP and WebSocket protocol. That source is preserved in the
+[upstream baseline](https://github.com/sh1vvy/daylight/tree/2c599a6cd7a195227a11dab5769f88da8fd08194/backend);
+the checkout keeps only the deployed Cloudflare implementation. The current
+[Jam protocol](../docs/JAM_PROTOCOL.md) documents the client/server contract.
+Original authors and licenses are retained in [UPSTREAM.md](../UPSTREAM.md)
+and [LICENSE](../LICENSE).
 The Cloudflare adaptation is part of Daylight and distributed under GPLv3.

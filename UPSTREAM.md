@@ -6,7 +6,7 @@ Upstream baseline: `2c599a6cd7a195227a11dab5769f88da8fd08194`.
 
 Daylight-specific changes began on 8 October 2026. The GitHub repository became standalone on the same date. The original Git history, copyright notices, dependency credits, and [GPLv3 license](LICENSE) are retained. Original contributor names are preserved in [UPSTREAM_MAINTAINERS.md](docs/UPSTREAM_MAINTAINERS.md).
 
-Daylight’s public app ID is `com.sh1vvy.daylight`; development uses `.dev`. Internal `com.music.bitchord` source namespaces, JNI entry points, and playback URI names remain compatible with the inherited engine. They are implementation identifiers, not the product’s install identity. Desktop code is retained for upstream reference but is excluded from Daylight’s build and CI.
+Daylight’s public app ID is `com.sh1vvy.daylight`; development uses `.dev`. Internal `com.music.bitchord` source namespaces, JNI entry points, and playback URI names remain compatible with the inherited engine. They are implementation identifiers, not the product’s install identity. The current checkout contains the Android app and Cloudflare Jam service. Removed desktop and legacy server sources remain available in the original Git history.
 
 Daylight updates use its own repository. The upstream party server, presence reporting, Discord application ID, donation links, and deployment workflows are not defaults for Daylight. Configure your own optional integrations in `local.properties`.
 

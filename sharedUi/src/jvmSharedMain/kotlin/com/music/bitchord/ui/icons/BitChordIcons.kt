@@ -105,7 +105,7 @@ object BitChordIcons {
     /**
      * The one solid icon in the set, and the tab bar is why.
      *
-     * Selection here is carried by tint alone — see `GlassNavBar`, where the
+     * Selection here is carried by tint alone — see `PlayerNavigationBar`, where the
      * unselected tabs are the same glyph at 65% — so the home tab is the anchor
      * of the bar rather than a state of it, and a filled silhouette reads as
      * that anchor at 24dp where a four-stroke outline reads as detail.

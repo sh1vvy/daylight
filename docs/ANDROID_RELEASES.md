@@ -29,6 +29,7 @@ so users can install over Daylight Dev without losing library or settings.
 For each requested development update, run the Android/shared tests and build
 `:app:assembleDevDebug`. Publish a GitHub **prerelease**, explicitly **not latest**,
 tagged `v0.2.2-dev.N`, containing only `daylight-dev.apk` and `SHA256SUMS.txt`.
+Update the README's direct Dev download link to that tag after verifying its assets.
 Do not replace the stable APKs or change the Jam website's public download badge.
 Source fixes can be pushed to main without publishing a production APK.
 

@@ -1,16 +1,8 @@
-# Additional Documentation
+# Daylight documentation
 
-Additional Daylight project and development information will be maintained here.
-
-## Project
-- [Listen Together Server Documentation](backend/README.md): Architecture, synchronization protocol, and deployment instructions for the party server.
-- [Lyrics Translation](docs/LYRICS_TRANSLATION.md): Pipeline documentation for on-demand lyrics translation, timing projection, and UI transitions.
-
-## Development
-Placeholder for project development notes and environment guides.
-
-## Technical Notes
-Placeholder for component-specific technical documentation and implementation notes.
-
-## Future Documentation
-Placeholder for future project and technical documentation.
+- [Development](docs/DEVELOPMENT.md): Android setup, local builds and tests.
+- [Android releases](docs/ANDROID_RELEASES.md): Signing and stable/development channels.
+- [Cloudflare Jam](cloudflare-jam/README.md): Service setup, deployment and room behavior.
+- [Jam protocol](docs/JAM_PROTOCOL.md): Android/server synchronization and message contract.
+- [Lyrics translation](docs/LYRICS_TRANSLATION.md): Translation, timing and UI transitions.
+- [Performance](docs/PERFORMANCE.md): Improvements and validation.

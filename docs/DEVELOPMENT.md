@@ -12,7 +12,7 @@ Requirements:
 - Android NDK 27.0.12077973
 - CMake 3.22.1
 
-Open the repository in Android Studio, or copy `local.properties.example` to `local.properties` and set `sdk.dir` to your SDK directory. Gradle requires a configured Android SDK to include the app module.
+Open the repository in Android Studio, or copy `local.properties.example` to `local.properties` and set `sdk.dir` to your SDK directory. Gradle requires a configured Android SDK to build the project.
 
 ```sh
 ./gradlew :app:assembleDevDebug
@@ -27,6 +27,16 @@ Development APKs are in `app/build/outputs/apk/dev/debug/`. Production APKs use 
 | Development | `com.sh1vvy.daylight.dev` |
 
 The channels install separately and keep separate application data. Internal Kotlin namespaces and native entry points remain unchanged for engine compatibility; see [acknowledgments](../UPSTREAM.md).
+
+## Repository layout
+
+`app/` is the Android application. `shared/` and `sharedUi/` contain its models,
+providers and UI; their JVM targets run host-side tests and do not produce a
+desktop app. `native/` supplies the C++ audio analysis and FFmpeg code used by
+Android. `cloudflare-jam/` contains the owned Jam website and service.
+
+Desktop packaging, the legacy Go server and unused support/banner images have
+been removed from the checkout. Original sources remain in Git history.
 
 ## Test providers
 
@@ -52,7 +62,7 @@ Set these in the ignored `local.properties` file or as build environment variabl
 | `LASTFM_API_KEY`, `LASTFM_SECRET` | Your Last.fm app credentials. |
 | `DISCORD_APPLICATION_ID` | Your Discord application ID for presence artwork and buttons; empty by default. |
 
-Jam uses Daylight's Cloudflare service at [jam.sh1vvy.com](https://jam.sh1vvy.com). Shared HTTPS invitation pages open the app. See the [Cloudflare Jam guide](../cloudflare-jam/README.md) for configuration and free-tier limits. The Go backend in `backend/` is retained as an alternative deployment; its [guide](../backend/README.md) covers that setup.
+Jam uses Daylight's Cloudflare service at [jam.sh1vvy.com](https://jam.sh1vvy.com). Shared HTTPS invitation pages open the app. See the [Cloudflare Jam guide](../cloudflare-jam/README.md) for configuration and free-tier limits. The [Jam protocol](JAM_PROTOCOL.md) documents synchronization and messages.
 
 ## Android library and settings
 
@@ -97,6 +107,16 @@ surface. Manage accounts opens Account & integrations, where sign-out remains.
 Bottom-tab navigation dismisses Spotify and Discord as well as the other pushed
 pages. Spotify playlist details stay above their account/settings entry point;
 Back returns to Spotify and tab taps immediately return to their destination.
+
+The mini player and bottom tabs share one folding component with Liquid Glass
+on or off. Scrolling down compresses them into one row; scrolling up expands
+them. Both materials keep tab dragging, transport controls and player gestures.
+Regular mode uses its existing frost, or solid surfaces with Reduce dynamic blur;
+only enabled glass records the additional refraction backdrop.
+
+Playlist creation opens without partial expansion. Its form reserves keyboard
+insets, scrolls in short windows and keeps the draft name/privacy across rotation.
+A close button dismisses the draft, while keyboard Done and Create submit it.
 
 ## More context
 

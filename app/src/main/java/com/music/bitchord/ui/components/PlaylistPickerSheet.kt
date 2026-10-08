@@ -1,6 +1,8 @@
 package com.music.bitchord.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +43,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,6 +88,7 @@ import java.util.Locale
  */
 @Composable
 fun PlaylistPickerSheet(
+    onDismiss: () -> Unit,
     playlists: List<UserPlaylist>,
     loading: Boolean,
     onAdd: (List<UserPlaylist>) -> Unit,
@@ -96,7 +100,7 @@ fun PlaylistPickerSheet(
     error: String? = null,
     savedLocally: Boolean = false,
 ) {
-    var creating by remember { mutableStateOf(startCreating) }
+    var creating by rememberSaveable { mutableStateOf(startCreating) }
     // By id rather than by value: the list is re-fetched under an open sheet,
     // and a refreshed row must stay ticked.
     var selected by remember { mutableStateOf(emptySet<String>()) }
@@ -107,6 +111,7 @@ fun PlaylistPickerSheet(
             // form; the sheet's own dismiss is the way out.
             onBack = if (startCreating) null else ({ creating = false }),
             onCreate = onCreate,
+            onDismiss = onDismiss,
             busy = busy,
             error = error,
             savedLocally = savedLocally,
@@ -257,14 +262,15 @@ private fun PlaylistRow(playlist: UserPlaylist, selected: Boolean, enabled: Bool
 @Composable
 private fun NewPlaylistForm(
     onBack: (() -> Unit)?,
+    onDismiss: () -> Unit,
     onCreate: (String, PlaylistPrivacy) -> Unit,
     modifier: Modifier = Modifier,
     busy: Boolean = false,
     error: String? = null,
     savedLocally: Boolean = false,
 ) {
-    var name by remember { mutableStateOf("") }
-    var privacy by remember { mutableStateOf(PlaylistPrivacy.PRIVATE) }
+    var name by rememberSaveable { mutableStateOf("") }
+    var privacy by rememberSaveable { mutableStateOf(PlaylistPrivacy.PRIVATE) }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
@@ -279,12 +285,13 @@ private fun NewPlaylistForm(
         }
     }
 
-    // As above: the keyboard is up from the moment this opens, and "Create
-    // playlist" is below the fold without this.
+    // Insets reduce the viewport before scrolling, so the name, privacy and
+    // Create button remain reachable with the keyboard or a short window.
     Column(
         modifier
             .fillMaxWidth()
-            .imePadding(),
+            .imePadding()
+            .verticalScroll(rememberScrollState()),
     ) {
         Row(
             modifier = Modifier
@@ -314,6 +321,16 @@ private fun NewPlaylistForm(
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(
+                onClick = { focusManager.clearFocus(); onDismiss() },
+                enabled = !busy,
+            ) {
+                Icon(
+                    Icons.Rounded.Close,
+                    contentDescription = stringResource(R.string.cancel),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

@@ -22,7 +22,7 @@ The project requires the following tools:
 - **JDK**: Java Development Kit 17 (Eclipse Temurin 17 recommended).
 - **Android SDK**: `compileSdkVersion("android-37.0")`, `targetSdk = 36`, `minSdk = 26`.
 - **C/C++ NDK & CMake**: CMake 3.22.1+ and Android NDK (for native audio DSP components configured under `app/src/main/cpp`).
-- **Listen Together Backend (Optional)**: Go 1.22+ if developing or testing the party server (`backend/`).
+- **Cloudflare Jam (Optional)**: Node.js 22+ if developing or testing the party service (`cloudflare-jam/`).
 
 ## Build and Test Commands
 Run Gradle commands from the repository root.

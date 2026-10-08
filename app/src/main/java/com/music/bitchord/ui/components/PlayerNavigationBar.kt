@@ -15,7 +15,9 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -51,6 +53,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
+import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.R
 import com.music.bitchord.data.model.ROW_ART_PX
 import com.music.bitchord.data.model.Song
@@ -63,8 +70,8 @@ import com.music.bitchord.ui.haptics.rememberHaptics
 import com.music.bitchord.ui.player.PlayerDock
 
 /**
- * The liquid glass navigation bar: the iOS 26 shape where the now playing
- * controls and the tabs are one component rather than two stacked bars.
+ * A folding navigation bar with now-playing controls and tabs in one component.
+ * Liquid Glass changes its surface, never its layout or available gestures.
  *
  * Expanded, it is a full width now playing pill sitting over the tab pill and a
  * separate circular Search tab. Scrolling down collapses it inline — the tabs
@@ -74,15 +81,17 @@ import com.music.bitchord.ui.player.PlayerDock
  * [scrollConnection], which the page's scroll has to be dispatched into for any
  * of this to move; see MainActivity's `nestedScroll`.
  *
- * Every surface here samples the app backdrop through [Modifier.liquidGlass], so
- * this is only ever used where that is supported and switched on — off either,
- * MainActivity draws [MiniPlayer] and [FloatingBottomBar] instead.
+ * Glass surfaces sample the app backdrop through [Modifier.liquidGlass]. With
+ * glass off, the same surfaces use regular frost; Reduce dynamic blur uses a
+ * solid theme surface in both modes without recording a backdrop layer.
  *
  * [song] null means nothing is playing, and the accessory is simply absent: the
  * bar is then the tab pill and Search alone, and the collapse still works.
  */
+@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
-fun GlassNavBar(
+fun PlayerNavigationBar(
+    hazeState: HazeState,
     tabs: List<BottomTab>,
     selectedIndex: Int,
     onTabSelected: (Int) -> Unit,
@@ -103,11 +112,14 @@ fun GlassNavBar(
     pull: MiniPlayerPull? = null,
     modifier: Modifier = Modifier,
 ) {
-    // Held for the same reason [tabs] is. The glass factory below closes over
+    // Held for the same reason [tabs] is. The surface factory below closes over
     // this shape, and a fresh RoundedCornerShape each pass means a fresh factory
     // lambda, which the tab bar sees as a changed argument and recomposes on.
     val pillShape = remember { RoundedCornerShape(percent = 50) }
     val contentColor = glassContentColor()
+    val useGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
+    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
+    val container = MaterialTheme.colorScheme.surface
     val selectedColor = if (com.music.bitchord.ui.theme.LocalPinkCloud.current) MaterialTheme.colorScheme.primary else contentColor
     val unselectedColor = contentColor.copy(alpha = 0.65f)
     val haptics = rememberHaptics()
@@ -124,9 +136,23 @@ fun GlassNavBar(
     // order, which is where the shape wants it anyway.
     val standaloneIndex = tabs.lastIndex
 
-    // A factory, not a value — see the note in FloatingTabBar's header. Each of
-    // the three surfaces gets its own glass modifier and so its own shape cache.
-    val glassSurface: @Composable () -> Modifier = { Modifier.liquidGlass(shape = pillShape) }
+    // Each surface owns its effect/shape cache instead of sharing a modifier
+    // instance between the differently sized tabs, Search and player.
+    val barSurface: @Composable () -> Modifier = {
+        if (useGlass) {
+            Modifier.liquidGlass(shape = pillShape)
+        } else {
+            Modifier.clip(pillShape)
+                .then(
+                    if (reduceDynamicBlur) Modifier.background(container)
+                    else Modifier.optimizedHazeEffect(
+                        state = hazeState,
+                        style = HazeMaterials.regular(container),
+                    ),
+                )
+                .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, pillShape)
+        }
+    }
 
     FloatingTabBar(
         selectedTabKey = selectedIndex,
@@ -136,10 +162,10 @@ fun GlassNavBar(
             .padding(horizontal = BAR_GUTTER)
             .padding(bottom = 2.dp)
             .fillMaxWidth(),
-        tabBarContentModifier = glassSurface,
+        tabBarContentModifier = barSurface,
         inlineAccessory = song?.let { current ->
             { accessoryModifier, _ ->
-                GlassNowPlaying(
+                NowPlayingAccessory(
                     song = current,
                     isInline = true,
                     isPlaying = isPlaying,
@@ -153,13 +179,13 @@ fun GlassNavBar(
                     onBlockedControl = onBlockedControl,
                     dock = dock,
                     pull = pull,
-                    modifier = accessoryModifier.then(glassSurface()),
+                    modifier = accessoryModifier.then(barSurface()),
                 )
             }
         },
         expandedAccessory = song?.let { current ->
             { accessoryModifier, _ ->
-                GlassNowPlaying(
+                NowPlayingAccessory(
                     song = current,
                     isInline = false,
                     isPlaying = isPlaying,
@@ -173,12 +199,11 @@ fun GlassNavBar(
                     onBlockedControl = onBlockedControl,
                     dock = dock,
                     pull = pull,
-                    modifier = accessoryModifier.fillMaxWidth().then(glassSurface()),
+                    modifier = accessoryModifier.fillMaxWidth().then(barSurface()),
                 )
             }
         },
-        // Transparent: the glass surface underneath is the background, and a
-        // colour over it would be the thing you saw instead of the backdrop.
+        // The material factory owns each background in both modes.
         colors = FloatingTabBarDefaults.colors(
             backgroundColor = Color.Transparent,
             accessoryBackgroundColor = Color.Transparent,
@@ -193,21 +218,15 @@ fun GlassNavBar(
             inlineElevation = 0.dp,
             expandedElevation = 0.dp,
         ),
-        // Expanded, this is meant to be the plain [FloatingBottomBar] with a
-        // different material — same outer width, same pill inset, same tab
-        // padding, same 25dp glyph — so the two bars measure identically and the
-        // toggle changes the surface rather than the layout. The horizontal tab
-        // padding is gone with it: the tabs divide the pill by weight now, the
-        // way the plain bar's do, so a per-tab horizontal padding would only
-        // inset the ripple.
+        // Geometry stays identical when switching materials.
         sizes = FloatingTabBarDefaults.sizes(
             tabBarContentPadding = PaddingValues(PILL_INSET),
             tabExpandedContentPadding = PaddingValues(vertical = TAB_VERTICAL_PADDING),
         ),
         // Held too: this is declared `Any?`, so a fresh list every pass is a
         // changed argument by identity and defeats skipping on its own.
-        contentKey = remember(selectedIndex, tabs, contentColor) {
-            listOf(selectedIndex, tabs, contentColor)
+        contentKey = remember(selectedIndex, tabs, contentColor, selectedColor) {
+            listOf(selectedIndex, tabs, contentColor, selectedColor)
         },
     ) {
         tabs.forEachIndexed { index, tab ->
@@ -262,7 +281,7 @@ fun GlassNavBar(
 }
 
 /**
- * The now playing controls docked into [GlassNavBar] as its accessory.
+ * The now playing controls docked into [PlayerNavigationBar] as its accessory.
  *
  * Two densities of the same row rather than two components, so the shared
  * element carrying it between the bar's states has one thing to interpolate:
@@ -271,11 +290,10 @@ fun GlassNavBar(
  *
  * The content is [MiniPlayer]'s — same artwork, same transport, same haptics —
  * and not Echo's, which reaches into a player connection this app doesn't have.
- * The press response is Echo's, and belongs to the glass rather than the row:
- * a surface you can push on is the whole point of the material.
+ * Both materials share the same press response and player-opening gestures.
  */
 @Composable
-private fun GlassNowPlaying(
+private fun NowPlayingAccessory(
     song: Song,
     isInline: Boolean,
     isPlaying: Boolean,
@@ -294,9 +312,10 @@ private fun GlassNowPlaying(
     val haptics = rememberHaptics()
     val pressSource = remember { MutableInteractionSource() }
     val isPressed by pressSource.collectIsPressedAsState()
+    val reduceAnimation by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
     val pressScale by animateFloatAsState(
         targetValue = if (isPressed) 1.04f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        animationSpec = if (reduceAnimation) snap() else spring(stiffness = Spring.StiffnessMediumLow),
         label = "accessoryPressScale",
     )
 

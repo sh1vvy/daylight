@@ -764,6 +764,7 @@ fun NowPlayingScreen(
     var showAudioPipeline by remember { mutableStateOf(false) }
     var showCast by remember { mutableStateOf(false) }
     var showAudioOutput by remember { mutableStateOf(false) }
+    var showListeningOptions by remember { mutableStateOf(false) }
     var showLyricsProviders by remember { mutableStateOf(false) }
     // Gated on the Bluetooth permission the first time — see [rememberOutputPicker].
     val openAudioOutput = rememberOutputPicker { showAudioOutput = true }
@@ -773,8 +774,8 @@ fun NowPlayingScreen(
     var showListenTogetherMembers by remember { mutableStateOf(false) }
     // Who's actually in the party is worth a look before the settings page —
     // see [ListenTogetherMembersSheet]. Only meaningful once there is a party
-    // to show, so the pill and the caption fall back to [onListenTogether]
-    // itself (create/join) when there isn't one.
+    // to show; the listening-options sheet opens [onListenTogether] itself
+    // (create/join) when there isn't one.
     val openListenTogetherMembers: () -> Unit = { showListenTogetherMembers = true }
 
     val syncedLyricsEnabled by PlayerSettings.syncedLyrics.collectAsStateWithLifecycle()
@@ -1011,6 +1012,7 @@ fun NowPlayingScreen(
     // back has to close it first rather than taking the drawer out from
     // under it.
     PlayerBackHandler(enabled = showAudioOutput) { showAudioOutput = false }
+    PlayerBackHandler(enabled = showListeningOptions) { showListeningOptions = false }
 
     PlayerBackHandler(enabled = showLyricsProviders) { showLyricsProviders = false }
 
@@ -1489,9 +1491,7 @@ fun NowPlayingScreen(
             onToggleShuffle = onToggleShuffle,
             onCycleRepeat = onCycleRepeat,
             onToggleAutoplay = onToggleAutoplay,
-            onOpenOutput = openAudioOutput,
-            onListenTogether = onListenTogether,
-            onOpenListenTogetherMembers = openListenTogetherMembers,
+            onOpenListeningOptions = { showListeningOptions = true },
         )
         // Keep the current output caption visible in every state.
         Spacer(Modifier.height(18.dp))
@@ -1511,6 +1511,25 @@ fun NowPlayingScreen(
     // whichever layout is on screen — they are overlays over the player, not
     // part of either shape of it.
     val playerOverlays: @Composable () -> Unit = {
+        if (showListeningOptions) {
+            ListeningOptionsSheet(
+                hazeState = playerHaze,
+                accountName = accountName,
+                onDismiss = { showListeningOptions = false },
+                onOpenOutput = {
+                    showListeningOptions = false
+                    openAudioOutput()
+                },
+                onListenTogether = {
+                    showListeningOptions = false
+                    onListenTogether()
+                },
+                onOpenMembers = {
+                    showListeningOptions = false
+                    openListenTogetherMembers()
+                },
+            )
+        }
         if (showAudioOutput) {
             AudioOutputSheet(
                 hazeState = playerHaze,
@@ -2165,7 +2184,7 @@ fun NowPlayingScreen(
         // A subview replaces that hero with an artwork-derived mesh, so it gets
         // only a modest floor rather than an opaque status-bar surface.
         val playerSubviewOpen = lyricsOpen || queueOpen || lyricsOffsetOpen ||
-            showAudioPipeline || showCast || showAudioOutput || showLyricsProviders ||
+            showAudioPipeline || showCast || showAudioOutput || showListeningOptions || showLyricsProviders ||
             lyricsShare != null
         val topGradientAlpha = if (playerSubviewOpen) {
             maxOf(artworkStatusScrimAlpha, SUBVIEW_STATUS_SCRIM_MIN_ALPHA)
@@ -3255,18 +3274,17 @@ fun NowPlayingScreen(
                     // no YouTube identity to rate.
                     if (signedIn && song.localUri == null) {
                         val liked = likeStatus == LikeStatus.LIKE
-                        CircleGlyph(
+                        TrackActionGlyph(
                             icon = if (liked) BitChordIcons.HeartFilled else BitChordIcons.Heart,
                             contentDescription = stringResource(
                                 if (liked) Res.string.remove_from_liked else Res.string.like,
                             ),
                             onClick = onToggleLike,
-                            active = liked,
                             haptic = if (liked) Haptic.ToggleOff else Haptic.ToggleOn,
                         )
                         Spacer(Modifier.width(8.dp))
                     }
-                    CircleGlyph(
+                    TrackActionGlyph(
                         icon = if (showRevertCue) Icons.AutoMirrored.Rounded.Undo else Icons.Rounded.MoreHoriz,
                         contentDescription = stringResource(Res.string.more),
                         onClick = onOpenMenu,

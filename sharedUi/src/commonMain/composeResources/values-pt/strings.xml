@@ -4,6 +4,7 @@
     <string name="analysis_in_progress">analisando…</string>
     <string name="analysis_refining">analisado, refinando…</string>
     <string name="audio_output">Audio output</string>
+    <string name="listening_options">Opções de escuta</string>
     <string name="audio_output_playing">Playing here</string>
     <string name="audio_pipeline">Audio Pipeline</string>
     <string name="automix_analysis_status">Automix · esta música: %1$s · próxima: %2$s</string>

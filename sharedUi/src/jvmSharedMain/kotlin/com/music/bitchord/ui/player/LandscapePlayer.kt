@@ -463,18 +463,17 @@ internal fun LandscapeCredits(
         // download against either.
         if (signedIn && song.localUri == null) {
             val liked = likeStatus == LikeStatus.LIKE
-            CircleGlyph(
+            TrackActionGlyph(
                 icon = if (liked) BitChordIcons.HeartFilled else BitChordIcons.Heart,
                 contentDescription = stringResource(
                     if (liked) Res.string.remove_from_liked else Res.string.like,
                 ),
                 onClick = onToggleLike,
-                active = liked,
                 haptic = if (liked) Haptic.ToggleOff else Haptic.ToggleOn,
             )
             Spacer(Modifier.width(8.dp))
         }
-        CircleGlyph(
+        TrackActionGlyph(
             icon = if (showRevertCue) Icons.AutoMirrored.Rounded.Undo else Icons.Rounded.MoreHoriz,
             contentDescription = stringResource(Res.string.more),
             onClick = onOpenMenu,

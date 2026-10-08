@@ -1207,10 +1207,8 @@ private fun ContentDrawScope.sweepTo(
 }
 
 /**
- * The translate control, sized and lit like every other disc in the player —
- * see [CircleGlyph]. Its own composable rather than a [CircleGlyph] call
- * because it has a fourth state the others do not: a request in flight, which
- * takes the icon's place rather than sitting beside it.
+ * The translate control keeps a disc to indicate its active state. A request
+ * in flight takes the icon's place rather than sitting beside it.
  */
 @Composable
 internal fun TranslationToggleButton(

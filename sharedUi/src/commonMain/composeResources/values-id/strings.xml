@@ -4,6 +4,7 @@
     <string name="analysis_in_progress">menganalisis…</string>
     <string name="analysis_refining">dianalisis, menyempurnakan…</string>
     <string name="audio_output">Audio output</string>
+    <string name="listening_options">Pilihan mendengarkan</string>
     <string name="audio_output_playing">Playing here</string>
     <string name="audio_pipeline">Audio Pipeline</string>
     <string name="automix_analysis_status">Automix · lagu ini: %1$s · berikutnya: %2$s</string>

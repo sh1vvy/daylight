@@ -28,8 +28,8 @@ import org.jetbrains.compose.resources.stringResource
 // translation arrives exactly as they do in there.
 
 /**
- * The lyric sheet with its provider line and its romanization and translation
- * toggles — the landscape player's lyrics pane, without the player around it.
+ * The lyric sheet with a source credit after its final line and optional
+ * language buttons — the landscape player's pane, without the player around it.
  *
  * [position] is read only by the panel itself, for the same reason the player
  * passes it down as an object: a tick recomposes the lines, not this.
@@ -49,6 +49,7 @@ fun LyricsSidePanel(
 ) {
     val haptics = rememberHaptics()
     val lyricsOffsetMs by PlayerSettings.lyricsOffsetMs.collectAsStateWithLifecycle()
+    val showLyricsLanguageButtons by PlayerSettings.showLyricsLanguageButtons.collectAsStateWithLifecycle()
     val lyricsPlayhead = rememberLyricPlayhead(position)
     val seekToLyric: (Long) -> Unit = { lineTimeMs ->
         onSeek(adjustedLyricsSeekTarget(lineTimeMs, lyricsOffsetMs))
@@ -79,7 +80,7 @@ fun LyricsSidePanel(
                     lyricsLoadingText
                 },
                 status = lyricsTranslation.status,
-                onStatusClick = { showLyricsProviders = true },
+                showLanguageButtons = showLyricsLanguageButtons,
                 romanizationToggle = {
                     RomanizationToggleButton(
                         state = lyricsTranslation.romanizationState,
@@ -107,6 +108,8 @@ fun LyricsSidePanel(
                     // bring back.
                     LyricsPanel(
                         lines = lyrics.orEmpty(),
+                        sourceCredit = lyricsTranslation.sourceCredit,
+                        onSourceClick = { showLyricsProviders = true },
                         subLines = lyricsTranslation.subLines,
                         trackKey = song.videoId,
                         playhead = lyricsPlayhead,

@@ -236,6 +236,9 @@
     <string name="audio_quality">Audio quality</string>
     <string name="playback">Playback</string>
     <string name="appearance">Appearance</string>
+    <string name="accessibility">Accessibility</string>
+    <string name="lyric_language_buttons">Lyric language buttons</string>
+    <string name="lyric_language_buttons_subtitle">Show romanization and translation buttons in the lyrics player</string>
     <string name="storage">Storage</string>
     <string name="your_data">Your data</string>
     <string name="miscellaneous">Miscellaneous</string>

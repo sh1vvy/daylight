@@ -1293,4 +1293,7 @@
     <string name="spotify_library_subtitle">הפלייליסטים שלכם ב-Spotify</string>
     <string name="spotify_sign_in">התחברות עם Spotify</string>
     <string name="spotify_track_unavailable">לא נמצא שיר כזה ב-YouTube Music</string>
+    <string name="accessibility">נגישות</string>
+    <string name="lyric_language_buttons">כפתורי שפה למילים</string>
+    <string name="lyric_language_buttons_subtitle">הצגת כפתורי תעתיק ותרגום בנגן המילים</string>
 </resources>

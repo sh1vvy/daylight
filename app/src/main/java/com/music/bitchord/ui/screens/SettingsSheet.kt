@@ -202,6 +202,7 @@ fun SettingsScreen(
     val liquidGlass by AppSettings.liquidGlass.collectAsStateWithLifecycle()
     val liquidGlassSupported = isGlassSupported()
     val lyricsBlur by AppSettings.lyricsBlur.collectAsStateWithLifecycle()
+    val showLyricsLanguageButtons by AppSettings.showLyricsLanguageButtons.collectAsStateWithLifecycle()
     val animatedCanvas by AppSettings.animatedCanvas.collectAsStateWithLifecycle()
     val canvasOverCellular by AppSettings.canvasOverCellular.collectAsStateWithLifecycle()
     val fullBleedArtwork by AppSettings.fullBleedArtwork.collectAsStateWithLifecycle()
@@ -991,6 +992,28 @@ fun SettingsScreen(
                         onClick = onTranslationLanguage,
                     )
                 }
+            }
+        }
+
+        SearchableSettingsGroup(search, header = stringResource(R.string.accessibility)) {
+            val lyricLanguageButtonsTitle = stringResource(R.string.lyric_language_buttons)
+            row(lyricLanguageButtonsTitle, "lyrics", "romanization", "translation", "globe") {
+                SettingsRow(
+                    icon = Icons.Rounded.Translate,
+                    title = lyricLanguageButtonsTitle,
+                    subtitle = stringResource(R.string.lyric_language_buttons_subtitle),
+                    trailing = {
+                        Switch(
+                            checked = showLyricsLanguageButtons,
+                            onCheckedChange = AppSettings::setShowLyricsLanguageButtons,
+                            colors = SwitchDefaults.colors(
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                checkedBorderColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        )
+                    },
+                    onClick = { AppSettings.setShowLyricsLanguageButtons(!showLyricsLanguageButtons) },
+                )
             }
         }
 

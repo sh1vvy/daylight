@@ -108,7 +108,6 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -446,25 +445,12 @@ private data class TranslationParticle(
     val delay: Float,
 )
 
-/**
- * Source/status caption, with the provider chooser hung off the caption itself.
- *
- * The provider's name is the one line here that names something the reader can
- * act on — it is a choice, not a fact — so it is the line that opens the
- * chooser, underlined the way the other actions are.
- *
- * The link is absent where it has nothing to open: a line that only says the
- * lookup is still running is a fact, and one that says there are no lyrics is a
- * finding rather than a choice.
- */
+/** Lookup or translation feedback; the provider credit lives in [LyricsPanel]. */
 @Composable
 internal fun LyricsStatusWithChange(
     status: String,
-    /** Present when [status] names something the reader can switch away from. */
-    onStatusClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    val haptics = rememberHaptics()
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -473,24 +459,9 @@ internal fun LyricsStatusWithChange(
             text = status,
             style = MaterialTheme.typography.titleMedium,
             color = Color.White.copy(alpha = 0.55f),
-            textDecoration = if (onStatusClick != null) TextDecoration.Underline else null,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .then(
-                    if (onStatusClick != null) {
-                        Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) {
-                            haptics.play(Haptic.Select)
-                            onStatusClick()
-                        }
-                    } else {
-                        Modifier
-                    },
-                ),
+            modifier = Modifier.weight(1f, fill = false),
         )
     }
 }
@@ -1543,6 +1514,9 @@ internal fun rememberPlayerControlsOnScroll(
 @Composable
 internal fun LyricsPanel(
     lines: List<LyricLine>,
+    /** Provider attribution follows the final lyric instead of the player controls. */
+    sourceCredit: String? = null,
+    onSourceClick: (() -> Unit)? = null,
     /**
      * Romanized or translated copies of [lines], index for index, drawn small
      * under each original line. Null shows the originals alone.
@@ -2264,6 +2238,32 @@ internal fun LyricsPanel(
                 }
             }
         }
+        if (!sourceCredit.isNullOrBlank()) {
+            item(key = "lyrics-credit", contentType = "lyrics-credit") {
+                val haptics = rememberHaptics()
+                Text(
+                    text = sourceCredit,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontFamily = LocalLyricsFontFamily.current,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                    ),
+                    color = Color.White.copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = GLOW_ROOM)
+                        .padding(top = 24.dp, bottom = 12.dp)
+                        .then(
+                            if (onSourceClick != null) {
+                                Modifier.clickable {
+                                    haptics.play(Haptic.Select)
+                                    onSourceClick()
+                                }
+                            } else Modifier,
+                        ),
+                )
+            }
+        }
     }
 }
 
@@ -2700,8 +2700,10 @@ internal class LyricsTranslationUi(
     /** Bumped on every switch between versions — the particle motion's trigger. */
     val transition: Int,
     val reduceMotion: Boolean,
-    /** The line naming the lyrics' source, or what the translation is doing. */
+    /** Translation feedback or lookup status; never the provider attribution. */
     val status: String,
+    /** The source of the current song's lyrics, shown after its final line. */
+    val sourceCredit: String?,
     val toggleTranslation: () -> Unit,
     val toggleRomanization: () -> Unit,
 )
@@ -2888,11 +2890,8 @@ internal fun rememberLyricsTranslation(
             }
         }
     }
-    // The one line that sits above the scrubber while the lyrics are open: which
-    // of the providers the timings came from, or what the translation is doing.
-    // Worked out once for both layouts — the portrait player puts it over its
-    // half-player, the landscape one under its lyric column — so the two can
-    // never disagree about what it says.
+    // Lookup and translation feedback can sit near the controls. Attribution
+    // belongs to the lyric sheet, where it scrolls after the final line.
     val status = when {
         translationState is LyricsTranslationUiState.Loading ->
             stringResource(Res.string.translating_lyrics_to, translationLanguageName)
@@ -2906,9 +2905,13 @@ internal fun rememberLyricsTranslation(
             stringResource(Res.string.lyrics_already_in_language, translationLanguageName)
         romanizationState is LyricsTranslationUiState.SameLanguage ->
             stringResource(Res.string.lyrics_already_romanized)
-        lyricsSource != null -> stringResource(Res.string.lyrics_by, lyricsSource.label)
         lyricsUnavailable -> stringResource(Res.string.no_lyrics_found)
         lyrics.isNullOrEmpty() -> loadingText
+        else -> ""
+    }
+    val sourceCredit = when {
+        lyrics.isNullOrEmpty() -> null
+        lyricsSource != null -> stringResource(Res.string.lyrics_by, lyricsSource.label)
         else -> stringResource(Res.string.lyrics_saved_with_download)
     }
 
@@ -2922,6 +2925,7 @@ internal fun rememberLyricsTranslation(
         transition = translationTransition,
         reduceMotion = reduceTranslationMotion,
         status = status,
+        sourceCredit = sourceCredit,
         toggleTranslation = toggleTranslation,
         toggleRomanization = toggleRomanization,
     )

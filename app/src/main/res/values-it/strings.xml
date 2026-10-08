@@ -1227,4 +1227,7 @@
     <string name="spotify_library_subtitle">Le tue playlist Spotify</string>
     <string name="spotify_sign_in">Accedi con Spotify</string>
     <string name="spotify_track_unavailable">Impossibile trovare quel brano su YouTube Music</string>
+    <string name="accessibility">Accessibilità</string>
+    <string name="lyric_language_buttons">Pulsanti della lingua dei testi</string>
+    <string name="lyric_language_buttons_subtitle">Mostra i pulsanti di traslitterazione e traduzione nel lettore dei testi</string>
 </resources>

@@ -1266,4 +1266,7 @@
     <string name="spotify_library_subtitle">あなたの Spotify プレイリスト</string>
     <string name="spotify_sign_in">Spotify でサインイン</string>
     <string name="spotify_track_unavailable">その曲は YouTube Music で見つかりません</string>
+    <string name="accessibility">アクセシビリティ</string>
+    <string name="lyric_language_buttons">歌詞の言語ボタン</string>
+    <string name="lyric_language_buttons_subtitle">歌詞プレーヤーにローマ字表示と翻訳のボタンを表示</string>
 </resources>

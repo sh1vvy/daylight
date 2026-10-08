@@ -481,12 +481,8 @@ internal fun LandscapeCredits(
 
 /**
  * The landscape player's right column with the lyrics open: the sheet, and
- * under it the romanize / source / translate bar.
- *
- * The bar is where the portrait player's status line and its two floating
- * toggles went. There the line sits over the scrubber and the toggles float
- * over the foot of the words; here there is no scrubber beside the lyrics, and
- * the bar gives all three a place of their own that costs the sheet no lines.
+ * under it the optional language buttons and translation feedback. The source
+ * credit is part of the scrollable lyric sheet rather than this fixed row.
  */
 @Composable
 internal fun LandscapeLyricsPane(
@@ -494,7 +490,7 @@ internal fun LandscapeLyricsPane(
     /** Shown in place of the sheet while there are no lines to draw. */
     placeholder: String,
     status: String,
-    onStatusClick: () -> Unit,
+    showLanguageButtons: Boolean,
     /** Whether lines are being picked, which is what the bar stands in for. */
     picking: Boolean = false,
     /** The pick bar itself, drawn in place of the row below. */
@@ -532,29 +528,28 @@ internal fun LandscapeLyricsPane(
         // where.
         if (picking) {
             Box(Modifier.fillMaxWidth()) { pickBar() }
-        } else {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Fixed slots either side whether or not the toggles are drawn, so
-            // the status line stays centred as lyrics arrive.
-            Box(Modifier.size(34.dp)) { if (hasLyrics) romanizationToggle() }
-            Box(
+        } else if ((hasLyrics && showLanguageButtons) || status.isNotBlank()) {
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp),
-                contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                LyricsStatusWithChange(
-                    status = status,
-                    onStatusClick = onStatusClick,
-                )
+                if (hasLyrics && showLanguageButtons) {
+                    Box(Modifier.size(34.dp)) { romanizationToggle() }
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (status.isNotBlank()) LyricsStatusWithChange(status = status)
+                }
+                if (hasLyrics && showLanguageButtons) {
+                    Box(Modifier.size(34.dp)) { translationToggle() }
+                }
             }
-            Box(Modifier.size(34.dp)) { if (hasLyrics) translationToggle() }
-        }
         }
     }
 }

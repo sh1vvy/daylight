@@ -396,6 +396,9 @@ object AppSettings {
     /** Blurs unfocused lyric lines, keeping the active line sharp. */
     val lyricsBlur = MutableStateFlow(true)
 
+    /** Optional romanization and translation buttons on the lyrics panel. */
+    val showLyricsLanguageButtons = MutableStateFlow(false)
+
     /** Positive values delay synced lyrics; negative values bring them forward. */
     val lyricsOffsetMs = MutableStateFlow(0)
 
@@ -835,6 +838,7 @@ object AppSettings {
         reduceDynamicBlur.value = prefs.getBoolean(KEY_REDUCE_BLUR, false)
         liquidGlass.value = prefs.getBoolean(KEY_LIQUID_GLASS, false)
         lyricsBlur.value = prefs.getBoolean(KEY_LYRICS_BLUR, true)
+        showLyricsLanguageButtons.value = prefs.getBoolean(KEY_SHOW_LYRICS_LANGUAGE_BUTTONS, false)
         lyricsOffsetMs.value = prefs.getInt(KEY_LYRICS_OFFSET_MS, 0)
             .coerceIn(MIN_LYRICS_OFFSET_MS, MAX_LYRICS_OFFSET_MS)
         translationLanguage.value = prefs.getString(KEY_TRANSLATION_LANGUAGE, "").orEmpty()
@@ -1256,6 +1260,11 @@ object AppSettings {
     fun setLyricsBlur(value: Boolean) {
         lyricsBlur.value = value
         prefs.edit().putBoolean(KEY_LYRICS_BLUR, value).apply()
+    }
+
+    fun setShowLyricsLanguageButtons(value: Boolean) {
+        showLyricsLanguageButtons.value = value
+        prefs.edit().putBoolean(KEY_SHOW_LYRICS_LANGUAGE_BUTTONS, value).apply()
     }
 
     fun setLyricsOffsetMs(value: Int) {
@@ -1961,6 +1970,7 @@ object AppSettings {
     private const val KEY_REDUCE_BLUR = "reduce_dynamic_blur"
     private const val KEY_LIQUID_GLASS = "liquid_glass"
     private const val KEY_LYRICS_BLUR = "lyrics_blur"
+    private const val KEY_SHOW_LYRICS_LANGUAGE_BUTTONS = "show_lyrics_language_buttons"
     private const val KEY_LYRICS_OFFSET_MS = "lyrics_offset_ms"
     private const val KEY_TRANSLATION_LANGUAGE = "translation_language"
     private const val KEY_ANIMATED_CANVAS = "animated_canvas"
@@ -2029,6 +2039,5 @@ object AppSettings {
     private const val KEY_DISCORD_INFO_DISMISSED = "discord_info_dismissed"
     private const val KEY_LAST_VERSION_CODE = "last_version_code"
 }
-
 
 

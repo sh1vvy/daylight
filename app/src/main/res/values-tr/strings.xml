@@ -1245,4 +1245,7 @@
     <string name="spotify_library_subtitle">Spotify çalma listeleriniz</string>
     <string name="spotify_sign_in">Spotify ile oturum aç</string>
     <string name="spotify_track_unavailable">O şarkı YouTube Music’de bulunamadı</string>
+    <string name="accessibility">Erişilebilirlik</string>
+    <string name="lyric_language_buttons">Şarkı sözü dil düğmeleri</string>
+    <string name="lyric_language_buttons_subtitle">Şarkı sözü oynatıcısında Latin harflerine çevirme ve çeviri düğmelerini göster</string>
 </resources>

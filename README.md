@@ -33,7 +33,7 @@ Development APKs are in `app/build/outputs/apk/dev/debug/`. Production APKs use 
 
 - Production app ID: `com.sh1vvy.daylight`
 - Development app ID: `com.sh1vvy.daylight.dev`
-- Daylight version: `0.1.2`
+- Daylight version: `0.1.3`
 
 Daylight installs alongside BitChord and maintains separate application data. Internal Kotlin namespaces and native entry points are preserved for engine compatibility; see [UPSTREAM.md](UPSTREAM.md).
 

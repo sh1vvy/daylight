@@ -1288,4 +1288,7 @@
     <string name="spotify_library_subtitle">आपकी Spotify प्लेलिस्ट</string>
     <string name="spotify_sign_in">Spotify से साइन इन करें</string>
     <string name="spotify_track_unavailable">वह गाना YouTube Music पर नहीं मिला</string>
+    <string name="accessibility">सुलभता</string>
+    <string name="lyric_language_buttons">लिरिक्स के भाषा बटन</string>
+    <string name="lyric_language_buttons_subtitle">लिरिक्स प्लेयर में रोमन लिपि और अनुवाद के बटन दिखाएँ</string>
 </resources>

@@ -1320,4 +1320,7 @@
     <string name="spotify_library_subtitle">Ваши плейлисты Spotify</string>
     <string name="spotify_sign_in">Войти через Spotify</string>
     <string name="spotify_track_unavailable">Не удалось найти этот трек на YouTube Music</string>
+    <string name="accessibility">Специальные возможности</string>
+    <string name="lyric_language_buttons">Языковые кнопки текста песни</string>
+    <string name="lyric_language_buttons_subtitle">Показывать кнопки транслитерации и перевода в окне текста песни</string>
 </resources>

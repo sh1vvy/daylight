@@ -776,6 +776,7 @@ fun NowPlayingScreen(
     val openListenTogetherMembers: () -> Unit = { showListenTogetherMembers = true }
 
     val syncedLyricsEnabled by PlayerSettings.syncedLyrics.collectAsStateWithLifecycle()
+    val showLyricsLanguageButtons by PlayerSettings.showLyricsLanguageButtons.collectAsStateWithLifecycle()
     val lyricsOffsetMs by PlayerSettings.lyricsOffsetMs.collectAsStateWithLifecycle()
     // A lambda, not a value: read by the lyric strip and panel in scopes of
     // their own, so a tick recomposes them and not the player around them.
@@ -1942,7 +1943,7 @@ fun NowPlayingScreen(
                             lyricsLoadingText
                         },
                         status = lyricsTranslation.status,
-                        onStatusClick = { showLyricsProviders = true },
+                        showLanguageButtons = showLyricsLanguageButtons,
                         picking = lyricPicker.picking,
                         pickBar = {
                             LyricsPickBar(
@@ -1982,6 +1983,8 @@ fun NowPlayingScreen(
                             // armed would only eat taps meant for the lines.
                             LyricsPanel(
                                 lines = lyrics.orEmpty(),
+                                sourceCredit = lyricsTranslation.sourceCredit,
+                                onSourceClick = { showLyricsProviders = true },
                                 subLines = lyricsTranslation.subLines,
                                 trackKey = song.videoId,
                                 playhead = lyricsPlayhead,
@@ -3294,6 +3297,8 @@ fun NowPlayingScreen(
                         ) { particleProgress ->
                             LyricsPanel(
                                 lines = lyrics.orEmpty(),
+                                sourceCredit = lyricsTranslation.sourceCredit,
+                                onSourceClick = { showLyricsProviders = true },
                                 subLines = lyricsTranslation.subLines,
                                 trackKey = song.videoId,
                                 playhead = lyricsPlayhead,
@@ -3327,7 +3332,7 @@ fun NowPlayingScreen(
                     // for reading, and a control parked over the words when
                     // nobody asked for the controls is one more thing between
                     // the reader and them.
-                    val translateShown = lyricsPanelVisible && lyricsControlsOpen
+                    val translateShown = lyricsPanelVisible && lyricsControlsOpen && showLyricsLanguageButtons
                     val translateFade by animateFloatAsState(
                         targetValue = if (translateShown) 1f else 0f,
                         animationSpec = tween(if (translateShown) 220 else 160),
@@ -3482,8 +3487,8 @@ fun NowPlayingScreen(
             // Switched off in Settings it goes entirely, rather than sitting
             // there saying no lyrics were found: none were looked for. It is
             // accompanied by a dedicated lyrics button in the bottom row. Its
-            // one-line slot remains, invisibly, so opening lyrics cannot grow
-            // the half-player merely to make room for the source label.
+            // one-line slot remains, invisibly, so opening lyrics keeps the
+            // half-player at the same height. Source credits scroll with lyrics.
             if (!lyricsOpen && syncedLyricsEnabled) {
                 CurrentLyricStrip(
                     lines = lyricsTranslation.displayedLyrics,
@@ -3513,8 +3518,7 @@ fun NowPlayingScreen(
             }
             if (lyricsOpen) {
                 LyricsStatusWithChange(
-                    status = lyricsTranslation.status,
-                    onStatusClick = { showLyricsProviders = true },
+                    status = lyricsTranslation.status.ifBlank { "\u00A0" },
                     modifier = Modifier
                         .fillMaxWidth()
                         .offset(y = 6.dp)

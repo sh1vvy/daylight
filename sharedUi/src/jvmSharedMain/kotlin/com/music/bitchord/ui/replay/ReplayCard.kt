@@ -27,7 +27,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,7 +67,7 @@ import java.util.Locale
  *    is. There is no chip: a contact plate is the one piece of card anatomy
  *    that exists to be *inserted into something*, and on a card that is only
  *    ever looked at it reads as a sticker;
- *  - the **embossing** — a monospaced face, wide tracking, a dark offset shadow
+ *  - the **embossing** — wide tracking, a dark offset shadow
  *    under a pale gradient fill — is how a real card's raised type catches the
  *    light, and it is why those lines read as pressed into the card rather than
  *    printed on it;
@@ -225,9 +224,8 @@ fun ReplayCreditCard(
 /**
  * A line pressed into the card rather than printed on it.
  *
- * Monospaced and widely tracked because that is what a card embosser produces —
- * fixed-pitch dies on a fixed-pitch wheel — and it is more of the recognition
- * than the shadow is. The shadow supplies the rest: dark, offset down, under a
+ * Widely tracked to suggest a card embosser's spaced dies while keeping the
+ * app's Inter face. The shadow supplies the rest: dark, offset down, under a
  * fill that is brightest at the top edge, which is a raised surface lit from
  * above.
  */
@@ -236,7 +234,7 @@ private fun Embossed(text: String, size: TextUnit) {
     Text(
         text = text,
         style = TextStyle(
-            fontFamily = FontFamily.Monospace,
+            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
             fontWeight = FontWeight.W600,
             fontSize = size,
             letterSpacing = 1.6.sp,

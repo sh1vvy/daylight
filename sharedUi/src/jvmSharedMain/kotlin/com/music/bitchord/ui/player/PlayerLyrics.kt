@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -472,10 +473,11 @@ internal fun adjustedLyricsPosition(positionMs: Long, offsetMs: Int): Long =
 internal fun adjustedLyricsSeekTarget(lineTimeMs: Long, offsetMs: Int): Long =
     (lineTimeMs + offsetMs.toLong()).coerceAtLeast(0L)
 
-/**
- * The current lyric, one line, directly above the scrubber — or the line
- * saying why there isn't one.
- */
+// Keep the entire preview tappable without reaching into the slider below it.
+internal val LYRIC_PREVIEW_HEIGHT = 48.dp
+internal val LYRIC_PREVIEW_SCRUBBER_GAP = 8.dp
+
+/** The current lyric above the scrubber, or the reason there isn't one. */
 @Composable
 internal fun CurrentLyricStrip(
     lines: List<LyricLine>,
@@ -490,11 +492,8 @@ internal fun CurrentLyricStrip(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            // The slider's touch target reaches ~13dp above the drawn bar, so
-            // the strip reads as further off it than it is. Nudged down into
-            // that dead space, the same way the timestamps below are pulled
-            // back up into it.
-            .offset(y = 6.dp),
+            .heightIn(min = LYRIC_PREVIEW_HEIGHT),
+        contentAlignment = Alignment.CenterStart,
     ) {
         if (lines.isNotEmpty()) {
             CurrentLyricLine(
@@ -2509,6 +2508,7 @@ private fun CurrentLyricLine(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = modifier
+                .heightIn(min = LYRIC_PREVIEW_HEIGHT)
                 .clip(RoundedCornerShape(8.dp))
                 .clickable(onClick = onClick)
                 .padding(vertical = 4.dp),
@@ -2574,6 +2574,7 @@ private fun CurrentLyricLine(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
+            .heightIn(min = LYRIC_PREVIEW_HEIGHT)
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 4.dp),

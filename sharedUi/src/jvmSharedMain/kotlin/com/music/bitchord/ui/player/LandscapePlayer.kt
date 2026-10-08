@@ -386,7 +386,10 @@ internal fun LandscapeMainPane(
         }
         credits()
         Spacer(Modifier.height(if (compact) 2.dp else 10.dp))
-        lyricStrip?.invoke()
+        if (lyricStrip != null) {
+            lyricStrip()
+            Spacer(Modifier.height(LYRIC_PREVIEW_SCRUBBER_GAP))
+        }
         scrubber()
         Spacer(Modifier.height(if (compact) 0.dp else 8.dp))
         transport()

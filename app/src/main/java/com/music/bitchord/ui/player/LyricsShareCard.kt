@@ -174,11 +174,11 @@ private fun fittestPlan(
 /**
  * The rows at one [size], set in the face the lyrics panel draws with.
  *
- * SF Pro Display Heavy with the panel's tight tracking and its line advance,
+ * Inter Display Bold with the panel's tracking and its line advance,
  * carried over as the same ratios the panel's 34sp headline uses — so the card
  * reads as a still of that panel rather than as a different app quoting it.
  * Compose's tracking is absolute and `Paint`'s is a fraction of the size, hence
- * the divisions: -0.7 over 34 for the words, -0.7 over 20 for the smaller line
+ * the divisions: -0.55 over 34 for the words, -0.15 over 20 for the smaller line
  * the panel hangs underneath them.
  */
 private fun planAt(type: Fonts, lines: List<LyricsShareLine>, size: Float): Plan {
@@ -310,10 +310,10 @@ private val FIT_LADDER = floatArrayOf(96f, 88f, 80f, 72f, 64f, 56f, 50f, 44f, 38
 // it at so it holds at whatever size the ladder lands on.
 
 /** Tracking of the panel's headline: -0.7sp against its 34sp. */
-private const val TRACKING = -0.7f / 34f
+private const val TRACKING = -0.55f / 34f
 
 /** The same -0.7sp, against the 20sp it sets the line underneath in. */
-private const val SUB_TRACKING = -0.7f / 20f
+private const val SUB_TRACKING = -0.15f / 20f
 
 /** Line advance: 41sp over 34sp for the words, 25sp over 20sp for the sub. */
 private const val LEAD = 41f / 34f

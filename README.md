@@ -59,6 +59,6 @@ Daylight does not report installations to BitChord’s live usage counter. Jam r
 
 BitChord was created by **Kushagra Singh and its contributors**. Daylight retains their Git history, copyright notices, and the **GNU General Public License v3.0**. See [LICENSE](LICENSE), [UPSTREAM.md](UPSTREAM.md), and [original contributor credits](docs/UPSTREAM_MAINTAINERS.md).
 
-Lyrics use [Inter Display 4.1](https://rsms.me/inter/) by Rasmus Andersson, distributed under the [SIL Open Font License](docs/licenses/Inter-OFL.txt).
+Daylight uses [Inter 4.1 and Inter Display](https://rsms.me/inter/) by Rasmus Andersson throughout its interface, lyrics, widgets, and shared image cards, distributed under the [SIL Open Font License](docs/licenses/Inter-OFL.txt). The license is also bundled with the app.
 
 Daylight is independent of BitChord’s maintainers and is not affiliated with YouTube, Google, Spotify, Discord, or other service providers. Provider names identify integrations. If you distribute this derivative, provide its corresponding source under GPLv3.

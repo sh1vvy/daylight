@@ -729,9 +729,9 @@ internal fun ellipsised(text: String, paint: Paint, width: Float): String {
  */
 internal class Fonts(
     context: Context,
-    headingFont: Int = R.font.sf_pro_display_heavy,
-    semiboldFont: Int = R.font.sf_pro_display_semibold,
-    regularFont: Int = R.font.sf_pro_display_regular,
+    headingFont: Int = R.font.inter_display_bold,
+    semiboldFont: Int = R.font.inter_semibold,
+    regularFont: Int = R.font.inter_regular,
 ) {
     private val heavy = font(context, headingFont) ?: Typeface.DEFAULT_BOLD
     private val semibold = font(context, semiboldFont) ?: Typeface.DEFAULT_BOLD

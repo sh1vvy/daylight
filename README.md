@@ -18,6 +18,8 @@ Daylight uses BitChord’s playback engine and Android interface, with its own n
 
 Inherited features include YouTube Music search and playback, local music, downloads, synchronized lyrics, artwork-driven player colors, crossfade, Automix, equalizer, sleep timer, playlists, and optional account integrations. Availability depends on providers and device support.
 
+See [performance changes and validation](docs/PERFORMANCE.md) for the playlist, artwork-cache and rendering improvements in 0.1.9.
+
 ## Build for Android
 
 Requirements: JDK 17, Android SDK platforms 36 and 37.0, build-tools 35.0.0, Android NDK 27.0.12077973, and CMake 3.22.1. Android 8.0 (API 26) or newer is supported.
@@ -35,13 +37,13 @@ The normal test suite uses local fixtures. The Genius live-provider smoke test i
 
 - Production app ID: `com.sh1vvy.daylight`
 - Development app ID: `com.sh1vvy.daylight.dev`
-- Daylight version: `0.1.8`
+- Daylight version: `0.1.9`
 
 Daylight installs alongside BitChord and maintains separate application data. Internal Kotlin namespaces and native entry points are preserved for engine compatibility; see [UPSTREAM.md](UPSTREAM.md).
 
 ## GitHub builds
 
-The [Android workflow](.github/workflows/android.yml) runs Android unit tests and produces a debug APK plus production APKs. Release signing is optional: configure `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD` repository secrets to sign production builds. With no signing secrets, the workflow produces unsigned production APKs and an installable development APK. The workflow does not publish releases automatically.
+The [Android workflow](.github/workflows/android.yml) runs Android and shared-library unit tests and produces a debug APK plus production APKs. Release signing is optional: configure `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD` repository secrets to sign production builds. With no signing secrets, the workflow produces unsigned production APKs and an installable development APK. The workflow does not publish releases automatically.
 
 Daylight checks [its own GitHub releases](https://github.com/sh1vvy/daylight/releases) for updates. Publish only Daylight APKs there, signed consistently with your own key.
 

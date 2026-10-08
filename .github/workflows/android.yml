@@ -57,8 +57,8 @@ jobs:
               Path('daylight-release.jks').write_bytes(base64.b64decode(os.environ['KEYSTORE_BASE64'], validate=True))
               Path('keystore.properties').write_text('storeFile=daylight-release.jks\n' + ''.join(f'{key}={prop(os.environ[name])}\n' for key, name in [('storePassword', 'KEYSTORE_PASSWORD'), ('keyAlias', 'KEY_ALIAS'), ('keyPassword', 'KEY_PASSWORD')]))
           PY
-      - name: Android tests
-        run: ./gradlew :app:testDevDebugUnitTest --console=plain
+      - name: Android and shared tests
+        run: ./gradlew :app:testDevDebugUnitTest :shared:jvmTest :sharedUi:jvmTest --console=plain
       - name: Build APKs
         run: ./gradlew :app:assembleDevDebug :app:assembleProdRelease --console=plain
       - name: Upload APKs
@@ -74,5 +74,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: daylight-android-tests
-          path: app/build/reports/tests/
+          path: |
+            app/build/reports/tests/
+            shared/build/reports/tests/
+            sharedUi/build/reports/tests/
           if-no-files-found: ignore

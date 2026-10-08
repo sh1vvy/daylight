@@ -29,6 +29,7 @@ import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.core.net.toUri
@@ -785,7 +786,9 @@ class PlaybackService : MediaLibraryService() {
     private val sessionSongHistory = mutableListOf<Song>()
 
     private var serviceLyricsJob: Job? = null
-    private var serviceLyrics: List<LyricLine>? = null
+    private var serviceLyrics: NotificationLyricsTimeline? = null
+    private var serviceLyricsMediaId: String? = null
+    private var serviceLyricsGeneration = 0L
     private var lastPublishedSubtitle: String? = null
     private var lyricsTickerJob: Job? = null
 
@@ -914,10 +917,17 @@ class PlaybackService : MediaLibraryService() {
             reason: Int,
         ) {
             val exoPlayer = player ?: return
-            if (reason == Player.DISCONTINUITY_REASON_SEEK) {
-                if (exoPlayer.isPlaying) pushDiscordPresence(exoPlayer)
-                updateLyricSubtitle()
+            if (reason == Player.DISCONTINUITY_REASON_SEEK && exoPlayer.isPlaying) {
+                pushDiscordPresence(exoPlayer)
             }
+            // Includes silence skipping and seeks while paused. A line-boundary
+            // clock must be rescheduled whenever the playback position jumps.
+            updateLyricSubtitle()
+            if (exoPlayer.isPlaying) startLyricsTicker(restart = true)
+        }
+
+        override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
+            if (player?.isPlaying == true) startLyricsTicker(restart = true)
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -973,8 +983,8 @@ class PlaybackService : MediaLibraryService() {
             autoplayLoadJob = null
             autoplaySeed = null
             loadAutoplayForCurrentTrack()
-            loadLyricsForCurrentTrack()
-            if (exoPlayer.isPlaying) startLyricsTicker()
+            // onTrackBecameCurrent already starts lyrics for normal advances and
+            // crossfade handoffs. Starting again here cancelled that same request.
             refreshCustomLayouts()
         }
 
@@ -5986,7 +5996,7 @@ class PlaybackService : MediaLibraryService() {
                 AppSettings.lyricsSourceOrder,
                 AppSettings.prioritizeSyllableSync,
             ) { synced, sources, order, prio ->
-                synced to sources
+                (synced to sources) to (order to prio)
             }.distinctUntilChanged().collect {
                 loadLyricsForCurrentTrack()
             }
@@ -6510,6 +6520,8 @@ class PlaybackService : MediaLibraryService() {
         serviceLyricsJob?.cancel()
         serviceLyricsJob = null
         serviceLyrics = null
+        serviceLyricsMediaId = null
+        serviceLyricsGeneration++
         cancelPrefetch()
         trackAnalyzer.release()
         loudnessRetryJob?.cancel()
@@ -6582,21 +6594,21 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private fun loadLyricsForCurrentTrack() {
-        val currentSong = player?.currentMediaItem?.toSong() ?: run {
-            serviceLyrics = null
-            stopLyricsTicker()
-            return
-        }
+        val generation = ++serviceLyricsGeneration
+        serviceLyricsJob?.cancel()
+        serviceLyricsJob = null
+        serviceLyrics = null
+        serviceLyricsMediaId = null
+        stopLyricsTicker()
 
-        if (!AppSettings.syncedLyrics.value) {
-            serviceLyrics = null
-            stopLyricsTicker()
-            return
-        }
-
+        val mediaItem = player?.currentMediaItem ?: return
+        val currentSong = mediaItem.toSong()
+        // Clear the outgoing line immediately, including when lyrics have
+        // just been disabled or the next track is still waiting on a provider.
+        updateLyricSubtitle()
+        if (!AppSettings.syncedLyrics.value) return
         val trackDurationMs = (player?.duration ?: 0L).takeIf { it > 0 } ?: 0L
 
-        serviceLyricsJob?.cancel()
         serviceLyricsJob = scope.launch(Dispatchers.IO) {
             val localUri = currentSong.localUri
             var lines: List<LyricLine>? = null
@@ -6616,21 +6628,36 @@ class PlaybackService : MediaLibraryService() {
                 )
                 lines = found?.lines
             }
+            val timeline = NotificationLyricsTimeline(lines.orEmpty())
             withContext(Dispatchers.Main) {
-                serviceLyrics = lines
-                if (player?.isPlaying == true) {
-                    updateLyricSubtitle()
-                }
+                if (generation != serviceLyricsGeneration ||
+                    player?.currentMediaItem?.mediaId != mediaItem.mediaId
+                ) return@withContext
+                serviceLyrics = timeline
+                serviceLyricsMediaId = mediaItem.mediaId
+                updateLyricSubtitle()
+                if (player?.isPlaying == true) startLyricsTicker(restart = true)
             }
         }
     }
 
-    private fun startLyricsTicker() {
+    private fun startLyricsTicker(restart: Boolean = false) {
+        if (restart) {
+            lyricsTickerJob?.cancel()
+            lyricsTickerJob = null
+        }
         if (lyricsTickerJob?.isActive == true) return
+        if (!AppSettings.syncedLyrics.value || serviceLyrics == null) return
         lyricsTickerJob = scope.launch(Dispatchers.Main) {
             while (isActive) {
+                val exoPlayer = player ?: break
+                if (!exoPlayer.isPlaying || serviceLyricsMediaId != exoPlayer.currentMediaItem?.mediaId) break
                 updateLyricSubtitle()
-                delay(500L)
+                val wait = serviceLyrics?.nextDelayMs(
+                    exoPlayer.currentPosition,
+                    exoPlayer.playbackParameters.speed,
+                ) ?: break
+                delay(wait)
             }
         }
     }
@@ -6643,32 +6670,17 @@ class PlaybackService : MediaLibraryService() {
 
     private fun updateLyricSubtitle() {
         val exoPlayer = player ?: return
-        val currentSong = exoPlayer.currentMediaItem?.toSong() ?: return
-        val lines = serviceLyrics
-        val pos = exoPlayer.currentPosition
-        val subtitleText = if (lines != null && lines.isNotEmpty() && AppSettings.syncedLyrics.value) {
-            val idx = lines.indexOfLast { it.timeMs <= pos }
-            val currentLine = lines.getOrNull(idx)
-            if (currentLine != null && !currentLine.isGap && currentLine.text.isNotBlank()) {
-                "♪ ${currentLine.text}"
-            } else {
-                currentSong.artist
-            }
-        } else {
-            currentSong.artist
+        val mediaItem = exoPlayer.currentMediaItem ?: return
+        val currentSong = mediaItem.toSong()
+        val timeline = serviceLyrics.takeIf {
+            AppSettings.syncedLyrics.value && serviceLyricsMediaId == mediaItem.mediaId
         }
+        val subtitleText = timeline?.subtitleAt(exoPlayer.currentPosition, currentSong.artist) ?: currentSong.artist
 
         if (subtitleText != lastPublishedSubtitle) {
             lastPublishedSubtitle = subtitleText
-            // buildUpon() off the metadata that's already playing, not a fresh
-            // Builder() — a synced lyric line can advance every second or two,
-            // and re-stating setArtworkUri() on every tick made media3 treat
-            // the cover as newly changed that often, racing its own artwork
-            // decode/cache against the legacy MediaSession broadcast and
-            // crashing with "cannot use a recycled source in createBitmap".
-            // Carrying the existing artwork field forward keeps that field
-            // untouched while still firing onMediaMetadataChanged for the
-            // subtitle itself.
+            // Carry the existing artwork forward so a new lyric caption does
+            // not trigger a fresh notification artwork decode.
             exoPlayer.playlistMetadata = exoPlayer.mediaMetadata
                 .buildUpon()
                 .setSubtitle(subtitleText)

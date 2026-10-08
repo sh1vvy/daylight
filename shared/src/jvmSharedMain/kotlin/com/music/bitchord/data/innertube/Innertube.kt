@@ -45,6 +45,7 @@ import java.io.IOException
 import java.security.MessageDigest
 import java.util.Base64
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Minimal Innertube (youtubei) client.
@@ -57,6 +58,11 @@ import java.util.Locale
  * from the stored cookie; no long-lived token is ever minted or stored.
  */
 object Innertube {
+    private val responseScopeGeneration = AtomicLong(0L)
+
+    /** Opaque identity for response caches; it never contains session cookies. */
+    val responseCacheScope: Long get() = responseScopeGeneration.get()
+
     /**
      * The app's own language when the platform lets the listener pick one
      * separately from the system's — the phone's per-app locale. Null means
@@ -103,9 +109,11 @@ object Innertube {
     private const val TAG = "BitChord"
 
     /** Session cookie captured by the login WebView; null = browse as guest. */
+    @Volatile
     var cookie: String? = null
         set(value) {
-            if (field != value) {
+            val changed = field != value
+            if (changed) {
                 // Both belong to the session that just left. A scope kept across
                 // a sign-in would credit the new account's plays to the old one,
                 // and a visitor id minted under the old session is not bound to
@@ -119,6 +127,9 @@ object Innertube {
                 channelOverride = null
             }
             field = value
+            // Publish the new cache scope only after its signing state is in
+            // place; an IO reader of the new scope must see the new cookie.
+            if (changed) responseScopeGeneration.incrementAndGet()
         }
 
     /**
@@ -264,14 +275,18 @@ object Innertube {
 
     /**
      * Act as this channel from now on; both null goes back to the shell's
-     * default. Takes effect on the next request — nothing is cached from it.
+     * default. Takes effect on the next request and partitions cached responses.
      */
     fun selectChannel(pageId: String?, dataSyncId: String?, authUser: String? = null) {
+        val previous = channelOverride
+        val changed = previous?.pageId != pageId || previous?.dataSyncId != dataSyncId ||
+            previous?.authUser != authUser
         channelOverride = if (pageId == null && dataSyncId == null) {
             null
         } else {
             ChannelSelection(pageId, dataSyncId, authUser)
         }
+        if (changed) responseScopeGeneration.incrementAndGet()
         Log.d(
             TAG,
             "acting as channel pageId=${pageId ?: "none"} authUser=${authUser ?: "as-is"} " +
@@ -309,6 +324,7 @@ object Innertube {
         if (!loggedIn) {
             Log.w(TAG, "captured page was signed out; not scoping requests to it")
             scope = version?.let { SessionScope(null, null, "0", it) }
+            responseScopeGeneration.incrementAndGet()
             return
         }
         scope = SessionScope(
@@ -323,6 +339,7 @@ object Innertube {
             this.visitorData = it
             visitorDataIsSessionBound = true
         }
+        responseScopeGeneration.incrementAndGet()
         Log.d(TAG, "adopted page scope: pageId=${pageId ?: "none"} authUser=${authUser ?: "0"}")
     }
 

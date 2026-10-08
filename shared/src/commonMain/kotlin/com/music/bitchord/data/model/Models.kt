@@ -491,6 +491,8 @@ data class DetailPage(
      * fetched with a session; see [SubscriptionState].
      */
     val subscription: SubscriptionState? = null,
+    /** Ephemeral identity for a stack entry; two visits can share the same browse id. */
+    val instanceId: Long = 0L,
 )
 
 /**

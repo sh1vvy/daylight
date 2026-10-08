@@ -25,7 +25,9 @@ import com.music.bitchord.data.model.SongMenu
 import com.music.bitchord.data.model.UserPlaylist
 import com.music.bitchord.data.sources.TrackMatcher
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -38,6 +40,27 @@ import java.util.concurrent.ConcurrentHashMap
 object YtMusicRepository {
 
     private const val TAG = "BitChord"
+    private data class BrowseKey(val scope: Long, val language: String, val id: String, val continuation: Boolean)
+    private val browseScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // A long playlist's continuations must not evict the first response that
+    // makes its next visit immediately usable. The combined budget stays
+    // bounded at 24 pages / 4,000 song and suggestion rows.
+    private val browsePages = browsePageCache(entries = 8, rows = 1_200)
+    private val continuationPages = browsePageCache(entries = 16, rows = 2_800)
+
+    private fun browsePageCache(entries: Int, rows: Int) = BoundedRequestCache<BrowseKey, SongPage>(
+        scope = browseScope,
+        ttlMs = 60_000L,
+        maxEntries = entries,
+        maxWeight = rows,
+        weightOf = { it.songs.size + it.suggested.size },
+    )
+
+    /** Pull-to-refresh and writes must not reuse a previous playlist snapshot. */
+    fun clearBrowseCache() {
+        browsePages.clear()
+        continuationPages.clear()
+    }
     private val moodGenreShelfCache = ConcurrentHashMap<String, List<HomeShelf>>()
     // Includes unchanged video fallbacks as well as successful matches. The
     // queue prefetcher asks before a track becomes current; remembering its
@@ -628,6 +651,8 @@ object YtMusicRepository {
          * continuation, same as [header].
          */
         val description: String? = null,
+        /** Album header's authoritative listing, fetched only by song-list readers. */
+        val backingPlaylistId: String? = null,
     )
 
     /**
@@ -640,17 +665,21 @@ object YtMusicRepository {
      * being read — see [moreSongs].
      */
     suspend fun browseSongs(browseId: String): Result<SongPage> = call("browse:$browseId") {
-        val response = Innertube.browse(browseId)
-        val page = if (browseId.startsWith("MPREb")) {
-            albumPageOf(response)
-        } else {
-            pageOf(response)
-        }
-        // Only a playlist has an owner in the sense that matters — see
-        // parsePlaylistOwned — and only its own first response can be asked.
-        if (!browseId.startsWith("VL")) page
-        else page.copy(owned = InnertubeParser.parsePlaylistOwned(response))
+        val metadata = browsePage(browseId)
+        if (!browseId.startsWith("MPREb")) metadata else albumPageOf(metadata)
     }
+
+    private suspend fun browsePage(id: String, continuation: Boolean = false): SongPage =
+        (if (continuation) continuationPages else browsePages).get(
+            BrowseKey(Innertube.responseCacheScope, Innertube.currentLanguage, id, continuation),
+        ) {
+            val response = if (continuation) Innertube.browseContinuation(id) else Innertube.browse(id)
+            val page = pageOf(response, album = !continuation && id.startsWith("MPREb"))
+            // Only a playlist has an owner in the sense that matters — see
+            // parsePlaylistOwned — and only its own first response can be asked.
+            if (continuation || !id.startsWith("VL")) page
+            else page.copy(owned = InnertubeParser.parsePlaylistOwned(response))
+        }
 
     /**
      * Joins an album's metadata page to its authoritative track listing.
@@ -660,12 +689,12 @@ object YtMusicRepository {
      * so read songs and pagination from there while retaining the richer album
      * header and controls from the original response.
      */
-    private suspend fun albumPageOf(albumResponse: JsonObject): SongPage {
-        val metadata = pageOf(albumResponse)
-        val playlistId = InnertubeParser.parseAlbumPlaylistId(albumResponse) ?: return metadata
-        val tracks = pageOf(Innertube.browse("VL${playlistId.removePrefix("VL")}"))
+    private suspend fun albumPageOf(metadata: SongPage): SongPage {
+        val playlistId = metadata.backingPlaylistId ?: return metadata
+        val tracks = browsePage("VL${playlistId.removePrefix("VL")}")
         return tracks.copy(
             library = metadata.library,
+            owned = metadata.owned,
             header = metadata.header,
             description = metadata.description,
         )
@@ -673,7 +702,7 @@ object YtMusicRepository {
 
     /** The page [SongPage.continuation] points at. */
     suspend fun moreSongs(token: String): Result<SongPage> = call("browse:more") {
-        pageOf(Innertube.browseContinuation(token))
+        browsePage(token, continuation = true)
     }
 
     /**
@@ -683,22 +712,27 @@ object YtMusicRepository {
      * The same question [browseSongs] answers on the way past, asked on its own
      * by whatever needs it without a page open: holding a playlist card offers
      * Rename and Delete, and the card itself cannot say whether either applies.
-     * The rows it fetches are thrown away, which is the price of one request for
-     * a menu that would otherwise have to guess.
+     * Shares the first browse response with the page and library controls, so
+     * opening the menu beside a load or revisiting it costs no second request.
      */
     suspend fun playlistOwned(browseId: String): Result<Boolean?> = call("owner:$browseId") {
-        InnertubeParser.parsePlaylistOwned(Innertube.browse(browseId))
+        browsePage(browseId).owned
     }
 
-    private fun pageOf(response: JsonObject): SongPage {
+    private fun pageOf(response: JsonObject, album: Boolean = false): SongPage {
         val library = InnertubeParser.parseLibraryState(response)
         val header = InnertubeParser.parseBrowseHeader(response)
+        val backingPlaylistId = if (album) InnertubeParser.parseAlbumPlaylistId(response) else null
         // A playlist page is scoped to its own shelf so its "Suggested
         // tracks" never read as songs the user added — see
         // parsePlaylistShelf. Anything else (album, library, history) has no
         // such shelf, and falls back to the layout-agnostic walk.
         InnertubeParser.parsePlaylistShelf(response)?.let { shelf ->
-            return SongPage(shelf.songs, shelf.continuation, shelf.suggested, library, header = header)
+            return SongPage(
+                shelf.songs, shelf.continuation, shelf.suggested, library, header = header,
+                description = InnertubeParser.parseDescription(response),
+                backingPlaylistId = backingPlaylistId,
+            )
         }
         return SongPage(
             // One response can name the same track twice — an album page that
@@ -709,6 +743,7 @@ object YtMusicRepository {
             library = library,
             header = header,
             description = InnertubeParser.parseDescription(response),
+            backingPlaylistId = backingPlaylistId,
         )
     }
 
@@ -741,22 +776,21 @@ object YtMusicRepository {
      */
     private suspend fun songsPaged(browseId: String): List<Song> {
         val out = LinkedHashMap<String, Song>()
-        var response = Innertube.browse(browseId)
-        if (browseId.startsWith("MPREb")) {
-            InnertubeParser.parseAlbumPlaylistId(response)?.let { playlistId ->
-                response = Innertube.browse("VL${playlistId.removePrefix("VL")}")
-            }
-        }
+        val first = browsePage(browseId)
+        var current = if (browseId.startsWith("MPREb")) albumPageOf(first) else first
         var page = 1
+        val seenTokens = HashSet<String>()
         while (true) {
-            // Same shelf-scoping as pageOf: a playlist (Liked Music and the
-            // Library Songs auto-playlist included) is read from its own
-            // shelf so a trailing "Suggested tracks" shelf never joins in.
-            val shelf = InnertubeParser.parsePlaylistShelf(response)
-            (shelf?.songs ?: InnertubeParser.collectSongsDeep(response)).forEach { out[it.videoId] = it }
-            val token = shelf?.continuation ?: InnertubeParser.continuationToken(response)
-            if (token == null || page++ >= MAX_PAGES) break
-            response = runCatching { Innertube.browseContinuation(token) }.getOrNull() ?: break
+            current.songs.forEach { out[it.videoId] = it }
+            val token = current.continuation
+            if (token == null || page++ >= MAX_PAGES || !seenTokens.add(token)) break
+            current = try {
+                browsePage(token, continuation = true)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                break
+            }
         }
         return out.values.toList()
     }
@@ -841,11 +875,11 @@ object YtMusicRepository {
     }
 
     suspend fun rate(videoId: String, status: LikeStatus): Result<Unit> =
-        call("rate:$videoId") { Innertube.rate(videoId, status) }
+        write("rate:$videoId") { Innertube.rate(videoId, status) }
 
     /** Adds or removes a track from the library; [token] says which. */
     suspend fun setLibraryStatus(token: String): Result<Unit> =
-        call("library:feedback") { Innertube.sendFeedback(token) }
+        write("library:feedback") { Innertube.sendFeedback(token) }
 
     /**
      * Saves an album or playlist to the library, or removes it. [playlistId] is
@@ -858,10 +892,10 @@ object YtMusicRepository {
      * button (a signed-out response, or a release YouTube marks unsaveable).
      */
     suspend fun releaseLibraryState(browseId: String): Result<LibraryState?> =
-        call("library-state:$browseId") { InnertubeParser.parseLibraryState(Innertube.browse(browseId)) }
+        call("library-state:$browseId") { browsePage(browseId).library }
 
     suspend fun setSaved(playlistId: String, saved: Boolean): Result<Unit> =
-        call("library:$playlistId") { Innertube.ratePlaylist(playlistId, saved) }
+        write("library:$playlistId") { Innertube.ratePlaylist(playlistId, saved) }
 
     /**
      * Subscribes to an artist's channel, or unsubscribes. [channelId] is the one
@@ -892,7 +926,7 @@ object YtMusicRepository {
         title: String,
         privacy: PlaylistPrivacy,
         videoIds: List<String> = emptyList(),
-    ): Result<String> = call("playlist:create") {
+    ): Result<String> = write("playlist:create") {
         Innertube.createPlaylist(title, privacy, videoIds = videoIds)
     }
 
@@ -906,13 +940,13 @@ object YtMusicRepository {
         playlistId: String,
         videoIds: List<String>,
     ): Result<Map<String, String>> =
-        call("playlist:add") { Innertube.addToPlaylist(playlistId, videoIds) }
+        write("playlist:add") { Innertube.addToPlaylist(playlistId, videoIds) }
 
     /** [entries] are (setVideoId, videoId) pairs — see [Song.setVideoId]. */
     suspend fun removeFromPlaylist(
         playlistId: String,
         entries: List<Pair<String, String>>,
-    ): Result<Unit> = call("playlist:remove") {
+    ): Result<Unit> = write("playlist:remove") {
         Innertube.removeFromPlaylist(playlistId, entries)
     }
 
@@ -955,7 +989,7 @@ object YtMusicRepository {
         playlistId: String,
         current: List<String>,
         target: List<String>,
-    ): Result<Unit> = call("playlist:reorder") {
+    ): Result<Unit> = write("playlist:reorder") {
         playlistMoves(current, target).chunked(MOVE_BATCH).forEach { batch ->
             Innertube.movePlaylistItems(playlistId, batch)
         }
@@ -964,10 +998,20 @@ object YtMusicRepository {
     private const val MOVE_BATCH = 50
 
     suspend fun renamePlaylist(playlistId: String, title: String): Result<Unit> =
-        call("playlist:rename") { Innertube.renamePlaylist(playlistId, title) }
+        write("playlist:rename") { Innertube.renamePlaylist(playlistId, title) }
 
     suspend fun deletePlaylist(playlistId: String): Result<Unit> =
-        call("playlist:delete") { Innertube.deletePlaylist(playlistId) }
+        write("playlist:delete") { Innertube.deletePlaylist(playlistId) }
+
+    /** Also invalidate after partial/failed writes, such as a multi-batch reorder. */
+    private suspend fun <T> write(label: String, block: suspend () -> T): Result<T> {
+        clearBrowseCache()
+        return try {
+            call(label, block)
+        } finally {
+            clearBrowseCache()
+        }
+    }
 
     /**
      * Artist page. The landing page only lists ~5 songs, so the linked

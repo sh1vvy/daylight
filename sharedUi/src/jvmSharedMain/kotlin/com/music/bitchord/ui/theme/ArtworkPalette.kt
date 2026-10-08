@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.ImageBitmap
 import coil3.compose.LocalPlatformContext
 import com.music.bitchord.ui.graphics.ColorUtils
+import com.music.bitchord.ui.graphics.ArtworkCacheIdentity
+import com.music.bitchord.ui.graphics.CoalescingLruCache
 import com.music.bitchord.ui.graphics.forPixelAccess
 import com.music.bitchord.ui.graphics.paletteSwatches
 import com.music.bitchord.ui.graphics.toImageBitmap
@@ -107,21 +109,24 @@ fun rememberArtworkPalette(
     // Always asked, so the composable call is unconditional; handed nothing to
     // read when the colours are already in hand.
     val decoded = rememberArtworkSeed(if (keyColors == null) imageUrl else null, artPx)
-    val seed = keyColors?.toSeed() ?: decoded
+    val suppliedSeed = remember(keyColors) { keyColors?.toSeed() }
+    val seed = suppliedSeed ?: decoded
     // Whether the colours were there from the first frame. If they were, there
     // is nothing to crossfade *from* and animating would only put a delay in
     // front of a surface that could already be right.
     val knownUpFront = remember(imageUrl) { decoded != null }
 
-    val target = seed?.toPalette(dark) ?: ArtworkPalette(
-        background = scheme.background,
-        wash = scheme.background,
-        elevated = scheme.surfaceVariant,
-        accent = scheme.primary,
-        onBackground = scheme.onBackground,
-        onBackgroundVariant = scheme.onSurfaceVariant,
-        divider = scheme.outline,
-    )
+    val target = remember(seed, dark, scheme) {
+        seed?.toPalette(dark) ?: ArtworkPalette(
+            background = scheme.background,
+            wash = scheme.background,
+            elevated = scheme.surfaceVariant,
+            accent = scheme.primary,
+            onBackground = scheme.onBackground,
+            onBackgroundVariant = scheme.onSurfaceVariant,
+            divider = scheme.outline,
+        )
+    }
 
     val spec: AnimationSpec<Color> = if (reduceAnimation || knownUpFront) {
         snap()
@@ -154,35 +159,33 @@ fun rememberArtworkTopBandLuminance(
 @Composable
 private fun rememberArtworkSeed(imageUrl: String?, artPx: Int): Seed? {
     val context = LocalPlatformContext.current
-    var seed by remember(imageUrl) { mutableStateOf(imageUrl?.let(seedCache::get)) }
+    val data = remember(imageUrl, artPx) { imageUrl.artworkAt(artPx) }
+    val key = data?.let(ArtworkCacheIdentity::key)
+    var seed by remember(key) { mutableStateOf(key?.let(seedCache::get)) }
 
-    LaunchedEffect(imageUrl, artPx) {
-        if (imageUrl == null || seed != null) return@LaunchedEffect
-        val request = ImageRequest.Builder(context)
-            .data(imageUrl.artworkAt(artPx))
-            .size(PALETTE_PX)
-            .forPixelAccess()
-            .build()
-        val result = SingletonImageLoader.get(context).execute(request)
-        val bitmap = (result as? SuccessResult)?.image?.toImageBitmap() ?: return@LaunchedEffect
-        val found = withContext(Dispatchers.Default) { seedOf(bitmap) } ?: return@LaunchedEffect
-        seedCache[imageUrl] = found
-        seed = found
+    LaunchedEffect(key) {
+        if (key == null || seed != null) return@LaunchedEffect
+        seed = seedCache.getOrLoad(key) {
+            val request = ImageRequest.Builder(context)
+                .data(data)
+                .size(PALETTE_PX)
+                .forPixelAccess()
+                .build()
+            val result = SingletonImageLoader.get(context).execute(request)
+            val bitmap = (result as? SuccessResult)?.image?.toImageBitmap() ?: return@getOrLoad null
+            withContext(Dispatchers.Default) { seedOf(bitmap) }
+        }
     }
     return seed
 }
 
 /**
- * Colours already read, keyed by artwork URL.
+ * Colours already read, keyed by the requested URL and private-server scope.
  *
  * Reading them again costs a decode and a quantise for an answer that cannot
- * have changed — the artwork at a URL is the artwork at that URL. Access is
- * from composition and from the resumption of [rememberArtworkPalette]'s
- * effect, both on the main thread, so it needs no locking of its own.
+ * have changed. Simultaneous palette/top-band consumers share one analysis.
  */
-private val seedCache = object : LinkedHashMap<String, Seed>(0, 0.75f, true) {
-    override fun removeEldestEntry(eldest: Map.Entry<String, Seed>) = size > SEED_CACHE_ENTRIES
-}
+private val seedCache = CoalescingLruCache<Seed>(SEED_CACHE_ENTRIES)
 
 /** Deep enough to cover a session's browsing without holding a screenful of colours. */
 private const val SEED_CACHE_ENTRIES = 128

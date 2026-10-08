@@ -153,6 +153,18 @@ fun SearchScreen(
      */
     sourceSwitcher: (@Composable () -> Unit)? = null,
 ) {
+    val resultRows = (results as? UiState.Success)?.data.orEmpty()
+    val resultTracks = remember(resultRows) {
+        resultRows.mapNotNull { row ->
+            when (row) {
+                is SearchResult.TopTrack -> row.song
+                is SearchResult.Track -> row.song
+                is SearchResult.Browse -> null
+            }
+        }
+    }
+    val resultTopTrack = remember(resultRows) { resultRows.firstOrNull { it is SearchResult.TopTrack } as? SearchResult.TopTrack }
+    val resultSections = remember(resultRows, filter) { searchSections(resultRows, filter) }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -286,16 +298,10 @@ fun SearchScreen(
                 results is UiState.Loading -> songListSkeleton(circular = filter == SearchFilter.ARTISTS)
                 results is UiState.Error -> item { MessageState(results.message) }
                 results is UiState.Success -> {
-                    val tracks = results.data
-                        .mapNotNull { row -> when (row) {
-                            is SearchResult.TopTrack -> row.song
-                            is SearchResult.Track -> row.song
-                            is SearchResult.Browse -> null
-                            else -> null
-                        } }
-                    val topResult = results.data.filterIsInstance<SearchResult.TopTrack>().firstOrNull()
+                    val tracks = resultTracks
+                    val topResult = resultTopTrack
                     if (filter == SearchFilter.ALL && topResult != null) {
-                        item(key = "search:top-result:${topResult.song.videoId}") {
+                        item(key = "search:top-result:${topResult.song.videoId}", contentType = "top-result") {
                             TopResultCard(
                                 song = topResult.song,
                                 onPlay = { onTopResultPlay(topResult.song) },
@@ -304,9 +310,9 @@ fun SearchScreen(
                             )
                         }
                     }
-                    searchSections(results.data, filter).forEach { section ->
+                    resultSections.forEach { section ->
                         section.title?.let { title ->
-                            item(key = "search-section:$title") {
+                            item(key = "search-section:$title", contentType = "heading") {
                                 Text(
                                     text = title,
                                     modifier = Modifier.padding(
@@ -327,6 +333,13 @@ fun SearchScreen(
                                     is SearchResult.TopTrack -> "top_${row.song.videoId}_$index"
                                     is SearchResult.Track -> "track_${row.song.videoId}_$index"
                                     is SearchResult.Browse -> "browse_${row.item.browseId}_$index"
+                                }
+                            },
+                            contentType = { _, row ->
+                                when (row) {
+                                    is SearchResult.TopTrack -> "top-track"
+                                    is SearchResult.Track -> "song-row"
+                                    is SearchResult.Browse -> "browse-${row.item.type}"
                                 }
                             },
                         ) { index, row ->

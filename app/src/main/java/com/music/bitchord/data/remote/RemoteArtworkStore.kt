@@ -5,11 +5,9 @@ import android.net.Uri
 import com.music.bitchord.data.model.Song
 import java.io.File
 import java.security.MessageDigest
-import java.util.concurrent.ConcurrentHashMap
-import kotlinx.coroutines.CompletableDeferred
+import com.music.bitchord.ui.graphics.CoalescingLruCache
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -22,7 +20,8 @@ import kotlinx.coroutines.withContext
  * reads that pull the picture out of the file. Concurrent asks for one
  * track share a single extraction.
  *
- * Disk names are content-blind hashes of the track id: ids embed full URLs
+ * Disk names are content-blind hashes of the track id and server account:
+ * ids embed full URLs
  * with slashes and escapes that must never reach the filesystem. A
  * server-side overwrite keeps serving the stale copy — accepted, since
  * revalidating would cost a request per row per list.
@@ -31,41 +30,38 @@ object RemoteArtworkStore {
 
     private const val MAX_DIR_BYTES = 100L * 1024 * 1024
 
-    private val memory = ConcurrentHashMap<String, String>()
-    private val inFlight = ConcurrentHashMap<String, CompletableDeferred<String?>>()
-    private val claimed = ConcurrentHashMap.newKeySet<String>()
-    private val inFlightLock = Mutex()
+    private data class Resolved(val uri: String?, val checkedAt: Long)
+    private val memory = CoalescingLruCache<Resolved>(256)
+    private const val MISS_RETRY_NANOS = 30_000_000_000L
 
     /**
      * A drawable art URI for [song]: its own thumbnail when it has one, else
      * the extracted embedded picture, else null. Never throws.
      */
-    suspend fun resolveArt(context: Context, song: Song): String? {
-        song.thumbnailUrl?.let { return it }
-        val key = song.videoId
-        memory[key]?.let { return it }
-        val appContext = context.applicationContext
-        diskHit(appContext, key)?.let {
-            memory[key] = it
-            return it
-        }
-        val job = inFlightLock.withLock {
-            inFlight.getOrPut(key) { CompletableDeferred() }
-        }
-        if (claimed.add(key)) {
-            try {
-                job.complete(extractAndStore(appContext, song, key))
-            } catch (e: Throwable) {
-                job.completeExceptionally(e)
-                throw e
-            } finally {
-                claimed.remove(key)
-                inFlightLock.withLock {
-                    inFlight.remove(key, job)
-                }
+    suspend fun resolveArt(context: Context, song: Song): String? = withContext(Dispatchers.IO) {
+        song.thumbnailUrl?.let { return@withContext it }
+        val url = song.localUri.orEmpty()
+        val scopedUrl = ImageCacheKeys.forUrl(url)
+        val key = if (scopedUrl == url) song.videoId else song.videoId + scopedUrl.removePrefix(url)
+        val now = System.nanoTime()
+        memory[key]?.let { cached ->
+            if (cached.uri == null && now - cached.checkedAt < MISS_RETRY_NANOS) return@withContext null
+            if (cached.uri != null && Uri.parse(cached.uri).path?.let { File(it).isFile } == true) {
+                return@withContext cached.uri
             }
+            // Android or our bounded disk cache can remove a file underneath us.
+            memory.remove(key)
         }
-        return runCatching { job.await() }.getOrNull()?.also { memory[key] = it }
+        val appContext = context.applicationContext
+        memory.getOrLoad(key) {
+            try {
+                Resolved(diskHit(appContext, key) ?: extractAndStore(appContext, song, key), System.nanoTime())
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                Resolved(null, System.nanoTime())
+            }
+        }?.uri
     }
 
     private suspend fun extractAndStore(context: Context, song: Song, key: String): String? =
@@ -86,12 +82,16 @@ object RemoteArtworkStore {
     private fun diskHit(context: Context, key: String): String? {
         val dir = File(context.cacheDir, "remote_art")
         if (!dir.isDirectory) return null
-        // The extension depends on the sniffed mime, so match by stem.
-        val match = dir.listFiles { _, name -> name.startsWith("${cacheKey(key)}.") }
-            ?.filter { it.isFile && it.length() > 0 }
-            ?.maxByOrNull { it.lastModified() }
+        // Six predictable file names avoid scanning the entire cover directory
+        // for each visible row. All filesystem work is on the IO dispatcher.
+        val stem = cacheKey(key)
+        val match = CACHE_EXTENSIONS.map { File(dir, "$stem.$it") }
+            .filter { it.isFile && it.length() > 0 }
+            .maxByOrNull { it.lastModified() }
         return match?.let { Uri.fromFile(it).toString() }
     }
+
+    private val CACHE_EXTENSIONS = listOf("jpg", "png", "webp", "gif", "bmp", "bin")
 
     private fun extensionFor(mime: String): String = when (mime.lowercase()) {
         "image/jpeg" -> "jpg"

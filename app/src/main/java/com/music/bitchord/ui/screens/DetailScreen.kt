@@ -37,6 +37,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -63,6 +64,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -149,6 +151,9 @@ import com.music.bitchord.ui.components.thumbnailBorder
 import com.music.bitchord.ui.components.detailSkeleton
 import com.music.bitchord.ui.components.topBarContentPadding
 import com.music.bitchord.ui.components.trackColumnWidth
+import com.music.bitchord.ui.components.homeShelfKeys
+import com.music.bitchord.ui.components.shelfItemKeys
+import com.music.bitchord.ui.components.stableItemKeys
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
 import com.music.bitchord.ui.icons.BitChordIcons
@@ -296,6 +301,7 @@ fun DetailScreen(
 ) {
     val rawSongs = (page.songs as? UiState.Success)?.data.orEmpty()
     val songs = remember(rawSongs, songSort) { rawSongs.sortedForDetail(songSort) }
+    val songKeys = remember(songs) { stableItemKeys(songs) { "track:${it.videoId}" } }
     // What a numbered row shows regardless of [songSort] — an album's track
     // numbers are the sleeve's own and must not relabel themselves to match
     // wherever a sort put the row.
@@ -305,7 +311,15 @@ fun DetailScreen(
     val isArtist = page.type == BrowseType.ARTIST
     // Whether the top release card's album is already saved isn't on the shelf
     // item; it is read off the album once, as soon as the card is known.
-    val topReleaseId = if (isArtist) page.sections.topRelease()?.browseId else null
+    val topRelease = remember(isArtist, page.sections) {
+        if (isArtist) page.sections.topRelease() else null
+    }
+    val topReleaseId = topRelease?.browseId
+    val sectionKeys = remember(page.sections) { homeShelfKeys(page.sections) }
+    val artistSongs = remember(rawSongs, isArtist) {
+        if (isArtist) rawSongs.take(MAX_ARTIST_SONGS) else emptyList()
+    }
+    val artistColumns = remember(artistSongs) { artistSongs.chunked(SONGS_PER_COLUMN) }
     LaunchedEffect(topReleaseId) { topReleaseId?.let { onLoadReleaseLibrary?.invoke(it) } }
     // Apple Music's hero photo and title logo for this artist, found by name.
     // Null until (and unless) it arrives; the YouTube header stands in meanwhile.
@@ -356,6 +370,7 @@ fun DetailScreen(
     val suggested = remember(page.suggestedSongs, query) {
         page.suggestedSongs.matching(query).map { it.value }
     }
+    val suggestedKeys = remember(suggested) { stableItemKeys(suggested) { "suggested:${it.videoId}" } }
 
     // What marks a row as already downloaded, tinted from the sleeve like the
     // rest of the page. Null on any page that is itself a reading of this
@@ -444,7 +459,7 @@ fun DetailScreen(
                     // the glass bar — the image is the top of the page, not a card on it.
                     contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding()),
                 ) {
-            item(key = "header") {
+            item(key = "header", contentType = "header") {
                 if (isArtist) {
                     ArtistHeader(page = page, palette = palette, artHeight = artHeight, appleArt = appleArt)
                 } else {
@@ -473,7 +488,7 @@ fun DetailScreen(
             }
 
             if (searching) {
-                item(key = "search") {
+                item(key = "search", contentType = "search") {
                     DetailSearchField(
                         query = query,
                         onQueryChange = { query = it },
@@ -489,7 +504,7 @@ fun DetailScreen(
             val description = page.description
 
             if (songs.isNotEmpty() && isArtist) {
-                item(key = "actions") {
+                item(key = "actions", contentType = "actions") {
                     ActionRow(
                         palette = palette,
                         onPlay = { onSongClick(songs, 0) },
@@ -503,9 +518,8 @@ fun DetailScreen(
             }
 
             // The first release on the shelves below, pulled out as a card of its own.
-            val topRelease = if (isArtist) page.sections.topRelease() else null
             if (topRelease != null) {
-                item(key = "top-release") {
+                item(key = "top-release", contentType = "top-release") {
                     TopReleaseCard(
                         item = topRelease,
                         palette = palette,
@@ -533,7 +547,7 @@ fun DetailScreen(
                 (page.type == BrowseType.ALBUM || isArtist)) || hasStats
             fun LazyListScope.aboutItem() {
                 if (!showAbout) return
-                item(key = "about") {
+                item(key = "about", contentType = "about") {
                     // Clear of the last shelf above it.
                     Box(Modifier.padding(top = if (isArtist) 28.dp else 0.dp)) {
                     AboutSection(
@@ -562,12 +576,12 @@ fun DetailScreen(
 
             when (val state = page.songs) {
                 is UiState.Loading -> detailSkeleton(isArtist)
-                is UiState.Error -> item { MessageState(state.message) }
+                is UiState.Error -> item(key = "songs-error", contentType = "message") { MessageState(state.message) }
                 is UiState.Success -> if (isArtist) {
                     // An artist's full song list would bury the album shelves, so
                     // it pages sideways four at a time and stops at twenty.
-                    item {
-                        val top = state.data.take(MAX_ARTIST_SONGS)
+                    item(key = "top-songs", contentType = "top-songs") {
+                        val top = artistSongs
                         SectionHeading(
                             title = stringResource(R.string.top_songs),
                             palette = palette,
@@ -579,13 +593,16 @@ fun DetailScreen(
                                 contentPadding = PaddingValues(horizontal = ARTIST_CONTENT_GUTTER),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                items(top.chunked(SONGS_PER_COLUMN)) { column ->
+                                itemsIndexed(
+                                    artistColumns,
+                                    contentType = { _, _ -> "artist-song-column" },
+                                ) { columnIndex, column ->
                                     Column(Modifier.width(columnWidth)) {
-                                        column.forEach { song ->
+                                        column.forEachIndexed { rowIndex, song ->
                                             CompactSongRow(
                                                 song = song,
                                                 palette = palette,
-                                                onClick = { onSongClick(top, top.indexOf(song)) },
+                                                onClick = { onSongClick(top, columnIndex * SONGS_PER_COLUMN + rowIndex) },
                                                 onLongPress = { onSongLongPress(song) },
                                                 downloadedTint = downloadedTint,
                                                 isCurrent = song.isSameTrackAs(currentSong),
@@ -603,18 +620,19 @@ fun DetailScreen(
                     // numbers those rows instead, and so does this.
                     val numbered = page.type == BrowseType.ALBUM
                     if (matches.isEmpty() && state.data.isNotEmpty()) {
-                        item(key = "no-matches") {
+                        item(key = "no-matches", contentType = "message") {
                             MessageState(stringResource(R.string.nothing_matches, query))
                         }
                     }
                     itemsIndexed(
                         items = matches,
-                        key = { _, entry -> "${entry.index}_${entry.value.videoId}" },
+                        key = { _, entry -> songKeys[entry.index] },
+                        contentType = { _, _ -> "song-row" },
                     ) { position, entry ->
                         val song = entry.value
                         val isCurrent = song.isSameTrackAs(currentSong)
                         SongRow(
-                            song = if (numbered) {
+                            song = if (numbered || song.thumbnailUrl != null) {
                                 song
                             } else {
                                 song.copy(thumbnailUrl = song.thumbnailUrl ?: page.thumbnailUrl)
@@ -651,12 +669,13 @@ fun DetailScreen(
             // Tracks YouTube offers to round the playlist out, never folded
             // into the list above — see [DetailPage.suggestedSongs].
             if (suggested.isNotEmpty()) {
-                item(key = "suggested-heading") {
+                item(key = "suggested-heading", contentType = "heading") {
                     SectionHeading(stringResource(R.string.suggested), palette)
                 }
                 itemsIndexed(
                     suggested,
-                    key = { _, song -> "suggested-${song.videoId}" },
+                    key = { index, _ -> suggestedKeys[index] },
+                    contentType = { _, _ -> "suggested-song-row" },
                 ) { index, song ->
                     SuggestedSongRow(
                         song = song,
@@ -679,11 +698,16 @@ fun DetailScreen(
             }
 
             // Albums / Singles & EPs carousels (artist pages).
-            items(page.sections) { shelf ->
+            itemsIndexed(
+                page.sections,
+                key = { index, _ -> sectionKeys[index] },
+                contentType = { _, _ -> "artist-shelf" },
+            ) { _, shelf ->
                 val canShowAll = shelf.items.size > ARTIST_ROW_MAX_ITEMS
                 val displayItems = remember(shelf.items) {
                     if (canShowAll) shelf.items.take(ARTIST_ROW_MAX_ITEMS) else shelf.items
                 }
+                val itemKeys = remember(displayItems) { shelfItemKeys(displayItems) }
                 Column(Modifier.padding(top = 22.dp)) {
                     SectionHeading(
                         title = shelf.title,
@@ -695,7 +719,11 @@ fun DetailScreen(
                         contentPadding = PaddingValues(horizontal = ARTIST_CONTENT_GUTTER),
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        items(displayItems) { item ->
+                        itemsIndexed(
+                            displayItems,
+                            key = { index, _ -> itemKeys[index] },
+                            contentType = { _, _ -> "section-card" },
+                        ) { _, item ->
                             SectionCard(
                                 item = item,
                                 palette = palette,
@@ -1143,6 +1171,12 @@ private fun PageBackground(
     val softenFoot = canvas == null && !reduceDynamicBlur &&
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val art = heroUrl ?: page.thumbnailUrl.artworkAt(HEADER_ART_PX)
+    val artHeightPx = with(LocalDensity.current) { artHeight.toPx() }
+    val headerVisible by remember(listState, artHeightPx) {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < artHeightPx
+        }
+    }
 
     Box(modifier.clipToBounds()) {
         Box(
@@ -1162,12 +1196,16 @@ private fun PageBackground(
 
             // Above the still art but below the scrim, so the scrim that
             // settles the header into the page still sits over it. Always
-            // running: unlike the player's sleeve there is no transport here
-            // to follow, and the page is only up while it's being read.
+            // running while visible: a header parked above the viewport need
+            // not keep decoding a video while the user reads its track list.
             canvas?.let { clip ->
                 CanvasArtworkPlayer(
                     canvas = clip,
-                    isPlaying = true,
+                    isPlaying = headerVisible,
+                    // Android intentionally loops visible canvases while
+                    // music is paused; its explicit decoder gate also handles
+                    // a header that has moved completely above the viewport.
+                    pausedForTransition = !headerVisible,
                     modifier = Modifier.matchParentSize(),
                 )
             }
@@ -1927,6 +1965,7 @@ private fun ArtistShelfGridPage(
     modifier: Modifier = Modifier,
 ) {
     val gridState = rememberLazyGridState()
+    val itemKeys = remember(shelf.items) { shelfItemKeys(shelf.items) }
     BoxWithConstraints(modifier.fillMaxSize().background(palette.background)) {
         val grid = libraryGrid(maxWidth - PAGE_GUTTER * 2)
         LazyVerticalGrid(
@@ -1942,7 +1981,11 @@ private fun ArtistShelfGridPage(
                 .fillMaxSize()
                 .padding(horizontal = PAGE_GUTTER),
         ) {
-            items(shelf.items, key = { it.browseId ?: it.title }) { item ->
+            itemsIndexed(
+                items = shelf.items,
+                key = { index, _ -> itemKeys[index] },
+                contentType = { _, _ -> "section-card" },
+            ) { _, item ->
                 SectionCard(
                     item = item,
                     palette = palette,
@@ -2001,7 +2044,7 @@ private fun BrowseType.localizedLabel(): String? = when (this) {
  */
 @Composable
 private fun List<Song>.playtime(): String? {
-    val minutes = sumOf { it.durationMillis() } / 60_000
+    val minutes = remember(this) { sumOf { it.durationMillis() } / 60_000 }
     return when {
         minutes <= 0 -> null
         minutes < 60 -> stringResource(R.string.minutes_short, minutes.toInt())

@@ -6,6 +6,7 @@ import com.music.bitchord.ui.AppUi
 import com.music.bitchord.sharedui.resources.*
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.animation.animateColorAsState
@@ -67,6 +68,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
@@ -322,28 +326,8 @@ fun SongRow(
     /** True while a Downloads row belongs to the current multi-selection. */
     selected: Boolean = false,
 ) {
-    val haptics = rememberHaptics()
-    val swipeStateHolder = remember { mutableStateOf<SwipeToDismissBoxState?>(null) }
-    var boxWidth by remember { mutableFloatStateOf(0f) }
-
-    val currentOnSwipeToQueue by rememberUpdatedState(onSwipeToQueue)
-
-    val swipeState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value != SwipeToDismissBoxValue.Settled && currentOnSwipeToQueue != null) {
-                val offset = try { swipeStateHolder.value?.requireOffset() ?: 0f } catch (e: Exception) { 0f }
-                // Only queue if the physical drag reached half the box width, ignoring short accidental flings.
-                if (abs(offset) >= boxWidth * 0.45f) {
-                    haptics.play(Haptic.Select)
-                    currentOnSwipeToQueue?.invoke()
-                }
-            }
-            false // never actually dismiss; snap back
-        },
-        positionalThreshold = { distance -> distance * 0.5f },
-    )
-    swipeStateHolder.value = swipeState
-
+    // Most read-only lists do not offer swipe-to-queue. Avoid allocating drag
+    // state, animation state and haptic handles for each of their visible rows.
     if (onSwipeToQueue == null) {
         SongRowContent(
             song = song,
@@ -362,6 +346,28 @@ fun SongRow(
         )
         return
     }
+
+    val haptics = rememberHaptics()
+    val swipeStateHolder = remember { mutableStateOf<SwipeToDismissBoxState?>(null) }
+    var boxWidth by remember { mutableFloatStateOf(0f) }
+
+    val currentOnSwipeToQueue by rememberUpdatedState(onSwipeToQueue)
+
+    val swipeState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value != SwipeToDismissBoxValue.Settled) {
+                val offset = try { swipeStateHolder.value?.requireOffset() ?: 0f } catch (e: Exception) { 0f }
+                // Only queue if the physical drag reached half the box width, ignoring short accidental flings.
+                if (abs(offset) >= boxWidth * 0.45f) {
+                    haptics.play(Haptic.Select)
+                    currentOnSwipeToQueue()
+                }
+            }
+            false // never actually dismiss; snap back
+        },
+        positionalThreshold = { distance -> distance * 0.5f },
+    )
+    swipeStateHolder.value = swipeState
 
     // The row reveals "Queue" from the first pixel of the drag, but it only
     // *commits* past 45% of the width — so without this the label is a promise
@@ -654,9 +660,9 @@ val PlayingAccent = Color(0xFFFB4A62)
 
 @Composable
 fun SearchPlayingBars(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "search playing bars")
     val heights = listOf(0.38f, 0.78f, 0.52f).mapIndexed { index, minimum ->
-        val transition = rememberInfiniteTransition(label = "search playing bar $index")
-        val height by transition.animateFloat(
+        transition.animateFloat(
             initialValue = minimum,
             targetValue = 1f - (index * 0.12f),
             animationSpec = infiniteRepeatable(
@@ -670,30 +676,29 @@ fun SearchPlayingBars(modifier: Modifier = Modifier) {
             ),
             label = "search bar height $index",
         )
-        height
     }
-    // The plate is a fixed square so only the bars move, never the box around them.
-    Box(
+    // Read animated heights only while drawing. The marker retains its exact
+    // rhythm and dimensions without recomposing and remeasuring three Boxes
+    // (and their containing row) on every animation frame.
+    Canvas(
         modifier = modifier
             .size(24.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(Color.Black.copy(alpha = 0.52f)),
-        contentAlignment = Alignment.Center,
     ) {
-        Row(
-            modifier = Modifier.height(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            heights.forEach { height ->
-                Box(
-                    Modifier
-                        .width(3.dp)
-                        .height(14.dp * height)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(Color.White),
-                )
-            }
+        val barWidth = 3.dp.toPx()
+        val gap = 2.dp.toPx()
+        val maxHeight = 14.dp.toPx()
+        val startX = (size.width - barWidth * 3 - gap * 2) / 2
+        val bottom = (size.height + maxHeight) / 2
+        heights.forEachIndexed { index, height ->
+            val barHeight = maxHeight * height.value
+            drawRoundRect(
+                color = Color.White,
+                topLeft = Offset(startX + index * (barWidth + gap), bottom - barHeight),
+                size = Size(barWidth, barHeight),
+                cornerRadius = CornerRadius(2.dp.toPx()),
+            )
         }
     }
 }

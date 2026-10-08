@@ -21,6 +21,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -713,6 +715,7 @@ object Downloads {
             val seenUris = HashSet<String>()
 
             record.videoIds.mapNotNull { videoId ->
+                currentCoroutineContext().ensureActive()
                 val uriString = saved[videoId] ?: metadata[videoId]?.uri ?: return@mapNotNull null
                 if (!seenUris.add(uriString)) return@mapNotNull null
                 val uri = uriString.toUri()

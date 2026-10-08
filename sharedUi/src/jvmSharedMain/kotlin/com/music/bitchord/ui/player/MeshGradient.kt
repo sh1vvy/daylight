@@ -9,7 +9,6 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -21,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -28,6 +28,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import coil3.compose.LocalPlatformContext
 import com.music.bitchord.ui.graphics.forPixelAccess
+import com.music.bitchord.ui.graphics.ArtworkCacheIdentity
+import com.music.bitchord.ui.graphics.CoalescingLruCache
 import com.music.bitchord.ui.graphics.paletteSwatches
 import com.music.bitchord.ui.graphics.toImageBitmap
 import androidx.compose.ui.unit.Dp
@@ -106,17 +108,20 @@ fun MeshGradientBackground(
 ) {
     val reduceAnimation by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
 
-    val tuned = (palette.colors.ifEmpty { FallbackColors } + FallbackColors)
-        .take(4)
-        .map { it.tuned() }
+    val tuned = remember(palette) {
+        (palette.colors.ifEmpty { FallbackColors } + FallbackColors)
+            .take(4)
+            .map { it.tuned() }
+    }
 
     // Each colour slot crossfades independently when the track (palette) changes,
     // unless "reduce animation" is on, in which case colours snap straight to target.
     val colorSpec: AnimationSpec<Color> = if (reduceAnimation || !animated) snap() else tween(1400)
     val animatedColors = tuned.mapIndexed { index, color ->
-        animateColorAsState(color, colorSpec, label = "meshColor$index").value
+        animateColorAsState(color, colorSpec, label = "meshColor$index")
     }
-    val baseColor by animateColorAsState(tuned.first().dimmed(), colorSpec, label = "meshBase")
+    val base = remember(tuned) { tuned.first().dimmed() }
+    val baseColor = animateColorAsState(base, colorSpec, label = "meshBase")
 
     // Read in the draw lambda, not here: an Animatable read during draw
     // invalidates only the drawing, leaving composition out of the loop.
@@ -163,7 +168,7 @@ fun MeshGradientBackground(
                 scaleX = 1.3f
                 scaleY = 1.3f
             }
-            .background(baseColor)
+            .drawBehind { drawRect(baseColor.value) }
             .blur(blurRadius),
     ) {
         val anchors = listOf(
@@ -175,7 +180,8 @@ fun MeshGradientBackground(
         val speeds = listOf(1f, -0.7f, 0.85f, -1.15f)
         val drift = phase.value
 
-        animatedColors.forEachIndexed { index, color ->
+        animatedColors.forEachIndexed { index, colorState ->
+            val color = colorState.value
             val anchor = anchors[index]
             val center = Offset(
                 x = (anchor.x + 0.16f * cos(drift * speeds[index] + index * 1.7f)) * size.width,
@@ -217,18 +223,21 @@ fun MeshGradientBackground(
 @Composable
 fun rememberArtworkColors(imageUrl: String?, canvasFrame: ImageBitmap? = null): MeshPalette {
     val context = LocalPlatformContext.current
-    var palette by remember(imageUrl) { mutableStateOf(MeshPalette(FallbackColors)) }
+    val key = imageUrl?.let(ArtworkCacheIdentity::key)
+    var palette by remember(key) { mutableStateOf(key?.let(colorCache::get) ?: MeshPalette(FallbackColors)) }
 
-    LaunchedEffect(imageUrl) {
-        if (imageUrl == null) return@LaunchedEffect
-        val request = ImageRequest.Builder(context)
-            .data(imageUrl)
-            .size(128) // palette quality is fine at thumbnail size, and it's fast
-            .forPixelAccess() // Palette needs pixel access
-            .build()
-        val result = SingletonImageLoader.get(context).execute(request)
-        val bitmap = (result as? SuccessResult)?.image?.toImageBitmap() ?: return@LaunchedEffect
-        palette = MeshPalette(paletteOf(bitmap))
+    LaunchedEffect(key) {
+        if (key == null) return@LaunchedEffect
+        colorCache.getOrLoad(key) {
+            val request = ImageRequest.Builder(context)
+                .data(imageUrl)
+                .size(128) // palette quality is fine at thumbnail size, and it's fast
+                .forPixelAccess() // Palette needs pixel access
+                .build()
+            val result = SingletonImageLoader.get(context).execute(request)
+            val bitmap = (result as? SuccessResult)?.image?.toImageBitmap() ?: return@getOrLoad null
+            withContext(Dispatchers.Default) { MeshPalette(paletteOf(bitmap)) }
+        }?.let { palette = it }
     }
 
     LaunchedEffect(canvasFrame) {
@@ -236,12 +245,14 @@ fun rememberArtworkColors(imageUrl: String?, canvasFrame: ImageBitmap? = null): 
         // Reject near-black frames (first read after surface recreation, before
         // ExoPlayer decodes real content).  A dark sleeve will still exceed the
         // threshold because compression noise pushes mean luminance above ~12.
-        if (isLikelyBlackFrame(frame)) return@LaunchedEffect
-        val colors = withContext(Dispatchers.Default) { paletteOf(frame) }
-        palette = MeshPalette(colors)
+        withContext(Dispatchers.Default) {
+            if (isLikelyBlackFrame(frame)) null else MeshPalette(paletteOf(frame))
+        }?.let { palette = it }
     }
     return palette
 }
+
+private val colorCache = CoalescingLruCache<MeshPalette>(64)
 
 /**
  * How far the blobs travel in one settle. A shade under half a turn: enough

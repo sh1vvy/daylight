@@ -94,6 +94,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -106,6 +107,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -221,6 +223,7 @@ import com.music.bitchord.playback.rememberMediaController
 import com.music.bitchord.playback.rememberPlayerState
 import com.music.bitchord.playback.setQueueDragActive
 import com.music.bitchord.ui.MainViewModel
+import com.music.bitchord.ui.detailRouteKey
 import com.music.bitchord.ui.SearchSource
 import com.music.bitchord.ui.components.BottomFadeScrim
 import com.music.bitchord.ui.components.FloatingBarsTapGuard
@@ -795,7 +798,7 @@ private fun BitChordApp(
     // selected. A pushed album/artist page (from the player, search, etc.)
     // should surface above it rather than being hidden behind it.
     LaunchedEffect(detail) { if (detail != null) showSettings = false }
-    LaunchedEffect(detail?.browseId) { detailActiveShelf = null }
+    LaunchedEffect(detail?.detailRouteKey()) { detailActiveShelf = null }
     LaunchedEffect(showSettings) {
         if (!showSettings) {
             showAccountScrobbling = false
@@ -828,14 +831,17 @@ private fun BitChordApp(
     // Playlists imported without (or instead of) a YouTube Music account live
     // in the app's own store, and sit on the same shelf as the downloaded ones.
     val localPlaylists by com.music.bitchord.data.spotify.LocalPlaylistStore.playlists.collectAsStateWithLifecycle()
-    val localPlaylistItems = localPlaylists.map { playlist ->
-        ShelfItem(
-            title = playlist.title,
-            subtitle = stringResource(R.string.local_playlist_subtitle, playlist.songs.size),
-            thumbnailUrl = playlist.songs.firstOrNull { !it.thumbnailUrl.isNullOrBlank() }?.thumbnailUrl,
-            videoId = null,
-            browseId = playlist.browseId,
-        )
+    val configuration = LocalConfiguration.current
+    val localPlaylistItems = remember(localPlaylists, configuration, context) {
+        localPlaylists.map { playlist ->
+            ShelfItem(
+                title = playlist.title,
+                subtitle = context.getString(R.string.local_playlist_subtitle, playlist.songs.size),
+                thumbnailUrl = playlist.songs.firstOrNull { !it.thumbnailUrl.isNullOrBlank() }?.thumbnailUrl,
+                videoId = null,
+                browseId = playlist.browseId,
+            )
+        }
     }
     // What a browse id is recorded under in Downloads.collections, when it names
     // a release downloaded whole — see BrowseTarget.downloadId. A downloaded
@@ -1059,11 +1065,22 @@ private fun BitChordApp(
     // layout and unable to consume scroll gestures. Keep one state per page
     // while it is on the navigation stack instead.
     val detailListStates = remember { mutableMapOf<String, LazyListState>() }
-    val detailListState = detail?.browseId?.let { browseId ->
-        detailListStates.getOrPut(browseId) { LazyListState() }
+    val detailSaveableStateHolder = rememberSaveableStateHolder()
+    var retainedDetailStateKeys by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    val detailListState = detail?.let { page ->
+        detailListStates.getOrPut(page.detailRouteKey()) { LazyListState() }
     } ?: remember { LazyListState() }
-    LaunchedEffect(detailStack.map { it.browseId }) {
-        detailListStates.keys.retainAll(detailStack.mapTo(HashSet()) { it.browseId })
+    val detailRouteKeys = detailStack.map { it.detailRouteKey() }
+    LaunchedEffect(detailRouteKeys) {
+        val retainedKeys = detailRouteKeys.toHashSet()
+        detailListStates.keys.retainAll(retainedKeys)
+        // Back-stack visits keep their search/tab state after their animated
+        // slot is disposed. Removing a popped visit also stops its outgoing
+        // slot from saving that state again when the fade finishes.
+        retainedDetailStateKeys.filterNot { it in retainedKeys }.forEach {
+            detailSaveableStateHolder.removeState(it)
+        }
+        retainedDetailStateKeys = detailRouteKeys
     }
     val detailTitleDrop = with(LocalDensity.current) { DETAIL_TITLE_DROP.toPx() }
     val detailScrolled by remember(detailListState, detailTitleDrop) {
@@ -2542,7 +2559,7 @@ private fun BitChordApp(
                     // was live, hit, and changed nothing on screen.
                     showSettings -> "settings"
                     showReplay -> "replay"
-                    detail != null -> detail.browseId
+                    detail != null -> detail.detailRouteKey()
                     else -> "$TAB_KEY$selectedTab"
                 }
                 AnimatedContent(
@@ -2609,11 +2626,7 @@ private fun BitChordApp(
                     // and asking it what is selected *now* has it redraw itself
                     // as its own replacement — which then fades out from under
                     // the identical copy fading in behind it.
-                    val live = detailStack.lastOrNull()?.takeIf {
-                        it.browseId == key && key != "settings" && key != "account_scrobbling" &&
-                            key != "discord" && key != "replay" && key != "history" &&
-                            key != "library_show_all"
-                    }
+                    val live = detailStack.lastOrNull()?.takeIf { it.detailRouteKey() == key }
                     // Held for the same reason, one step further on: a popped
                     // page is off the stack before it has finished animating
                     // out, so `live` goes null under it and it would spend its
@@ -2821,68 +2834,70 @@ private fun BitChordApp(
                                 emptyList()
                             }
                         }
-                        LocalMusicScreen(
-                            songs = localSongs,
-                            collections = downloadCollections,
-                            isDownloads = page.browseId == "local:downloads",
-                            currentSong = player.song,
-                            isPlaying = player.isPlaying,
-                            onDeleteDownloads = { selected ->
-                                scope.launch {
-                                    selected.forEach { song -> Downloads.delete(context, song.videoId) }
-                                }
-                            },
-                            onUploadToWebDav =
-                                if (com.music.bitchord.data.webdav.WebDavConfig.isConfigured(webdavUrl)) {
-                                    { selected -> uploadToWebDav(selected) }
-                                } else {
-                                    null
+                        detailSaveableStateHolder.SaveableStateProvider(key) {
+                            LocalMusicScreen(
+                                songs = localSongs,
+                                collections = downloadCollections,
+                                isDownloads = page.browseId == "local:downloads",
+                                currentSong = player.song,
+                                isPlaying = player.isPlaying,
+                                onDeleteDownloads = { selected ->
+                                    scope.launch {
+                                        selected.forEach { song -> Downloads.delete(context, song.videoId) }
+                                    }
                                 },
-                            onSongClick = { songs, index ->
-                                playFrom(
-                                    songs,
-                                    index,
-                                    QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId),
-                                )
-                            },
-                            onSongLongPress = openSongMenu,
-                            onSongSwipe = onSongSwipe,
-                            onShuffle = { songs ->
-                                QueueShuffle.enableForNextQueue()
-                                playFrom(
-                                    songs,
-                                    songs.indices.random(),
-                                    QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId),
-                                )
-                            },
-                            emptyMessage = (localState as? com.music.bitchord.data.model.UiState.Error)
-                                ?.message,
-                            // An album or artist here is a grouping of rows rather than
-                            // a page, so the menu is handed the rows themselves — there
-                            // is no id anything could be fetched with.
-                            onCollectionLongPress = { label, grouped ->
-                                // An artist grouping is never one of these — only a
-                                // release downloaded whole has a record to match,
-                                // which is exactly the distinction `asked` draws in
-                                // `albumEntries`.
-                                val downloadId = downloadCollections.firstOrNull {
-                                    it.title == label && it.songs == grouped
-                                }?.id
-                                openBrowseMenu(
-                                    BrowseTarget(
-                                        browseId = null,
-                                        title = label,
-                                        subtitle = grouped.firstOrNull()?.artist.orEmpty()
-                                            .takeUnless { it == label }
-                                            .orEmpty(),
-                                        thumbnailUrl = grouped.firstOrNull()?.thumbnailUrl,
-                                        songs = grouped,
-                                        downloadId = downloadId,
-                                    ),
-                                )
-                            },
-                            contentPadding = listPadding,
-                        )
+                                onUploadToWebDav =
+                                    if (com.music.bitchord.data.webdav.WebDavConfig.isConfigured(webdavUrl)) {
+                                        { selected -> uploadToWebDav(selected) }
+                                    } else {
+                                        null
+                                    },
+                                onSongClick = { songs, index ->
+                                    playFrom(
+                                        songs,
+                                        index,
+                                        QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId),
+                                    )
+                                },
+                                onSongLongPress = openSongMenu,
+                                onSongSwipe = onSongSwipe,
+                                onShuffle = { songs ->
+                                    QueueShuffle.enableForNextQueue()
+                                    playFrom(
+                                        songs,
+                                        songs.indices.random(),
+                                        QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId),
+                                    )
+                                },
+                                emptyMessage = (localState as? com.music.bitchord.data.model.UiState.Error)
+                                    ?.message,
+                                // An album or artist here is a grouping of rows rather than
+                                // a page, so the menu is handed the rows themselves — there
+                                // is no id anything could be fetched with.
+                                onCollectionLongPress = { label, grouped ->
+                                    // An artist grouping is never one of these — only a
+                                    // release downloaded whole has a record to match,
+                                    // which is exactly the distinction `asked` draws in
+                                    // `albumEntries`.
+                                    val downloadId = downloadCollections.firstOrNull {
+                                        it.title == label && it.songs == grouped
+                                    }?.id
+                                    openBrowseMenu(
+                                        BrowseTarget(
+                                            browseId = null,
+                                            title = label,
+                                            subtitle = grouped.firstOrNull()?.artist.orEmpty()
+                                                .takeUnless { it == label }
+                                                .orEmpty(),
+                                            thumbnailUrl = grouped.firstOrNull()?.thumbnailUrl,
+                                            songs = grouped,
+                                            downloadId = downloadId,
+                                        ),
+                                    )
+                                },
+                                contentPadding = listPadding,
+                            )
+                        }
                     } else if (page != null) {
                         // An album page's rows carry no album name of their own — the
                         // release is billed once, in the header the rows hang under — so
@@ -2897,94 +2912,96 @@ private fun BitChordApp(
                                 song
                             }
                         }
-                        DetailScreen(
-                            page = page,
-                            currentSong = player.song,
-                            isPlaying = player.isPlaying,
-                            listState = pageDetailListState,
-                            activeShelf = detailActiveShelf,
-                            onActiveShelfChange = { detailActiveShelf = it },
-                            onSongClick = { songs, index ->
-                                playFrom(
-                                    songs,
-                                    index,
-                                    QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId),
-                                )
-                            },
-                            onSongLongPress = { openSongMenu(withAlbum(it)) },
-                            onSongSwipe = onSongSwipe,
-                            onShuffle = { songs ->
-                                // Shuffle goes on first so the queue is built shuffled
-                                // as it is set — the random pick here only decides
-                                // which track leads it.
-                                QueueShuffle.enableForNextQueue()
-                                playFrom(
-                                    songs,
-                                    songs.indices.random(),
-                                    QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId),
-                                )
-                            },
-                            onSectionItemClick = { item ->
-                                item.browseId?.let { id ->
-                                    viewModel.openDetail(
-                                        browseId = id,
-                                        title = item.title,
-                                        subtitle = item.subtitle,
-                                        thumbnailUrl = item.thumbnailUrl,
-                                        type = BrowseType.ALBUM,
+                        detailSaveableStateHolder.SaveableStateProvider(key) {
+                            DetailScreen(
+                                page = page,
+                                currentSong = player.song,
+                                isPlaying = player.isPlaying,
+                                listState = pageDetailListState,
+                                activeShelf = detailActiveShelf,
+                                onActiveShelfChange = { detailActiveShelf = it },
+                                onSongClick = { songs, index ->
+                                    playFrom(
+                                        songs,
+                                        index,
+                                        QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId),
                                     )
-                                }
-                            },
-                            onSectionItemLongPress = onBrowseLongPress,
-                            // The page's own tracks, so the sheet has them already and
-                            // Play, Shuffle and Open are the buttons beside the one that
-                            // opened it rather than rows on it. Download is the other
-                            // way round: the header no longer carries it, so the sheet
-                            // is where a whole release is asked for — and the tracks
-                            // arrive stamped with the album they came off, which is what
-                            // the download record groups them under.
-                            onMore = { songs ->
-                                browseActions = BrowseTarget(
-                                    browseId = page.browseId,
-                                    title = page.title,
-                                    subtitle = page.subtitle,
-                                    thumbnailUrl = page.thumbnailUrl,
-                                    type = page.type,
-                                    songs = songs.map(withAlbum),
-                                    fromCard = false,
-                                    downloadId = downloadIdFor(page.browseId),
-                                )
-                            },
-                            onArtistClick = { id, name ->
-                                viewModel.openDetail(id, name, "Artist", null, BrowseType.ARTIST)
-                            },
-                            onAddSuggested = { song -> viewModel.addSuggestedSong(page.browseId, song) },
-                            // Saving is an account action, so it isn't offered to a
-                            // guest at all — same as the like and add-to-playlist rows
-                            // in the track menu.
-                            onToggleLibrary = if (signedIn) {
-                                { viewModel.toggleLibrary(page.browseId) }
-                            } else {
-                                null
-                            },
-                            // Same rule for the artist page's subscribe circle:
-                            // a channel subscription is the account's, so a
-                            // guest is never shown the button.
-                            onToggleSubscription = if (signedIn) {
-                                { viewModel.toggleSubscription(page.browseId) }
-                            } else {
-                                null
-                            },
-                            releaseLibrary = releaseLibrary,
-                            onLoadReleaseLibrary = viewModel::loadReleaseLibrary,
-                            onToggleReleaseLibrary = if (signedIn) {
-                                viewModel::toggleReleaseLibrary
-                            } else {
-                                null
-                            },
-                            songSort = songSort,
-                            contentPadding = listPadding,
-                        )
+                                },
+                                onSongLongPress = { openSongMenu(withAlbum(it)) },
+                                onSongSwipe = onSongSwipe,
+                                onShuffle = { songs ->
+                                    // Shuffle goes on first so the queue is built shuffled
+                                    // as it is set — the random pick here only decides
+                                    // which track leads it.
+                                    QueueShuffle.enableForNextQueue()
+                                    playFrom(
+                                        songs,
+                                        songs.indices.random(),
+                                        QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId),
+                                    )
+                                },
+                                onSectionItemClick = { item ->
+                                    item.browseId?.let { id ->
+                                        viewModel.openDetail(
+                                            browseId = id,
+                                            title = item.title,
+                                            subtitle = item.subtitle,
+                                            thumbnailUrl = item.thumbnailUrl,
+                                            type = BrowseType.ALBUM,
+                                        )
+                                    }
+                                },
+                                onSectionItemLongPress = onBrowseLongPress,
+                                // The page's own tracks, so the sheet has them already and
+                                // Play, Shuffle and Open are the buttons beside the one that
+                                // opened it rather than rows on it. Download is the other
+                                // way round: the header no longer carries it, so the sheet
+                                // is where a whole release is asked for — and the tracks
+                                // arrive stamped with the album they came off, which is what
+                                // the download record groups them under.
+                                onMore = { songs ->
+                                    browseActions = BrowseTarget(
+                                        browseId = page.browseId,
+                                        title = page.title,
+                                        subtitle = page.subtitle,
+                                        thumbnailUrl = page.thumbnailUrl,
+                                        type = page.type,
+                                        songs = songs.map(withAlbum),
+                                        fromCard = false,
+                                        downloadId = downloadIdFor(page.browseId),
+                                    )
+                                },
+                                onArtistClick = { id, name ->
+                                    viewModel.openDetail(id, name, "Artist", null, BrowseType.ARTIST)
+                                },
+                                onAddSuggested = { song -> viewModel.addSuggestedSong(page.browseId, song) },
+                                // Saving is an account action, so it isn't offered to a
+                                // guest at all — same as the like and add-to-playlist rows
+                                // in the track menu.
+                                onToggleLibrary = if (signedIn) {
+                                    { viewModel.toggleLibrary(page.browseId) }
+                                } else {
+                                    null
+                                },
+                                // Same rule for the artist page's subscribe circle:
+                                // a channel subscription is the account's, so a
+                                // guest is never shown the button.
+                                onToggleSubscription = if (signedIn) {
+                                    { viewModel.toggleSubscription(page.browseId) }
+                                } else {
+                                    null
+                                },
+                                releaseLibrary = releaseLibrary,
+                                onLoadReleaseLibrary = viewModel::loadReleaseLibrary,
+                                onToggleReleaseLibrary = if (signedIn) {
+                                    viewModel::toggleReleaseLibrary
+                                } else {
+                                    null
+                                },
+                                songSort = songSort,
+                                contentPadding = listPadding,
+                            )
+                        }
                     } else when (key.removePrefix(TAB_KEY).toIntOrNull() ?: selectedTab) {
                         TAB_HOME -> HomeScreen(
                             state = homeState,
@@ -3413,7 +3430,7 @@ private fun BitChordApp(
                 // under the bar and needs the cover.
                 val artistListState = detail
                     ?.takeIf { isDetailVisible && it.type == BrowseType.ARTIST }
-                    ?.let { detailListStates.getOrPut(it.browseId) { LazyListState() } }
+                    ?.let { detailListStates.getOrPut(it.detailRouteKey()) { LazyListState() } }
                 val topFadeAlpha by remember(artistListState) {
                     derivedStateOf {
                         val list = artistListState ?: return@derivedStateOf 1f

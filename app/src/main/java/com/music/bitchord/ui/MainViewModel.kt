@@ -12,6 +12,7 @@ import com.music.bitchord.auth.sessionId
 import com.music.bitchord.auth.adjacentProfile
 import com.music.bitchord.data.AppUpdateChecker
 import com.music.bitchord.data.LocalMediaRepository
+import com.music.bitchord.data.DownloadedListingFallback
 import com.music.bitchord.data.LikeState
 import com.music.bitchord.data.YtMusicRepository
 import com.music.bitchord.data.model.SPOTIFY_MISSING_PREFIX
@@ -77,6 +78,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import com.music.bitchord.data.sources.SourceKind
@@ -556,6 +558,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      */
     private val _detailStack = MutableStateFlow<List<DetailPage>>(emptyList())
     val detailStack: StateFlow<List<DetailPage>> = _detailStack.asStateFlow()
+    private val detailJobs = mutableMapOf<Long, Job>()
+    private val detailInstanceIds = AtomicLong(0L)
 
     private val _releaseLibrary = MutableStateFlow<Map<String, LibraryState>>(emptyMap())
 
@@ -959,7 +963,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val openSongs = (_detailStack.value.firstOrNull { it.browseId == playlist.browseId }
             ?.songs as? UiState.Success)?.data
         val known = openSongs
-            ?: YtMusicRepository.allSongs(playlist.browseId).getOrNull()
+            ?: run {
+                // A write's duplicate check must see a fresh server listing,
+                // including edits made in another app during the cache window.
+                YtMusicRepository.clearBrowseCache()
+                YtMusicRepository.allSongs(playlist.browseId).getOrNull()
+            }
         if (known?.any { it.videoId == song.videoId } == true) return AddOutcome.ALREADY_THERE
         return YtMusicRepository.addToPlaylist(playlist.playlistId, listOf(song.videoId)).fold(
             onSuccess = { added ->
@@ -1282,6 +1291,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     // nothing left to show.
                     _detailStack.value = _detailStack.value
                         .filterNot { it.browseId == playlist.browseId }
+                    cancelMissingDetailJobs()
                     libraryStale = true
                 },
                 onFailure = {},
@@ -1342,20 +1352,27 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (!_signedIn.value || browseId == null) return
         if (browseId in _playlistOwned.value || browseId in ownershipInFlight) return
         if (_playlists.value.none { it.browseId == browseId }) return
-        ownershipInFlight += browseId
+        val identity = listenerKey()
+        val requestScope = Innertube.responseCacheScope
+        val request = Any()
+        ownershipInFlight[browseId] = request
         viewModelScope.launch {
-            YtMusicRepository.playlistOwned(browseId).onSuccess { owned ->
-                if (owned != null) setPlaylistOwned(browseId, owned)
+            try {
+                YtMusicRepository.playlistOwned(browseId).onSuccess { owned ->
+                    if (owned != null && identity == listenerKey() && requestScope == Innertube.responseCacheScope) {
+                        setPlaylistOwned(browseId, owned)
+                    }
+                }
+            } finally {
+                // An older account's completion cannot release a new account's
+                // lookup of the same browse id after the identity changed.
+                if (ownershipInFlight[browseId] === request) ownershipInFlight.remove(browseId)
             }
-            // Released either way. A failed lookup that stayed marked would
-            // never be retried, leaving Rename off the user's own playlist for
-            // the rest of the session over one dropped request.
-            ownershipInFlight -= browseId
         }
     }
 
     /** Guards against a second lookup while the first is still out. */
-    private val ownershipInFlight = mutableSetOf<String>()
+    private val ownershipInFlight = mutableMapOf<String, Any>()
 
     private fun setPlaylistOwned(browseId: String, owned: Boolean) {
         _playlistOwned.value = _playlistOwned.value + (browseId to owned)
@@ -1508,6 +1525,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun refresh(feed: Feed) {
         if (feed in _refreshing.value) return
         if (feed == Feed.LIBRARY && !_signedIn.value) return
+        YtMusicRepository.clearBrowseCache()
         val identity = listenerKey()
         _refreshing.value = _refreshing.value + feed
         viewModelScope.launch {
@@ -1592,6 +1610,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Tapping a tab should leave any pushed page behind. */
     fun clearDetail() {
+        detailJobs.values.forEach { it.cancel() }
+        detailJobs.clear()
         if (_detailStack.value.isNotEmpty()) _detailStack.value = emptyList()
     }
 
@@ -2432,6 +2452,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         val resolved = browseTypeOf(browseId, type)
+        val instanceId = detailInstanceIds.incrementAndGet()
         _detailStack.value += DetailPage(
             browseId = browseId,
             title = title,
@@ -2439,8 +2460,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             thumbnailUrl = thumbnailUrl,
             songs = UiState.Loading,
             type = resolved,
+            instanceId = instanceId,
         )
-        viewModelScope.launch {
+        val identity = listenerKey()
+        val requestScope = Innertube.responseCacheScope
+        detailJobs[instanceId] = viewModelScope.launch {
+            fun current() = isActive && identity == listenerKey() && requestScope == Innertube.responseCacheScope &&
+                _detailStack.value.any { it.instanceId == instanceId }
             var sections = emptyList<HomeShelf>()
             // Callers that open an artist from a track — the player, the
             // long-press menu — only have that track's cover art and its full
@@ -2476,16 +2502,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // tracks already on the device, and showed an error with no
             // connection at all. Its downloaded copy goes up first; the
             // online listing replaces it if and when that arrives.
-            val onDevice = if (localPlaylist == null && remote == null && !browseId.startsWith("local:")) {
-                downloadedCopyOf(browseId)
-            } else {
-                emptyList()
-            }
-            if (onDevice.isNotEmpty()) {
-                _detailStack.value = _detailStack.value.map {
-                    if (it.browseId == browseId && it.songs is UiState.Loading) it.copy(songs = UiState.Success(onDevice)) else it
+            val downloadedCopy = if (localPlaylist == null && remote == null && !browseId.startsWith("local:")) {
+                DownloadedListingFallback(
+                    scope = this,
+                    read = { downloadedCopyOf(browseId) },
+                ) { onDevice ->
+                    if (current() && onDevice.isNotEmpty()) {
+                        _detailStack.value = _detailStack.value.map {
+                            if (it.instanceId == instanceId && it.songs is UiState.Loading) {
+                                it.copy(songs = UiState.Success(onDevice))
+                            } else it
+                        }
+                    }
                 }
-            }
+            } else null
             val state = when {
                 localPlaylist != null -> {
                     name = localPlaylist.title
@@ -2520,6 +2550,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 resolved == BrowseType.ARTIST -> {
                     YtMusicRepository.artistPage(browseId).fold(
                         onSuccess = { page ->
+                            if (!current()) return@launch
                             sections = page.sections
                             artwork = page.thumbnailUrl
                             name = page.name
@@ -2539,6 +2570,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 else -> {
                     YtMusicRepository.browseSongs(browseId).fold(
                         onSuccess = { page ->
+                            if (!current()) return@launch
                             // Free here — the page that returned these rows is
                             // the one thing that states who made the playlist,
                             // so its own menu never has to go and ask. Recorded
@@ -2574,12 +2606,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     )
                 }
             }
-            // Update by id — the user may have pushed another page meanwhile.
+            if (!current()) return@launch
+            // File verification and the browse request start together. A fast
+            // online listing no longer waits for hundreds of content-URI
+            // checks; an offline/failing request still keeps its saved copy.
+            val hasOnlineSongs = state is UiState.Success && state.data.isNotEmpty()
+            val onDevice = downloadedCopy?.finish(state).orEmpty()
+            if (!current()) return@launch
+            // Update this stack entry — another visit may share its browse id.
             // A page showing its downloaded copy takes only a real listing: a
             // failed or empty fetch leaves the downloaded tracks up.
             _detailStack.value = _detailStack.value.map {
-                if (it.browseId == browseId &&
-                    (it.songs is UiState.Loading || (onDevice.isNotEmpty() && state is UiState.Success))
+                if (it.instanceId == instanceId &&
+                    (it.songs is UiState.Loading || (onDevice.isNotEmpty() && hasOnlineSongs))
                 ) {
                     it.copy(
                         songs = state,
@@ -2600,7 +2639,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }
             // Only once the first page is on screen: [fillIn] appends to it,
             // and has nothing to append to before this.
-            more?.let { fillIn(browseId, it, thumbnailUrl ?: artwork) }
+            more?.let { fillIn(instanceId, it, thumbnailUrl ?: artwork) }
         }
     }
 
@@ -2613,6 +2652,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * before the last song has been found.
      */
     private fun openSpotifyPage(browseId: String, title: String, subtitle: String, thumbnailUrl: String?) {
+        val instanceId = detailInstanceIds.incrementAndGet()
         _detailStack.value += DetailPage(
             browseId = browseId,
             title = title,
@@ -2620,21 +2660,27 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             thumbnailUrl = thumbnailUrl,
             songs = UiState.Loading,
             type = BrowseType.PLAYLIST,
+            instanceId = instanceId,
         )
-        viewModelScope.launch {
+        val identity = listenerKey()
+        val requestScope = Innertube.responseCacheScope
+        detailJobs[instanceId] = viewModelScope.launch {
             val playlistId = browseId.removePrefix(SPOTIFY_PAGE_PREFIX)
-            fun open() = _detailStack.value.any { it.browseId == browseId }
+            fun open() = isActive && identity == listenerKey() && requestScope == Innertube.responseCacheScope &&
+                _detailStack.value.any { it.instanceId == instanceId }
             fun setSongs(songs: UiState<List<Song>>) {
+                if (!open()) return
                 _detailStack.value = _detailStack.value.map {
-                    if (it.browseId == browseId) it.copy(songs = songs) else it
+                    if (it.instanceId == instanceId) it.copy(songs = songs) else it
                 }
             }
             // The list only had a thumbnail; the full-size cover replaces it
             // once this page has asked for it.
             launch {
                 val cover = runCatching { SpotifyLibrary.cover(playlistId) }.getOrNull() ?: return@launch
+                if (!open()) return@launch
                 _detailStack.value = _detailStack.value.map {
-                    if (it.browseId == browseId) it.copy(thumbnailUrl = cover) else it
+                    if (it.instanceId == instanceId) it.copy(thumbnailUrl = cover) else it
                 }
             }
             val tracks = runCatching {
@@ -2656,13 +2702,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         gate.withPermit {
                             if (!open()) return@withPermit
                             val match = runCatching { SpotifyImporter.matchTrack(track) }.getOrNull()
+                            if (!open()) return@withPermit
                             val found = match?.copy(thumbnailUrl = match.thumbnailUrl ?: track.imageUrl)
                                 ?: track.asPendingSong().let {
                                     it.copy(videoId = SPOTIFY_MISSING_PREFIX + track.id)
                                 }
                             _detailStack.value = _detailStack.value.map { page ->
                                 val list = (page.songs as? UiState.Success<List<Song>>)?.data
-                                if (page.browseId == browseId && list != null && index < list.size) {
+                                if (page.instanceId == instanceId && list != null && index < list.size) {
                                     page.copy(songs = UiState.Success(list.toMutableList().also { it[index] = found }))
                                 } else page
                             }
@@ -2774,48 +2821,49 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * waiting on the last one — so a playlist past YouTube's ~1000-track,
      * ten-page shelf still loads to the end instead of stopping there.
      *
-     * Stops the moment the page leaves the stack: there is no one to append
-     * for. A page that adds nothing new (below) is the other exit, for a feed
-     * that loops back on itself instead of running dry.
+     * Its owning detail job is cancelled when the page leaves the stack. A
+     * repeated token is the other exit, for a feed that loops back on itself.
      */
-    private fun fillIn(browseId: String, token: String, artworkFallback: String?) {
-        viewModelScope.launch {
-            // Publish and draw the first response before spending the shared
-            // connection on page two. On a long playlist the continuation can
-            // otherwise start in the same main-loop turn as the state update,
-            // making a ready first screen feel as if it were still loading.
-            delay(150)
-            var next: String? = token
-            while (next != null) {
-                val fetched = YtMusicRepository.moreSongs(next).getOrNull() ?: return@launch
-                val stack = _detailStack.value
-                val index = stack.indexOfFirst { it.browseId == browseId }
-                if (index < 0) return@launch
-                val current = stack[index]
-                val existing = (current.songs as? UiState.Success)?.data ?: return@launch
-                val known = existing.mapTo(HashSet()) { it.videoId }
-                val added = fetched.songs
-                    .filter { known.add(it.videoId) }
-                    .withArtwork(artworkFallback)
-                // Suggestions can arrive on a later page than the real
-                // tracks, once the playlist's own continuation runs dry —
-                // see parsePlaylistShelf — so they're tracked separately
-                // rather than folded into [known].
-                val knownSuggested = current.suggestedSongs.mapTo(HashSet()) { it.videoId }
-                val addedSuggested = fetched.suggested
-                    .filter { it.videoId !in known && knownSuggested.add(it.videoId) }
-                    .withArtwork(artworkFallback)
-                // A page with nothing new on it means the feed has looped back
-                // rather than run dry with a token still attached.
-                if (added.isEmpty() && addedSuggested.isEmpty()) return@launch
+    private suspend fun fillIn(instanceId: Long, token: String, artworkFallback: String?) {
+        // Give the first response a frame to draw before filling the rest.
+        // A fixed 150 ms pause used to delay even cached continuations.
+        delay(16)
+        var next: String? = token
+        val scope = Innertube.responseCacheScope
+        val seenTokens = HashSet<String>()
+        while (next != null) {
+            // Check before spending a round trip, and track tokens rather
+            // than treating one empty page as the end of a valid listing.
+            if (scope != Innertube.responseCacheScope ||
+                _detailStack.value.none { it.instanceId == instanceId } || !seenTokens.add(next)
+            ) return
+            val fetched = YtMusicRepository.moreSongs(next).getOrNull() ?: return
+            val stack = _detailStack.value
+            val index = stack.indexOfFirst { it.instanceId == instanceId }
+            if (index < 0 || scope != Innertube.responseCacheScope) return
+            val current = stack[index]
+            val existing = (current.songs as? UiState.Success)?.data ?: return
+            val known = existing.mapTo(HashSet()) { it.videoId }
+            val added = fetched.songs
+                .filter { known.add(it.videoId) }
+                .withArtwork(artworkFallback)
+            // Suggestions can arrive on a later page than the real
+            // tracks, once the playlist's own continuation runs dry —
+            // see parsePlaylistShelf — so they're tracked separately
+            // rather than folded into [known].
+            val knownSuggested = current.suggestedSongs.mapTo(HashSet()) { it.videoId }
+            val addedSuggested = fetched.suggested
+                .filter { it.videoId !in known && knownSuggested.add(it.videoId) }
+                .withArtwork(artworkFallback)
+            if (added.isNotEmpty() || addedSuggested.isNotEmpty()) {
                 _detailStack.value = stack.toMutableList().also {
                     it[index] = current.copy(
                         songs = UiState.Success(existing + added),
                         suggestedSongs = current.suggestedSongs + addedSuggested,
                     )
                 }
-                next = fetched.continuation
             }
+            next = fetched.continuation
         }
     }
 
@@ -2897,7 +2945,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val stack = _detailStack.value
         if (stack.isEmpty()) return false
         _detailStack.value = stack.dropLast(1)
+        detailJobs.remove(stack.last().instanceId)?.cancel()
         return true
+    }
+
+    private fun cancelMissingDetailJobs() {
+        val remaining = _detailStack.value.mapTo(HashSet()) { it.instanceId }
+        detailJobs.keys.filterNot { it in remaining }.forEach { instanceId ->
+            detailJobs.remove(instanceId)?.cancel()
+        }
     }
 
     /**
@@ -3154,6 +3210,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun clearListenerState(restoreCached: Boolean = false) {
+        clearDetail()
+        YtMusicRepository.clearBrowseCache()
         _account.value = null
         likedSyncJob?.cancel()
         LikeState.clear()
@@ -3202,6 +3260,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         authStore.signOut()
+        clearDetail()
+        YtMusicRepository.clearBrowseCache()
         Innertube.cookie = null
         // The mirror image: verdicts reached with a session in hand say nothing
         // about what an anonymous walk will be told, and the clients stood down

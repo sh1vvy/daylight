@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import com.music.bitchord.ui.components.ShelfRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -92,6 +93,8 @@ import com.music.bitchord.ui.components.recentlyPlayedSkeleton
 import com.music.bitchord.ui.components.heroCardWidth
 import com.music.bitchord.ui.components.thumbnailBorder
 import com.music.bitchord.ui.components.trackColumnWidth
+import com.music.bitchord.ui.components.homeShelfKeys
+import com.music.bitchord.ui.components.shelfItemKeys
 import com.music.bitchord.ui.player.MeshGradientBackground
 import com.music.bitchord.ui.player.MeshPalette
 
@@ -145,6 +148,8 @@ fun HomeScreen(
     isPlaying: Boolean = false,
 ) {
     val recentsViewType by AppUi.host.homeRecentsViewType.collectAsStateWithLifecycle()
+    val shelves = (state as? UiState.Success)?.data.orEmpty()
+    val shelfKeys = remember(shelves) { homeShelfKeys(shelves) }
 
     MaterialTheme(colorScheme = daylightHomeColorScheme(MaterialTheme.colorScheme)) {
         Box(modifier = modifier.fillMaxSize()) {
@@ -170,10 +175,10 @@ fun HomeScreen(
                     },
                 ) {
                     if (title != null) {
-                        item { HomeTitle(title) }
+                        item(key = "home-title", contentType = "home-title") { HomeTitle(title) }
                     }
                     if (!signedIn && onSignIn != null) {
-                        item {
+                        item(key = "sign-in", contentType = "sign-in") {
                             SignInBanner(onSignIn = onSignIn, modifier = Modifier.padding(bottom = 8.dp))
                         }
                     }
@@ -189,7 +194,7 @@ fun HomeScreen(
                                 feedSkeleton(firstIsHero = leadHero)
                             }
                         }
-                        is UiState.Error -> item {
+                        is UiState.Error -> item(key = "feed-error", contentType = "message") {
                             MessageState(state.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
                         }
                         is UiState.Success -> {
@@ -201,6 +206,7 @@ fun HomeScreen(
                             // compact-card layout instead of briefly becoming a hero.
                             itemsIndexedShelves(
                                 shelves = state.data,
+                                shelfKeys = shelfKeys,
                                 onItemClick = onItemClick,
                                 onItemLongPress = onItemLongPress,
                                 currentSong = currentSong,
@@ -251,6 +257,7 @@ fun HomeScreen(
  */
 private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
     shelves: List<HomeShelf>,
+    shelfKeys: List<String>,
     onItemClick: (ShelfItem, String) -> Unit,
     onItemLongPress: ((ShelfItem) -> Unit)?,
     currentSong: Song?,
@@ -260,9 +267,18 @@ private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
     onRecentsViewTypeToggle: () -> Unit,
 ) {
     shelves.forEachIndexed { index, shelf ->
-        item(key = shelf.title + index) {
+        val recents = index == 0 && shelf.title.equals(RECENTS_TITLE, ignoreCase = true)
+        val hero = index == 0 && firstIsHero && !recents
+        item(
+            key = shelfKeys[index],
+            contentType = when {
+                recents -> "recents-${recentsViewType.name}"
+                hero -> "hero-shelf"
+                else -> "shelf"
+            },
+        ) {
             val openItem: (ShelfItem) -> Unit = { item -> onItemClick(item, shelf.title) }
-            if (index == 0 && shelf.title.equals(RECENTS_TITLE, ignoreCase = true)) {
+            if (recents) {
                 RecentShelf(
                     shelf = shelf,
                     onItemClick = openItem,
@@ -272,7 +288,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
                     viewType = recentsViewType,
                     onViewTypeToggle = onRecentsViewTypeToggle,
                 )
-            } else if (index == 0 && firstIsHero) {
+            } else if (hero) {
                 HeroShelf(
                     shelf = shelf,
                     onItemClick = openItem,
@@ -305,6 +321,8 @@ private fun RecentShelf(
     viewType: LibraryViewType,
     onViewTypeToggle: () -> Unit,
 ) {
+    val columns = remember(shelf.items) { shelf.items.chunked(RECENT_TRACKS_PER_COLUMN) }
+    val itemKeys = remember(shelf.items) { shelfItemKeys(shelf.items) }
     Column(Modifier.padding(bottom = 26.dp)) {
         RecentSectionHeader(
             title = shelf.title,
@@ -319,7 +337,11 @@ private fun RecentShelf(
                     contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    items(shelf.items.chunked(RECENT_TRACKS_PER_COLUMN)) { column ->
+                    itemsIndexed(
+                        columns,
+                        key = { index, _ -> itemKeys[index * RECENT_TRACKS_PER_COLUMN] },
+                        contentType = { _, _ -> "recent-column" },
+                    ) { _, column ->
                         Column(Modifier.width(columnWidth)) {
                             column.forEach { item ->
                                 RecentTrackRow(
@@ -341,7 +363,11 @@ private fun RecentShelf(
                     contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    items(shelf.items) { item ->
+                    itemsIndexed(
+                        shelf.items,
+                        key = { index, _ -> itemKeys[index] },
+                        contentType = { _, _ -> "hero-card" },
+                    ) { _, item ->
                         HeroCard(
                             item = item,
                             onClick = { onItemClick(item) },
@@ -760,6 +786,7 @@ private fun HeroShelf(
     currentSong: Song? = null,
     isPlaying: Boolean = false,
 ) {
+    val itemKeys = remember(shelf.items) { shelfItemKeys(shelf.items) }
     Column(Modifier.padding(bottom = 26.dp)) {
         SectionHeader(shelf.title, shelf.subtitle)
         // Measured rather than taken as a share of the parent, because the card
@@ -773,7 +800,11 @@ private fun HeroShelf(
                 contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                items(shelf.items) { item ->
+                itemsIndexed(
+                    shelf.items,
+                    key = { index, _ -> itemKeys[index] },
+                    contentType = { _, _ -> "hero-card" },
+                ) { _, item ->
                     HeroCard(
                         item = item,
                         onClick = { onItemClick(item) },
@@ -866,14 +897,19 @@ internal fun Shelf(
     isPlaying: Boolean = false,
     softCards: Boolean = false,
 ) {
+    val itemKeys = remember(shelf.items) { shelfItemKeys(shelf.items) }
     Column(Modifier.padding(bottom = 26.dp)) {
         SectionHeader(shelf.title, shelf.subtitle)
         ShelfRow(
             contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            leadingCard?.let { card -> item(key = "leading") { card() } }
-            items(shelf.items) { item ->
+            leadingCard?.let { card -> item(key = "leading", contentType = "leading-card") { card() } }
+            itemsIndexed(
+                shelf.items,
+                key = { index, _ -> itemKeys[index] },
+                contentType = { _, _ -> "shelf-card" },
+            ) { _, item ->
                 ShelfCard(
                     item = item,
                     onClick = { onItemClick(item) },

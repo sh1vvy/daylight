@@ -29,7 +29,7 @@ internal data class MediaWidgetSnapshot(
      * it, a widget would answer a tap by leaving the play glyph exactly where it
      * was — the one thing that makes a control feel broken. `playWhenReady`
      * flips the instant the command lands, which is also what the media
-     * notification shows.
+     * notification shows. An ended queue is the exception: it offers play again.
      */
     val isPlaying: Boolean,
     val hasPrevious: Boolean,
@@ -38,6 +38,10 @@ internal data class MediaWidgetSnapshot(
     val isLiked: Boolean = false,
     /** Whether shuffle is on. Drawn by the 4×1 widget's Shuffle. */
     val shuffleEnabled: Boolean = false,
+    /** Loading is a state label; widgets never poll playback or animate a timer. */
+    val isLoading: Boolean = false,
+    /** Host-only Jam transport; Like remains a personal action. */
+    val controlsLocked: Boolean = false,
 ) {
     /** Whether there is a track to draw at all. */
     val hasTrack: Boolean get() = mediaId != null
@@ -54,7 +58,16 @@ internal data class MediaWidgetSnapshot(
             hasNext = false,
         )
 
+        // Set by a publisher, not a reader: upgrade cleanup must not overwrite
+        // playback that a new service has already resumed in this process.
+        private var publishedInThisProcess = false
+
+        @Synchronized
+        /** Even an unchanged snapshot can come from a newly restored live player. */
+        fun notePlaybackPublished() { publishedInThisProcess = true }
+
         fun save(context: Context, snapshot: MediaWidgetSnapshot) {
+            notePlaybackPublished()
             prefs(context).edit()
                 .putString(KEY_MEDIA_ID, snapshot.mediaId)
                 .putString(KEY_TITLE, snapshot.title)
@@ -65,7 +78,14 @@ internal data class MediaWidgetSnapshot(
                 .putBoolean(KEY_HAS_NEXT, snapshot.hasNext)
                 .putBoolean(KEY_LIKED, snapshot.isLiked)
                 .putBoolean(KEY_SHUFFLE, snapshot.shuffleEnabled)
+                .putBoolean(KEY_LOADING, snapshot.isLoading)
+                .putBoolean(KEY_CONTROLS_LOCKED, snapshot.controlsLocked)
                 .apply()
+        }
+
+        @Synchronized
+        fun resetAfterAppUpgrade(context: Context) {
+            if (!publishedInThisProcess) save(context, load(context).afterAppUpgrade())
         }
 
         /** The last state published by the live playback service. */
@@ -83,6 +103,8 @@ internal data class MediaWidgetSnapshot(
                     hasNext = prefs.getBoolean(KEY_HAS_NEXT, false),
                     isLiked = prefs.getBoolean(KEY_LIKED, false),
                     shuffleEnabled = prefs.getBoolean(KEY_SHUFFLE, false),
+                    isLoading = prefs.getBoolean(KEY_LOADING, false),
+                    controlsLocked = prefs.getBoolean(KEY_CONTROLS_LOCKED, false),
                 )
             }
             return EMPTY
@@ -100,5 +122,7 @@ internal data class MediaWidgetSnapshot(
         private const val KEY_HAS_NEXT = "has_next"
         private const val KEY_LIKED = "liked"
         private const val KEY_SHUFFLE = "shuffle"
+        private const val KEY_LOADING = "loading"
+        private const val KEY_CONTROLS_LOCKED = "controls_locked"
     }
 }

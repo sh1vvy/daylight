@@ -13,6 +13,7 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionToken
+import com.music.bitchord.data.listentogether.ListenTogether
 import com.music.bitchord.playback.ACTION_TOGGLE_FAVORITE
 import com.music.bitchord.playback.ACTION_TOGGLE_SHUFFLE
 import com.music.bitchord.playback.PlaybackService
@@ -75,25 +76,32 @@ class MediaWidgetActions : BroadcastReceiver() {
     private fun MediaController.execute(action: String) {
         // No live or restored queue means the buttons have nothing to control.
         if (mediaItemCount == 0) return
+        // Do not rely on a possibly stale home-screen snapshot for host-only Jam permissions.
+        if (action != ACTION_LIKE && ListenTogether.state.value.controlsLocked) return
         when (action) {
-            ACTION_TOGGLE -> if (playWhenReady) {
-                pause()
-            } else {
-                // Sitting at the end of the queue, play() alone would set
-                // playWhenReady on a player with nowhere left to go.
-                if (playbackState == Player.STATE_ENDED) seekTo(0L)
-                prepareIfIdle()
-                play()
+            ACTION_TOGGLE -> when (widgetToggleDecision(playWhenReady, playbackState == Player.STATE_ENDED)) {
+                WidgetToggleDecision.PAUSE -> pause()
+                WidgetToggleDecision.PLAY -> {
+                    prepareIfIdle()
+                    play()
+                }
+                WidgetToggleDecision.RESTART -> {
+                    seekTo(0L)
+                    prepareIfIdle()
+                    play()
+                }
             }
             // Skipping does not start anything that wasn't already started —
             // skipping while paused leaves you paused, here as everywhere else.
             // The prepare is so the new track actually loads, and so the session
             // reports it and the widget follows.
             ACTION_NEXT -> {
+                if (!hasNextMediaItem()) return
                 seekToNextMediaItem()
                 prepareIfIdle()
             }
             ACTION_PREVIOUS -> {
+                if (!hasPreviousMediaItem()) return
                 seekToPreviousMediaItem()
                 prepareIfIdle()
             }

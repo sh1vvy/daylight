@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.theme
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
@@ -13,12 +14,20 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 
 /** Also used by the floating navigation fades so Home has one continuous surface. */
-fun daylightHomeBackground(themeBackground: Color, pinkCloud: Boolean = false): Color =
-    if (pinkCloud) themeBackground
+fun daylightHomeBackground(
+    themeBackground: Color,
+    pinkCloud: Boolean = false,
+    materialExpressive: Boolean = false,
+): Color =
+    if (pinkCloud || materialExpressive) themeBackground
     else if (themeBackground.luminance() < 0.5f) Color(0xFF19151D) else Color(0xFFFFF8F4)
 
-internal fun daylightHomeColorScheme(base: ColorScheme, pinkCloud: Boolean = false): ColorScheme {
-    if (pinkCloud) return base
+internal fun daylightHomeColorScheme(
+    base: ColorScheme,
+    pinkCloud: Boolean = false,
+    materialExpressive: Boolean = false,
+): ColorScheme {
+    if (pinkCloud || materialExpressive) return base
     val dark = base.background.luminance() < 0.5f
     return base.copy(
         primary = if (dark) Color(0xFFFFB5A3) else Color(0xFF983A45),
@@ -37,6 +46,10 @@ internal fun daylightHomeColorScheme(base: ColorScheme, pinkCloud: Boolean = fal
 @Composable
 internal fun HomeAtmosphere(modifier: Modifier = Modifier) {
     val background = MaterialTheme.colorScheme.background
+    if (LocalMaterialExpressive.current) {
+        Box(modifier.background(background))
+        return
+    }
     val dark = background.luminance() < 0.5f
     val pinkCloud = LocalPinkCloud.current
     val peach = if (pinkCloud) Color(0xFFF6BED5) else if (dark) Color(0xFF784432) else Color(0xFFFFD3AE)

@@ -1,45 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Picker artwork for the 4×2 widget, on hosts older than API 31. See
-  widget_preview_square for why the band is part of the background gradient.
-  The two bars on the left stand in for the title and artist lines.
--->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="250dp"
-    android:height="110dp"
-    android:viewportWidth="250"
-    android:viewportHeight="110">
-
-    <path android:pathData="M12,0 L238,0 A12,12 0 0 1 250,12 L250,98 A12,12 0 0 1 238,110 L12,110 A12,12 0 0 1 0,98 L0,12 A12,12 0 0 1 12,0 Z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:endX="0"
-                android:endY="110"
-                android:startX="0"
-                android:startY="0"
-                android:type="linear">
-                <item android:color="#FF2E3446" android:offset="0" />
-                <item android:color="#FF1B2130" android:offset="0.45" />
-                <item android:color="#FF07090E" android:offset="1" />
-            </gradient>
-        </aapt:attr>
-    </path>
-
-    <!-- Title and artist. -->
-    <path android:pathData="M18,73L104,73" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeWidth="7" />
-    <path android:pathData="M18,89L74,89" android:strokeColor="#8CFFFFFF" android:strokeLineCap="round" android:strokeWidth="6" />
-
-    <!-- Transport, right-aligned in the band: previous, play, next. -->
-    <group android:translateX="160" android:translateY="68" android:scaleX="1" android:scaleY="1">
-        <path android:pathData="M7,7.4L7,16.6" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeWidth="2.4" />
-        <path android:fillColor="#FFFFFFFF" android:pathData="M16.6,7.7L16.6,16.3L10.7,12Z" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2.4" />
+<vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="170dp"
+    android:viewportWidth="320"
+    android:viewportHeight="170">
+    <path android:pathData="M24,0H296Q320,0 320,24V146Q320,170 296,170H24Q0,170 0,146V24Q0,0 24,0Z" android:fillColor="@color/widget_material_surface" />
+    <path android:pathData="M32.0,14H80.0Q96,14 96,30.0V78.0Q96,94 80.0,94H32.0Q16,94 16,78.0V30.0Q16,14 32.0,14Z" android:fillColor="@color/widget_material_container" />
+    <path android:pathData="M40.0,44.4H40.0Q44.0,44.4 44.0,48.4V59.599999999999994Q44.0,63.599999999999994 40.0,63.599999999999994H40.0Q36.0,63.599999999999994 36.0,59.599999999999994V48.4Q36.0,44.4 40.0,44.4Z" android:fillColor="@color/widget_material_primary" />
+    <path android:pathData="M56.0,34.0H56.0Q60.0,34.0 60.0,38.0V70.0Q60.0,74.0 56.0,74.0H56.0Q52.0,74.0 52.0,70.0V38.0Q52.0,34.0 56.0,34.0Z" android:fillColor="@color/widget_material_primary" />
+    <path android:pathData="M72.0,44.4H72.0Q76.0,44.4 76.0,48.4V59.599999999999994Q76.0,63.599999999999994 72.0,63.599999999999994H72.0Q68.0,63.599999999999994 68.0,59.599999999999994V48.4Q68.0,44.4 72.0,44.4Z" android:fillColor="@color/widget_material_primary" />
+    <path android:pathData="M115,24H200Q202,24 202,26V26Q202,28 200,28H115Q113,28 113,26V26Q113,24 115,24Z" android:fillColor="@color/widget_material_secondary" />
+    <path android:pathData="M116.5,40H262.5Q266,40 266,43.5V43.5Q266,47 262.5,47H116.5Q113,47 113,43.5V43.5Q113,40 116.5,40Z" android:fillColor="@color/widget_material_on_surface" />
+    <path android:pathData="M115,57H229Q231,57 231,59V59Q231,61 229,61H115Q113,61 113,59V59Q113,57 115,57Z" android:fillColor="@color/widget_material_secondary" />
+    <path android:pathData="M154,110H166Q184,110 184,128V140Q184,158 166,158H154Q136,158 136,140V128Q136,110 154,110Z" android:fillColor="@color/widget_material_primary" />
+    <group
+        android:translateX="26"
+        android:translateY="122"
+        android:scaleX="1.0"
+        android:scaleY="1.0">
+        <path
+            android:pathData="M12,20C12,20 3.2,14.6 3.2,8.9A4.5,4.5 0,0 1,12 7.4A4.5,4.5 0,0 1,20.8 8.9C20.8,14.6 12,20 12,20Z"
+            android:strokeColor="@color/widget_material_on_surface"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2.4" />
     </group>
-    <group android:translateX="188" android:translateY="68" android:scaleX="1" android:scaleY="1">
-        <path android:fillColor="#FFFFFFFF" android:pathData="M8.4,6.4L8.4,17.6L17.6,12Z" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2.6" />
+    <group
+        android:translateX="86"
+        android:translateY="122"
+        android:scaleX="1.0"
+        android:scaleY="1.0">
+        <path
+            android:pathData="M7,7.4L7,16.6"
+            android:strokeColor="@color/widget_material_on_surface"
+            android:strokeLineCap="round"
+            android:strokeWidth="2.4" />
+        <path
+            android:fillColor="@color/widget_material_on_surface"
+            android:pathData="M16.6,7.7L16.6,16.3L10.7,12Z"
+            android:strokeColor="@color/widget_material_on_surface"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2.4" />
     </group>
-    <group android:translateX="216" android:translateY="68" android:scaleX="1" android:scaleY="1">
-        <path android:fillColor="#FFFFFFFF" android:pathData="M7.4,7.7L7.4,16.3L13.3,12Z" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2.4" />
-        <path android:pathData="M17,7.4L17,16.6" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeWidth="2.4" />
+    <group
+        android:translateX="146"
+        android:translateY="122"
+        android:scaleX="1.0"
+        android:scaleY="1.0">
+        <path
+            android:fillColor="@color/widget_material_on_primary"
+            android:pathData="M8.4,6.4L8.4,17.6L17.6,12Z"
+            android:strokeColor="@color/widget_material_on_primary"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2.6" />
+    </group>
+    <group
+        android:translateX="206"
+        android:translateY="122"
+        android:scaleX="1.0"
+        android:scaleY="1.0">
+        <path
+            android:fillColor="@color/widget_material_on_surface"
+            android:pathData="M7.4,7.7L7.4,16.3L13.3,12Z"
+            android:strokeColor="@color/widget_material_on_surface"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2.4" />
+        <path
+            android:pathData="M17,7.4L17,16.6"
+            android:strokeColor="@color/widget_material_on_surface"
+            android:strokeLineCap="round"
+            android:strokeWidth="2.4" />
+    </group>
+    <group
+        android:translateX="266"
+        android:translateY="122"
+        android:scaleX="1.0"
+        android:scaleY="1.0">
+        <path
+            android:pathData="M3.4,7.4L7,7.4L16.6,16.6L20.6,16.6M18.1,14.1L20.6,16.6L18.1,19.1M3.4,16.6L7,16.6L9.8,13.9M13.9,10.1L16.6,7.4L20.6,7.4M18.1,4.9L20.6,7.4L18.1,9.9"
+            android:strokeColor="@color/widget_material_on_surface"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2.4" />
     </group>
 </vector>

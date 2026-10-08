@@ -41,6 +41,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -424,7 +425,8 @@ private fun artworkPageSurface(
     shape: CornerBasedShape,
     hazeState: HazeState?,
 ): Modifier {
-    val container = MaterialTheme.colorScheme.surface
+    val expressive = LocalMaterialExpressive.current
+    val container = if (expressive) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surface
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val useLiquidGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
 
@@ -432,6 +434,7 @@ private fun artworkPageSurface(
         .clip(shape)
         .then(
             when {
+                expressive -> Modifier.background(container)
                 useLiquidGlass -> Modifier.liquidGlass(shape)
                 reduceDynamicBlur || hazeState == null -> Modifier.background(container)
                 else -> Modifier.optimizedHazeEffect(
@@ -443,7 +446,7 @@ private fun artworkPageSurface(
         // Keep the same explicit hairline as FloatingBottomBar. Liquid glass
         // also has its refractive highlight, but the navbar retains this edge
         // so these surfaces do as well.
-        .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape)
+        .then(if (expressive) Modifier else Modifier.border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape))
 }
 
 /**

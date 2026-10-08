@@ -68,6 +68,7 @@ import com.music.bitchord.ui.components.floatingtabbar.FloatingTabBarScrollConne
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
 import com.music.bitchord.ui.player.PlayerDock
+import com.music.bitchord.ui.theme.LocalMaterialExpressive
 
 /**
  * A folding navigation bar with now-playing controls and tabs in one component.
@@ -119,9 +120,15 @@ fun PlayerNavigationBar(
     val contentColor = glassContentColor()
     val useGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val container = MaterialTheme.colorScheme.surface
-    val selectedColor = if (com.music.bitchord.ui.theme.LocalPinkCloud.current) MaterialTheme.colorScheme.primary else contentColor
+    val expressive = LocalMaterialExpressive.current
+    val container = if (expressive) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surface
+    val selectedColor = when {
+        expressive -> MaterialTheme.colorScheme.onPrimaryContainer
+        com.music.bitchord.ui.theme.LocalPinkCloud.current -> MaterialTheme.colorScheme.primary
+        else -> contentColor
+    }
     val unselectedColor = contentColor.copy(alpha = 0.65f)
+    val standaloneSelectedColor = MaterialTheme.colorScheme.primary
     val haptics = rememberHaptics()
 
     // The tab content lambdas below are captured once per contentKey and held
@@ -139,7 +146,9 @@ fun PlayerNavigationBar(
     // Each surface owns its effect/shape cache instead of sharing a modifier
     // instance between the differently sized tabs, Search and player.
     val barSurface: @Composable () -> Modifier = {
-        if (useGlass) {
+        if (expressive) {
+            Modifier.background(container, pillShape)
+        } else if (useGlass) {
             Modifier.liquidGlass(shape = pillShape)
         } else {
             Modifier.clip(pillShape)
@@ -225,13 +234,17 @@ fun PlayerNavigationBar(
         ),
         // Held too: this is declared `Any?`, so a fresh list every pass is a
         // changed argument by identity and defeats skipping on its own.
-        contentKey = remember(selectedIndex, tabs, contentColor, selectedColor) {
-            listOf(selectedIndex, tabs, contentColor, selectedColor)
+        contentKey = remember(selectedIndex, tabs, contentColor, selectedColor, standaloneSelectedColor) {
+            listOf(selectedIndex, tabs, contentColor, selectedColor, standaloneSelectedColor)
         },
     ) {
         tabs.forEachIndexed { index, tab ->
             val isSelected = index == selectedIndex
-            val tint = if (isSelected) selectedColor else unselectedColor
+            val tint = when {
+                expressive && index == standaloneIndex && isSelected -> standaloneSelectedColor
+                isSelected -> selectedColor
+                else -> unselectedColor
+            }
             val onClick = {
                 if (!isSelected) haptics.play(Haptic.Select)
                 currentOnTabSelected(index)

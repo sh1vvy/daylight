@@ -1,9 +1,15 @@
 package com.music.bitchord.data.lyrics
 
 import com.music.bitchord.data.Http
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.Request
+import okhttp3.Response
+import java.io.IOException
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
 
 /**
  * Shared plumbing for the lyric providers.
@@ -81,3 +87,32 @@ internal fun lyricsGetAuthorized(url: String, bearer: String): String? = runCatc
         if (response.isSuccessful) response.body?.string() else null
     }
 }.getOrNull()
+
+/** A cancellable catalogue request, so optional identification has a real deadline. */
+internal suspend fun lyricsGetCatalogue(url: String, bearer: String? = null): String? =
+    suspendCancellableCoroutine { continuation ->
+        val request = Request.Builder().url(url)
+            .header("User-Agent", LYRICS_AGENT)
+            .header("Accept", "application/json")
+            .apply {
+                if (bearer != null) {
+                    header("Authorization", "Bearer $bearer")
+                    header("Origin", "https://music.apple.com")
+                    header("Referer", "https://music.apple.com/")
+                }
+            }.build()
+        val call = client.newCall(request)
+        continuation.invokeOnCancellation { call.cancel() }
+        call.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                continuation.resume(null)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val body = runCatching {
+                    response.use { if (it.isSuccessful) it.body?.string() else null }
+                }.getOrNull()
+                continuation.resume(body)
+            }
+        })
+    }

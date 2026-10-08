@@ -1329,4 +1329,7 @@
     <string name="quality_best_available_description">Best available YouTube Music audio</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
+    <string name="material_expressive_theme_name">Material Expressive · בטא</string>
+    <string name="material_expressive_theme_description">צבעי הטפט שלך, פקדים מלאי הבעה ומצב בהיר או כהה לפי המערכת.</string>
+    <string name="material_expressive_glass_description">Material Expressive משתמש במשטחים אטומים בגווני צבע.</string>
 </resources>

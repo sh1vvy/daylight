@@ -116,6 +116,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
@@ -142,6 +143,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.music.bitchord.ui.theme.StatusBarIcons
 import com.music.bitchord.ui.theme.LocalPinkCloud
+import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import com.music.bitchord.ui.theme.rememberArtworkTopBandLuminance
 import com.music.bitchord.ui.theme.topBandScrimAlpha
 import com.music.bitchord.ui.LyricsProviderState
@@ -740,10 +742,17 @@ fun NowPlayingScreen(
     windowHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
+    val playerSecondaryInk = playerSecondaryContentColor()
+    val playerInk = playerContentColor()
     val density = LocalDensity.current
     val haptics = rememberHaptics()
     val pinkCloud = LocalPinkCloud.current
-    val playerBase = if (pinkCloud) PinkCloudPlayerStyle.base else Color.Black
+    val materialExpressive = LocalMaterialExpressive.current
+    val playerBase = when {
+        materialExpressive -> MaterialTheme.colorScheme.surface
+        pinkCloud -> PinkCloudPlayerStyle.base
+        else -> Color.Black
+    }
     val playerScrim = if (pinkCloud) PinkCloudPlayerStyle.scrim else Color.Black
 
     // Remote tracks whose art lives inside the file resolve it here, once —
@@ -753,13 +762,13 @@ fun NowPlayingScreen(
     // This is produced by the palette's existing 128 px decode and cache. It
     // samples the upper band rather than the whole sleeve because that is what
     // lies beneath the status bar when the player expands to full bleed.
-    val artTopLuminance = rememberArtworkTopBandLuminance(remoteArt, ART_PX)
+    val artTopLuminance = if (materialExpressive) null else rememberArtworkTopBandLuminance(remoteArt, ART_PX)
     val artworkStatusScrimAlpha = topBandScrimAlpha(artTopLuminance)
 
     // Media-player convention: the player always owns light status icons. The
     // top treatment below, rather than a window-flag flip per cover, provides
     // their contrast and stays visually stable through artwork transitions.
-    StatusBarIcons(dark = false)
+    StatusBarIcons(dark = materialExpressive && playerBase.luminance() > 0.5f)
 
     // Kept local to the player: a modal player is not in the page's Haze
     // source tree, so it needs its own source for the same frosted material as
@@ -1219,8 +1228,8 @@ fun NowPlayingScreen(
     // Spotify Canvas is the player background on a phone, independent of the
     // still-art full-bleed preference. Other providers and static artwork keep
     // answering to that preference exactly as before.
-    val heroMode = spotifyCanvasOnPhone ||
-        (fullBleedArt && playerFillsWindow(windowWidth))
+    val heroMode = !materialExpressive && (spotifyCanvasOnPhone ||
+        (fullBleedArt && playerFillsWindow(windowWidth)))
 
     // Whether there's a still image to blow out — a placeholder tile is a card
     // or it is nothing, and going full-bleed with one would just tint the top
@@ -1330,7 +1339,7 @@ fun NowPlayingScreen(
     }
     // Portrait clips always use the existing artwork mesh, even if the user
     // selected the legacy backdrop for ordinary artwork.
-    val artMesh = if (legacyMesh && !canvasFirstPortrait) null else
+    val artMesh = if (materialExpressive || (legacyMesh && !canvasFirstPortrait)) null else
         key(song.videoId) { rememberArtworkMesh(remoteArt, canvasFrame, ART_PX) }
     // Whether the banner is the presentation at all: full-bleed is on, and there
     // is something to blow out. The collapse is deliberately *not* part of this:
@@ -1611,8 +1620,8 @@ fun NowPlayingScreen(
     val fullArtworkBlurImage = rememberFullArtworkBlurImage(
         imageUrl = remoteArt,
         artPx = ART_PX,
-        prepare = landscape || tabletArtworkBackdrop || lyricsOpen || queueOpen ||
-            playerPrewarmStage >= 1,
+        prepare = !materialExpressive && (landscape || tabletArtworkBackdrop || lyricsOpen || queueOpen ||
+            playerPrewarmStage >= 1),
     )
     // One movable Image node, not two backdrop call sites. Compose carries it
     // between the portrait and landscape players; only the cached bitmap
@@ -1779,10 +1788,10 @@ fun NowPlayingScreen(
         val landscapeArtShape: () -> Shape = {
             val t = dockT()
             if (dock == null || t >= 1f) {
-                dockFrame.cornerShape(LANDSCAPE_ART_CORNER)
+                dockFrame.cornerShape(if (materialExpressive) 28.dp else LANDSCAPE_ART_CORNER)
             } else {
                 val scale = landscapeDockPose()?.scale?.takeIf { it > 0f } ?: 1f
-                dockFrame.cornerShape(lerp(dock.miniArtCorner(), LANDSCAPE_ART_CORNER, t) / scale)
+                dockFrame.cornerShape(lerp(dock.miniArtCorner(), if (materialExpressive) 28.dp else LANDSCAPE_ART_CORNER, t) / scale)
             }
         }
 
@@ -1796,7 +1805,11 @@ fun NowPlayingScreen(
                 background = { backgroundModifier ->
                     // The whole screen is the sheets' frost source: there is
                     // no full-bleed banner here to be it instead.
-                    fullArtworkBlurContent(backgroundModifier.hazeSource(playerHaze))
+                    if (materialExpressive) {
+                        Box(backgroundModifier.background(playerBase))
+                    } else {
+                        fullArtworkBlurContent(backgroundModifier.hazeSource(playerHaze))
+                    }
                 },
                 artwork = { artworkModifier ->
                     LandscapeArtwork(
@@ -1923,6 +1936,7 @@ fun NowPlayingScreen(
                                     ?.let { it.start..it.end },
                                 onScrub = onScrub,
                                 onScrubFinished = onScrubFinished,
+                                isPlaying = isPlaying && position.advancing,
                             ) {
                                 PlaybackQualityLabel(
                                     song = song,
@@ -2076,11 +2090,11 @@ fun NowPlayingScreen(
         // The tablet has no mirrored main-player treatment to crossfade from.
         // Legacy mesh is the whole backdrop on every page, so the lyrics and
         // queue panels must not crossfade the blurred artwork over it.
-        val legacyMeshBackdrop = !tabletArtworkBackdrop && !spotifyCanvasPresentation &&
+        val legacyMeshBackdrop = !materialExpressive && !tabletArtworkBackdrop && !spotifyCanvasPresentation &&
             legacyMesh && !canvasFirstPortrait
         val fullArtworkBackdropAlpha by animateFloatAsState(
             targetValue = if (
-                !legacyMeshBackdrop &&
+                !materialExpressive && !legacyMeshBackdrop &&
                 (tabletArtworkBackdrop || lyricsOpen || queueOpen) &&
                 (tabletArtworkBackdrop || fullArtworkBlurImage != null)
             ) 1f else 0f,
@@ -2100,16 +2114,18 @@ fun NowPlayingScreen(
                 trackKey = song.videoId,
                 modifier = Modifier.graphicsLayer { alpha = 1f - fullArtworkBackdropAlpha },
             )
-        } else if (!tabletArtworkBackdrop && !spotifyCanvasPresentation) {
+        } else if (!materialExpressive && !tabletArtworkBackdrop && !spotifyCanvasPresentation) {
             ArtworkMeshBackdrop(
                 mesh = artMesh,
                 seam = if (canvasFirstPortrait) renderedCanvasBottom else if (heroMode) heroHeight else 0.dp,
                 modifier = Modifier.graphicsLayer { alpha = 1f - fullArtworkBackdropAlpha },
             )
         }
-        fullArtworkBlurContent(
-            Modifier.graphicsLayer { alpha = fullArtworkBackdropAlpha },
-        )
+        if (!materialExpressive) {
+            fullArtworkBlurContent(
+                Modifier.graphicsLayer { alpha = fullArtworkBackdropAlpha },
+            )
+        }
 
         // Mount once, behind the controls. A known portrait aspect changes the
         // invisible view to full-player bounds before its first frame is shown.
@@ -2191,7 +2207,9 @@ fun NowPlayingScreen(
         val playerSubviewOpen = lyricsOpen || queueOpen || lyricsOffsetOpen ||
             showAudioPipeline || showCast || showAudioOutput || showListeningOptions || showLyricsProviders ||
             lyricsShare != null
-        val topGradientAlpha = if (playerSubviewOpen) {
+        val topGradientAlpha = if (materialExpressive) {
+            0f
+        } else if (playerSubviewOpen) {
             maxOf(artworkStatusScrimAlpha, SUBVIEW_STATUS_SCRIM_MIN_ALPHA)
         } else {
             artworkStatusScrimAlpha
@@ -2380,7 +2398,7 @@ fun NowPlayingScreen(
                         .graphicsLayer { alpha = spotifyChromeAlpha }
                         .shadow(2.dp, RoundedCornerShape(3.dp), clip = false)
                         .clip(RoundedCornerShape(3.dp))
-                        .background(Color.White.copy(alpha = 0.70f)),
+                        .background(playerInk.copy(alpha = 0.70f)),
                 )
                 // [p] is the shared album-to-panel transition. Keeping this in
                 // composition until its final frame gives the caption a real
@@ -2791,7 +2809,7 @@ fun NowPlayingScreen(
                 // it docks.
                 fun sleeveShown(): Float = bannerShown() * dockT()
                 fun sleeveCorner(): Dp {
-                    val corner = 8.dp * (1f - sleeveShown())
+                    val corner = (if (materialExpressive) 28.dp else 8.dp) * (1f - sleeveShown())
                     val t = dockT()
                     return if (dock == null || t >= 1f) corner else lerp(dock.miniArtCorner(), corner, t)
                 }
@@ -2970,7 +2988,7 @@ fun NowPlayingScreen(
                             Icon(
                                 imageVector = BitChordIcons.MusicNote,
                                 contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.35f),
+                                tint = playerInk.copy(alpha = 0.35f),
                                 modifier = Modifier
                                     .size(40.dp)
                                     .graphicsLayer {
@@ -3134,7 +3152,7 @@ fun NowPlayingScreen(
                     Icon(
                         imageVector = if (showNext) Icons.Rounded.FastForward else Icons.Rounded.FastRewind,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = playerInk,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .offset {
@@ -3236,12 +3254,14 @@ fun NowPlayingScreen(
                                 MarqueeText(
                                     text = song.title,
                                     style = MaterialTheme.typography.titleLarge.copy(
-                                        fontSize = 20.sp,
+                                        fontSize = if (materialExpressive) 22.sp else 20.sp,
+                                        lineHeight = 28.sp,
+                                        fontWeight = if (materialExpressive) FontWeight.SemiBold else MaterialTheme.typography.titleLarge.fontWeight,
                                     ),
-                                    color = Color.White,
+                                    color = playerInk,
                                     enabled = scrolling,
                                     leading = if (song.isExplicit == true) {
-                                        { ExplicitBadge(color = Color.White) }
+                                        { ExplicitBadge(color = playerInk) }
                                     } else {
                                         null
                                     },
@@ -3250,16 +3270,21 @@ fun NowPlayingScreen(
                                     // lead anywhere; the rest stay plain text.
                                     modifier = Modifier.opensPage(song.albumId, onOpenAlbum),
                                 )
+                                if (materialExpressive) Spacer(Modifier.height(6.dp))
                                 ArtistCreditsMarquee(
                                     text = song.artist,
                                     credits = remember(song.artist, song.artists, song.artistId) {
                                         artistCredits(song.artist, song.artists, song.artistId)
                                     },
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.W500,
-                                        fontSize = 20.sp,
-                                    ),
-                                    color = Color.White.copy(alpha = 0.55f),
+                                    style = if (materialExpressive) {
+                                        MaterialTheme.typography.bodyLarge
+                                    } else {
+                                        MaterialTheme.typography.titleLarge.copy(
+                                            fontWeight = FontWeight.W500,
+                                            fontSize = 20.sp,
+                                        )
+                                    },
+                                    color = playerSecondaryInk,
                                     enabled = scrolling,
                                     // A title that's also scrolling gets to go first —
                                     // starting together reads as clutter, so the artist
@@ -3572,6 +3597,7 @@ fun NowPlayingScreen(
                     ?.let { it.start..it.end },
                 onScrub = onScrub,
                 onScrubFinished = onScrubFinished,
+                isPlaying = isPlaying && position.advancing,
             ) {
                 PlaybackQualityLabel(
                     song = song,

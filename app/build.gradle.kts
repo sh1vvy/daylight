@@ -56,8 +56,8 @@ require(discordApplicationId.isEmpty() || discordApplicationId.all(Char::isDigit
 }
 
 // Advance only the development channel until a stable release is requested.
-val developmentVersionName = "0.2.2-dev.2"
-val developmentVersionCode = 14
+val developmentVersionName = "0.2.2-dev.3"
+val developmentVersionCode = 15
 
 android {
     namespace = "com.music.bitchord"
@@ -260,17 +260,14 @@ dependencies {
     // ---- Compose (Material 3) ----
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
     implementation(composeBom)
-    // Pinned above the BOM's 1.7.6: [IosOverscroll] uses OverscrollFactory,
-    // which that version doesn't have. Newer foundation alongside the BOM's
-    // older ui/material3 is a combination Compose supports deliberately —
-    // foundation depends on ui, not the reverse — and this exact pairing was
-    // already in effect (foundation was reaching 1.10.0 transitively through
-    // the liquid-glass library before that dependency was removed).
+    // The folding dock needs OverscrollFactory. Shared Compose 1.10.x and
+    // Expressive Material are pinned explicitly above the older BOM defaults.
     implementation("androidx.compose.foundation:foundation:1.10.0")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
+    // Paired with Compose Multiplatform 1.10.x for Google Expressive components.
+    implementation("androidx.compose.material3:material3:1.5.0-alpha08")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.navigation:navigation-compose:2.8.5")

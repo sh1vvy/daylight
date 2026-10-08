@@ -1,8 +1,6 @@
 package com.music.bitchord.data.lyrics
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -13,18 +11,13 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.longOrNull
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.abs
 
 /** Public Apple lyrics plus optional authenticated Spotify and Musixmatch routes. */
 object PaxSenix {
     private const val API = "https://api.paxsenix.org"
     private const val PUBLIC_PROXY = "https://lyrics.paxsenix.org"
-    private const val APPLE_SEARCH = "https://amp-api.music.apple.com/v1/catalog/us/search"
     private const val MINIMUM_MATCH_SCORE = 10
-
-    private val tokenMutex = Mutex()
-    private val cachedAppleToken = AtomicReference<String?>(null)
 
     @Volatile
     private var apiKey: String = ""
@@ -39,8 +32,9 @@ object PaxSenix {
         artist: String,
         durationMs: Long,
         album: String? = null,
+        verifiedIsrc: String? = null,
     ): List<LyricLine>? = withContext(Dispatchers.IO) {
-        val id = searchPublicAppleTrackId(title, artist, durationMs)
+        val id = searchPublicAppleTrackId(title, artist, durationMs, verifiedIsrc)
             ?: return@withContext null
         val url = publicUrl("apple-music/lyrics")
             .addQueryParameter("id", id)
@@ -81,29 +75,12 @@ object PaxSenix {
         title: String,
         artist: String,
         durationMs: Long,
+        verifiedIsrc: String?,
     ): String? {
-        val token = appleToken() ?: return null
-        val url = APPLE_SEARCH.toHttpUrl().newBuilder()
-            .addQueryParameter("term", "$title $artist")
-            .addQueryParameter("types", "songs")
-            .addQueryParameter("limit", "10")
-            .addQueryParameter("l", "en-US")
-            .build()
-        val root = lyricsGetAuthorized(url.toString(), token)
-            ?.let { runCatching { lyricsJson.parseToJsonElement(it) }.getOrNull() }
-            ?: return null
+        val root = AppleLyricsRecording.search(title, artist) ?: return null
+        verifiedIsrc?.let { AppleLyricsRecording.songIdForRecording(root, it) }
+            ?.let { return it }
         return bestCandidate(root, title, artist, durationMs)?.id
-    }
-
-    private suspend fun appleToken(): String? = cachedAppleToken.get() ?: tokenMutex.withLock {
-        cachedAppleToken.get() ?: scrapeAppleToken()?.also(cachedAppleToken::set)
-    }
-
-    private fun scrapeAppleToken(): String? {
-        val page = lyricsGet("https://music.apple.com/us/new") ?: return null
-        val scriptPath = APPLE_INDEX_SCRIPT.find(page)?.value ?: return null
-        val script = lyricsGet("https://music.apple.com$scriptPath") ?: return null
-        return APPLE_TOKEN.find(script)?.value
     }
 
     private fun searchTrackId(
@@ -346,8 +323,6 @@ object PaxSenix {
     private val ARTIST_KEYS = listOf("artistName", "artist_name")
     private val DURATION_KEYS = listOf("durationInMillis", "durationMs", "duration_ms", "duration")
 
-    private val APPLE_INDEX_SCRIPT = Regex("""/assets/index~[^\"]+\.js""")
-    private val APPLE_TOKEN = Regex("""eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+""")
 }
 
 fun normalizePaxSenixApiKey(value: String): String {

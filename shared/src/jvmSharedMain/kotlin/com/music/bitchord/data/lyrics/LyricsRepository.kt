@@ -94,6 +94,8 @@ object LyricsRepository {
         order: List<LyricsSource> = LyricsSource.entries,
         prioritizeSyllableSync: Boolean = false,
         isrc: String? = null,
+        /** Only true for a track carrying an explicit badge from its playback catalogue. */
+        isExplicit: Boolean? = null,
         /** Called from the provider job itself, including for lazily-started providers. */
         onSourceStarted: ((LyricsSource) -> Unit)? = null,
         /**
@@ -117,13 +119,17 @@ object LyricsRepository {
         // Settled before anyone is asked for words, so every source that can
         // name the recording does. What the caller knows beats what we worked
         // out last time, and both beat asking again.
-        val known = isrc?.takeIf { it.isNotBlank() } ?: isrcs[videoId]
+        val recordingKey = RecordingKey(videoId, isExplicit == true)
+        val known = isrc?.takeIf { it.isNotBlank() } ?: isrcs[recordingKey]
         val hit = if (known == null) {
-            identify(videoId, searchTitle, searchArtist, durationMs, album, sequence)
+            identify(recordingKey, searchTitle, searchArtist, durationMs, album, sequence)
         } else {
             null
         }
         val recording = known ?: hit?.isrc?.takeIf { it.isNotBlank() }
+        val verifiedExplicitRecording = recording?.takeIf {
+            isExplicit == true && isrcs[recordingKey] == it
+        }
         val documents = SharedDocuments(this)
 
         // Genius is a plain text web scraper. To preserve bandwidth and avoid rate-limiting,
@@ -142,6 +148,8 @@ object LyricsRepository {
                         album,
                         recording,
                         hit,
+                        isExplicit,
+                        verifiedExplicitRecording,
                         documents::get,
                     )?.let { result(source, it) }
                     onSourceResult?.invoke(source, found)
@@ -188,6 +196,8 @@ object LyricsRepository {
         isrc: String?,
         /** What [identify] already found, where it ran; saves a second search. */
         hit: BiniLyrics.Hit?,
+        isExplicit: Boolean?,
+        verifiedExplicitRecording: String?,
         /** Fetches a document once per lookup, however many sources want it. */
         get: suspend (String) -> String?,
     ): List<LyricLine>? {
@@ -199,7 +209,9 @@ object LyricsRepository {
             LyricsSource.BINI_LYRICS ->
                 (hit?.let { BiniLyrics.lyricsFor(it, get) }
                     ?: BiniLyrics.lyrics(title, artist, durationMs, album, isrc, get))
-                    ?.also { remember(videoId, it.isrc) }
+                    // A generic name match cannot establish explicitness. The
+                    // identification step alone may cache a verified E recording.
+                    ?.also { if (isExplicit != true) remember(RecordingKey(videoId, false), it.isrc) }
                     ?.lines
             LyricsSource.UNISON -> Unison.lyrics(title, artist, durationMs, album)
             LyricsSource.SIMP_MUSIC -> SimpMusicLyrics.lyrics(videoId, durationMs)
@@ -207,7 +219,7 @@ object LyricsRepository {
             LyricsSource.YOUTUBE_MUSIC -> YouTubeMusicLyrics.lyrics(videoId)
             LyricsSource.LRCLIB -> LrcLib.lyrics(title, artist, durationMs)
             LyricsSource.MUSIXMATCH -> Musixmatch.lyrics(title, artist, durationMs)
-            LyricsSource.PAXSENIX -> PaxSenix.lyrics(title, artist, durationMs, album)
+            LyricsSource.PAXSENIX -> PaxSenix.lyrics(title, artist, durationMs, album, verifiedExplicitRecording)
             LyricsSource.PAXSENIX_SPOTIFY -> PaxSenix.spotifyLyrics(title, artist, durationMs)
             LyricsSource.PAXSENIX_MUSIXMATCH -> PaxSenix.musixmatchLyrics(title, artist, durationMs)
             LyricsSource.KUGOU -> KuGou.lyrics(title, artist, durationMs, album)
@@ -246,7 +258,7 @@ object LyricsRepository {
      * lookup, and the hit is handed back so [BiniLyrics] need not search twice.
      */
     private suspend fun identify(
-        videoId: String,
+        key: RecordingKey,
         title: String,
         artist: String,
         durationMs: Long,
@@ -254,11 +266,26 @@ object LyricsRepository {
         sequence: List<LyricsSource>,
     ): BiniLyrics.Hit? {
         if (LyricsSource.BINI_LYRICS !in sequence) return null
-        val hit = withTimeoutOrNull(IDENTIFY_TIMEOUT_MS) {
-            runCatching { BiniLyrics.identify(title, artist, durationMs, album) }.getOrNull()
-        }
-        if (hit == null) return null
-        remember(videoId, hit.isrc)
+        val hits = withTimeoutOrNull(IDENTIFY_TIMEOUT_MS) {
+            try {
+                BiniLyrics.search(title, artist, durationMs, album)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            }
+        }.orEmpty()
+        // Apple catalogue metadata is supplied by the existing PaxSenix route.
+        // Respect disabled providers, and use the same bounded cached search
+        // again when PaxSenix fetches its own document later in this lookup.
+        val identification = AppleLyricsRecording.identify(
+            hits, title, artist, durationMs, album,
+            refinementEnabled = key.explicit && LyricsSource.PAXSENIX in sequence,
+        ) ?: return null
+        val hit = identification.hit
+        // An ambiguous fallback remains usable but is not retained as the
+        // explicit recording, so a later successful lookup can refine it.
+        if (!key.explicit || identification.verifiedExplicit) remember(key, hit.isrc)
         return hit
     }
 
@@ -273,15 +300,17 @@ object LyricsRepository {
      * did before any of this, and keeping it on disk would mean keeping a
      * wrong answer on disk too.
      */
-    private val isrcs: MutableMap<String, String> = Collections.synchronizedMap(
-        object : LinkedHashMap<String, String>(REMEMBERED, 0.75f, true) {
-            override fun removeEldestEntry(eldest: Map.Entry<String, String>) = size > REMEMBERED
+    private data class RecordingKey(val videoId: String, val explicit: Boolean)
+
+    private val isrcs: MutableMap<RecordingKey, String> = Collections.synchronizedMap(
+        object : LinkedHashMap<RecordingKey, String>(REMEMBERED, 0.75f, true) {
+            override fun removeEldestEntry(eldest: Map.Entry<RecordingKey, String>) = size > REMEMBERED
         },
     )
 
-    private fun remember(videoId: String, isrc: String?) {
-        if (isrc.isNullOrBlank() || videoId.isEmpty()) return
-        isrcs.put(videoId, isrc)
+    private fun remember(key: RecordingKey, isrc: String?) {
+        if (isrc.isNullOrBlank() || key.videoId.isEmpty()) return
+        isrcs.put(key, isrc)
     }
 
     /**

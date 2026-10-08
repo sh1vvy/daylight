@@ -26,6 +26,13 @@ class PinkCloudSurfaceTest {
     }
 
     @Test
+    fun materialHomePreservesWallpaperColorsAndSurfaceRoles() {
+        val native = lightColorScheme(background = Color(0xFFF4FBF7), primary = Color(0xFF006A62))
+        assertSame(native, daylightHomeColorScheme(native, materialExpressive = true))
+        assertEquals(native.background, daylightHomeBackground(native.background, materialExpressive = true))
+    }
+
+    @Test
     fun missingArtworkStillUsesTheThemeAndItsReadableText() {
         val palette = pinkCloudArtworkPalette(pink, null)
         assertEquals(pink.background, palette.background)

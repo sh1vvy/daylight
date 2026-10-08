@@ -301,6 +301,15 @@
                 android:resource="@xml/widget_media_pill" />
         </receiver>
 
+        <!-- APK updates kill the old player process; refresh widgets without starting playback. -->
+        <receiver
+            android:name=".widget.MediaWidgetUpgradeReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <!-- The transport buttons. Reached only by this app's own PendingIntents. -->
         <receiver
             android:name=".widget.MediaWidgetActions"

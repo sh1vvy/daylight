@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only RemoteViews-supported framework views. Palette follows the launcher's system theme. -->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_material_surface"
+    android:theme="@android:style/Theme.DeviceDefault.DayNight">
+    <LinearLayout
+        android:id="@+id/widget_pill"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="6dp">
+        <ImageView
+            android:id="@+id/widget_art"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_material_placeholder" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="6dp"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/widget_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/inter_semibold"
+                android:includeFontPadding="false"
+                android:text="@string/widget_material_preview_title"
+                android:textColor="@color/widget_material_on_surface"
+                android:textSize="14sp"
+                android:ellipsize="end"
+                android:maxLines="1" />
+            <TextView
+                android:id="@+id/widget_artist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/inter_regular"
+                android:includeFontPadding="false"
+                android:text="@string/widget_material_preview_artist"
+                android:textColor="@color/widget_material_secondary"
+                android:textSize="11sp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:layout_marginTop="2dp" />
+            <TextView
+                android:id="@+id/widget_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/inter_medium"
+                android:includeFontPadding="false"
+                android:text="@string/widget_state_paused"
+                android:textColor="@color/widget_material_secondary"
+                android:textSize="10sp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:layout_marginTop="3dp"
+                android:visibility="gone" />
+        </LinearLayout>
+        <ImageView
+            android:id="@+id/widget_like"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/widget_transport_button"
+            android:contentDescription="@string/like"
+            android:padding="12dp"
+            android:src="@drawable/ic_widget_heart"
+            android:tint="@color/widget_material_on_surface"
+            android:visibility="gone" />
+        <ImageView
+            android:id="@+id/widget_previous"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/widget_transport_button"
+            android:contentDescription="@string/widget_previous"
+            android:padding="12dp"
+            android:src="@drawable/ic_widget_previous"
+            android:tint="@color/widget_material_on_surface"
+            android:visibility="gone" />
+        <ImageView
+            android:id="@+id/widget_toggle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/widget_material_playing"
+            android:contentDescription="@string/widget_play"
+            android:padding="10dp"
+            android:src="@drawable/ic_widget_pause"
+            android:tint="@color/widget_material_on_primary" />
+        <ImageView
+            android:id="@+id/widget_next"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/widget_transport_button"
+            android:contentDescription="@string/widget_next"
+            android:padding="12dp"
+            android:src="@drawable/ic_widget_next"
+            android:tint="@color/widget_material_on_surface" />
+        <ImageView
+            android:id="@+id/widget_shuffle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/widget_transport_button"
+            android:contentDescription="@string/shuffle_off"
+            android:padding="12dp"
+            android:src="@drawable/ic_widget_shuffle"
+            android:tint="@color/widget_material_on_surface"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>

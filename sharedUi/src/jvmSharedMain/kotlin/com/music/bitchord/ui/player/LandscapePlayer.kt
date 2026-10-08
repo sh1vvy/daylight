@@ -35,6 +35,7 @@ import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -147,6 +148,7 @@ internal fun LandscapePlayerLayout(
     queuePane: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val playerInk = playerContentColor()
     Box(modifier = modifier.fillMaxSize()) {
         background(Modifier.fillMaxSize())
 
@@ -250,7 +252,7 @@ internal fun LandscapePlayerLayout(
                     .height(5.dp)
                     .shadow(2.dp, RoundedCornerShape(3.dp), clip = false)
                     .clip(RoundedCornerShape(3.dp))
-                    .background(Color.White.copy(alpha = 0.70f)),
+                    .background(playerInk.copy(alpha = 0.70f)),
             )
         }
     }
@@ -289,6 +291,7 @@ internal fun LandscapeArtwork(
     shadowFraction: () -> Float = { 1f },
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
+    val playerInk = playerContentColor()
     val casts = artLoaded || canvasRendered
     Box(modifier = modifier) {
         Box(
@@ -317,7 +320,7 @@ internal fun LandscapeArtwork(
                 Icon(
                     imageVector = BitChordIcons.MusicNote,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.35f),
+                    tint = playerInk.copy(alpha = 0.35f),
                     modifier = Modifier.fillMaxSize(0.36f),
                 )
             }
@@ -421,6 +424,8 @@ internal fun LandscapeCredits(
     onOpenArtist: (browseId: String?, name: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val playerSecondaryInk = playerSecondaryContentColor()
+    val playerInk = playerContentColor()
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Crossfade(
             targetState = song.title to song.artist,
@@ -432,24 +437,27 @@ internal fun LandscapeCredits(
                 var titleOverflowing by remember { mutableStateOf(false) }
                 MarqueeText(
                     text = song.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge.let {
+                        if (LocalMaterialExpressive.current) it.copy(fontWeight = FontWeight.SemiBold) else it
+                    },
+                    color = playerInk,
                     onOverflowChange = { titleOverflowing = it },
                     leading = if (song.isExplicit == true) {
-                        { ExplicitBadge(Color.White) }
+                        { ExplicitBadge(playerInk) }
                     } else {
                         null
                     },
                     modifier = Modifier.opensPage(song.albumId, onOpenAlbum),
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(if (LocalMaterialExpressive.current) 6.dp else 2.dp))
                 ArtistCreditsMarquee(
                     text = song.artist,
                     credits = remember(song.artist, song.artists, song.artistId) {
                         artistCredits(song.artist, song.artists, song.artistId)
                     },
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.W500),
-                    color = Color.White.copy(alpha = 0.55f),
+                    style = if (LocalMaterialExpressive.current) MaterialTheme.typography.bodyLarge
+                        else MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.W500),
+                    color = playerSecondaryInk,
                     // A title that's also scrolling gets to go first — starting
                     // together reads as clutter, so the artist waits a beat.
                     startDelayMillis = if (titleOverflowing) MARQUEE_ARTIST_STAGGER_MS else 0L,
@@ -503,6 +511,7 @@ internal fun LandscapeLyricsPane(
     modifier: Modifier = Modifier,
     panel: @Composable (Modifier) -> Unit,
 ) {
+    val playerInk = playerContentColor()
     Column(modifier = modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -519,7 +528,7 @@ internal fun LandscapeLyricsPane(
                 Text(
                     text = placeholder,
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = playerInk.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.align(Alignment.Center),
                 )

@@ -220,4 +220,6 @@
     <string name="quality_best_available_description">Best available YouTube Music audio</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
+    <string name="material_expressive_playback_position">Pozycja odtwarzania</string>
+    <string name="material_expressive_volume">Głośność</string>
 </resources>

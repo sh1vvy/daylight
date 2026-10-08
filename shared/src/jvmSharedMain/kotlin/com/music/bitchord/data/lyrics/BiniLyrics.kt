@@ -54,7 +54,16 @@ object BiniLyrics {
         durationMs: Long,
         album: String? = null,
         isrc: String? = null,
-    ): Hit? = withContext(Dispatchers.IO) {
+    ): Hit? = search(title, artist, durationMs, album, isrc)?.firstOrNull()
+
+    /** Keep alternatives available when recording metadata can distinguish a clean edit. */
+    internal suspend fun search(
+        title: String,
+        artist: String,
+        durationMs: Long,
+        album: String? = null,
+        isrc: String? = null,
+    ): List<Hit>? = withContext(Dispatchers.IO) {
         val url = BASE.toHttpUrl().newBuilder()
             .apply {
                 if (!isrc.isNullOrBlank()) {
@@ -76,7 +85,7 @@ object BiniLyrics {
         val body = lyricsGet(url.toString()) ?: return@withContext null
         val response = runCatching { lyricsJson.decodeFromString<Response>(body) }.getOrNull()
             ?: return@withContext null
-        response.results?.firstOrNull()
+        response.results
     }
 
     /**

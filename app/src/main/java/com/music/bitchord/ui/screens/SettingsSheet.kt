@@ -15,6 +15,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -92,6 +94,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -174,7 +177,7 @@ import java.util.Locale
  * title. Anything with more than two choices opens a sheet rather than pushing
  * a row of chips into the layout.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     /** The window's width, for the gates that depend on it. */
@@ -431,15 +434,30 @@ fun SettingsScreen(
             onToggle = { categoryExpansion = categoryExpansion.toggle("appearance") },
         ) {
             val themeTitle = stringResource(R.string.theme)
-            row(themeTitle, "dark mode", "light mode", "pink cloud", "colours", "colors") {
-                SettingsRow(icon = Icons.Rounded.Brightness4, title = themeTitle)
-                SegmentedControl(
-                    options = ThemeMode.entries.map { it.localizedLabel() },
-                    selectedIndex = ThemeMode.entries.indexOf(theme),
-                    onSelect = { AppSettings.setThemeMode(ThemeMode.entries[it]) },
-                    modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
-                    maxLabelLines = 2,
+            row(themeTitle, "dark mode", "light mode", "pink cloud", "material expressive", "wallpaper", "colours", "colors") {
+                SettingsRow(
+                    icon = Icons.Rounded.Brightness4,
+                    title = themeTitle,
+                    subtitle = if (theme == ThemeMode.MATERIAL_EXPRESSIVE) {
+                        stringResource(R.string.material_expressive_theme_description)
+                    } else null,
                 )
+                FlowRow(
+                    modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                ) {
+                    ThemeMode.entries.forEach { mode ->
+                        FilterChip(
+                            selected = theme == mode,
+                            onClick = { AppSettings.setThemeMode(mode) },
+                            label = { Text(mode.localizedLabel()) },
+                            leadingIcon = if (theme == mode) {
+                                { Icon(Icons.Rounded.Check, null, Modifier.size(18.dp)) }
+                            } else null,
+                        )
+                    }
+                }
             }
             val liquidGlassTitle = stringResource(R.string.liquid_glass)
             row(liquidGlassTitle, "glass", "blur") {
@@ -447,18 +465,20 @@ fun SettingsScreen(
                     icon = Icons.Rounded.WaterDrop,
                     title = liquidGlassTitle,
                     subtitle = stringResource(
-                        if (liquidGlassSupported) {
+                        if (theme == ThemeMode.MATERIAL_EXPRESSIVE) {
+                            R.string.material_expressive_glass_description
+                        } else if (liquidGlassSupported) {
                             R.string.liquid_glass_subtitle
                         } else {
                             R.string.liquid_glass_unavailable
                         },
                     ),
-                    enabled = liquidGlassSupported,
+                    enabled = liquidGlassSupported && theme != ThemeMode.MATERIAL_EXPRESSIVE,
                     trailing = {
                         Switch(
-                            checked = liquidGlass,
+                            checked = liquidGlass && theme != ThemeMode.MATERIAL_EXPRESSIVE,
                             onCheckedChange = AppSettings::setLiquidGlass,
-                            enabled = liquidGlassSupported,
+                            enabled = liquidGlassSupported && theme != ThemeMode.MATERIAL_EXPRESSIVE,
                             colors = SwitchDefaults.colors(
                                 checkedTrackColor = MaterialTheme.colorScheme.primary,
                                 checkedBorderColor = MaterialTheme.colorScheme.primary,
@@ -1631,6 +1651,7 @@ private fun ThemeMode.localizedLabel(): String = stringResource(
         ThemeMode.LIGHT -> R.string.light
         ThemeMode.DARK -> R.string.dark
         ThemeMode.PINK_CLOUD -> R.string.pink_cloud
+        ThemeMode.MATERIAL_EXPRESSIVE -> R.string.material_expressive_theme_name
     },
 )
 

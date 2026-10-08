@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -78,6 +79,8 @@ internal fun LyricsOffsetSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val playerSecondaryInk = playerSecondaryContentColor()
+    val playerInk = playerContentColor()
     val offsetMs by PlayerSettings.lyricsOffsetMs.collectAsStateWithLifecycle()
     val haptics = rememberHaptics()
     var drag by remember { mutableFloatStateOf(0f) }
@@ -95,6 +98,8 @@ internal fun LyricsOffsetSheet(
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { shown = true }
     val reduceDynamicBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
+    val materialExpressive = LocalMaterialExpressive.current
+    val drawerColor = if (materialExpressive) MaterialTheme.colorScheme.surfaceContainerLow else Color(0xFF121212)
 
     Box(
         modifier = modifier
@@ -121,8 +126,8 @@ internal fun LyricsOffsetSheet(
                     .offset { IntOffset(0, drawerOffset.roundToInt()) }
                     .clip(DrawerShape)
                     .then(
-                        if (reduceDynamicBlur) {
-                            Modifier.background(Color(0xFF121212))
+                        if (reduceDynamicBlur || materialExpressive) {
+                            Modifier.background(drawerColor)
                         } else {
                             Modifier
                                 .optimizedHazeEffect(
@@ -159,7 +164,7 @@ internal fun LyricsOffsetSheet(
                         .padding(bottom = 12.dp)
                         .size(width = 36.dp, height = 4.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.25f)),
+                        .background(playerInk.copy(alpha = 0.25f)),
                 )
                 Text(
                     text = stringResource(Res.string.lyrics_offset),
@@ -167,13 +172,13 @@ internal fun LyricsOffsetSheet(
                         fontSize = 19.sp,
                         fontWeight = FontWeight.Bold,
                     ),
-                    color = Color.White,
+                    color = playerInk,
                     modifier = Modifier.fillMaxWidth().padding(start = 4.dp),
                 )
                 Text(
                     text = stringResource(Res.string.lyrics_offset_description),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = playerSecondaryInk,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 4.dp, top = 3.dp, bottom = 14.dp),
@@ -183,7 +188,7 @@ internal fun LyricsOffsetSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(ControlShape)
-                        .background(Color.White.copy(alpha = 0.05f))
+                        .background(playerInk.copy(alpha = 0.05f))
                         .padding(horizontal = 12.dp, vertical = 14.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -192,7 +197,7 @@ internal fun LyricsOffsetSheet(
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.SemiBold,
                         ),
-                        color = Color.White,
+                        color = playerInk,
                     )
                     Spacer(Modifier.height(8.dp))
                     Row(
@@ -229,7 +234,7 @@ internal fun LyricsOffsetSheet(
                 Text(
                     text = stringResource(Res.string.lyrics_offset_reset),
                     style = MaterialTheme.typography.labelLarge,
-                    color = Color.White.copy(alpha = if (offsetMs == 0) 0.35f else 0.8f),
+                    color = playerInk.copy(alpha = if (offsetMs == 0) 0.35f else 0.8f),
                     modifier = Modifier
                         .padding(top = 12.dp)
                         .clip(CircleShape)
@@ -251,6 +256,7 @@ private fun OffsetButton(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
+    val playerInk = playerContentColor()
     IconButton(
         onClick = onClick,
         enabled = enabled,
@@ -259,7 +265,7 @@ private fun OffsetButton(
         Text(
             text = label,
             style = MaterialTheme.typography.titleLarge,
-            color = Color.White.copy(alpha = if (enabled) 0.85f else 0.25f),
+            color = playerInk.copy(alpha = if (enabled) 0.85f else 0.25f),
         )
     }
 }

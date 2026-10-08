@@ -58,8 +58,14 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeDown
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.IconButtonShapes
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -101,6 +107,7 @@ import androidx.compose.ui.unit.sp
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
 import com.music.bitchord.ui.icons.BitChordIcons
+import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.NerdStats
 import com.music.bitchord.data.listentogether.PartyMember
@@ -156,16 +163,17 @@ internal fun PlaybackOriginCaption(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
+    val playerInk = playerContentColor()
     Text(
         text = text,
         style = MaterialTheme.typography.labelSmall.copy(
-            shadow = Shadow(
+            shadow = if (LocalMaterialExpressive.current) null else Shadow(
                 color = Color.Black.copy(alpha = 0.55f),
                 offset = Offset(0f, 1f),
                 blurRadius = 4f,
             ),
         ),
-        color = Color.White,
+        color = playerInk,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         textAlign = textAlign,
@@ -194,8 +202,11 @@ internal fun PlayerScrubber(
     transitionWindow: ClosedFloatingPointRange<Float>?,
     onScrub: (Float) -> Unit,
     onScrubFinished: () -> Unit,
+    isPlaying: Boolean = false,
     centerLabel: @Composable BoxScope.() -> Unit = {},
 ) {
+    val playerSecondaryInk = playerSecondaryContentColor()
+    val playerInk = playerContentColor()
     val shown = shown()
     // Held as a State and read only inside the bar's draw: the blend republishes
     // every fade tick, and collecting it by value here would recompose the
@@ -206,21 +217,32 @@ internal fun PlayerScrubber(
     // One clock for the bar and the "Mixing" label, so they breathe on the same beat.
     val mixPulse = rememberMixPulse({ mixBlend.value }, enabled = !reduceAnimation)
     Column(Modifier.fillMaxWidth()) {
-        ThinSlider(
-            value = shown,
-            onValueChange = onScrub,
-            onValueChangeFinished = onScrubFinished,
-            loading = loading,
-            mixing = mixing,
-            mixPulse = mixPulse,
-            transitionWindow = transitionWindow,
-        )
+        if (LocalMaterialExpressive.current) {
+            MaterialExpressiveSeekBar(
+                value = shown,
+                onValueChange = onScrub,
+                onValueChangeFinished = onScrubFinished,
+                animateWave = isPlaying && !reduceAnimation && !loading,
+                transitionWindow = transitionWindow,
+                mixCover = { mixPulse.cover },
+            )
+        } else {
+            ThinSlider(
+                value = shown,
+                onValueChange = onScrub,
+                onValueChangeFinished = onScrubFinished,
+                loading = loading,
+                mixing = mixing,
+                mixPulse = mixPulse,
+                transitionWindow = transitionWindow,
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 // The slider's touch target extends well past the drawn bar,
                 // so pull the labels back up under it.
-                .offset(y = (-9).dp),
+                .offset(y = if (LocalMaterialExpressive.current) 0.dp else (-9).dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -229,12 +251,12 @@ internal fun PlayerScrubber(
                 Text(
                     text = formatTime((shown * durationMs).toLong()),
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = playerSecondaryInk,
                 )
                 Text(
                     text = "-" + formatTime(durationMs - (shown * durationMs).toLong()),
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = playerSecondaryInk,
                 )
             }
             // Pinned to the box's own centre rather than squeezed into the gap
@@ -264,6 +286,7 @@ internal fun PlayerScrubber(
  */
 @Composable
 private fun MixingLabel(pulse: MixPulse, modifier: Modifier = Modifier) {
+    val playerInk = playerContentColor()
     Text(
         text = stringResource(Res.string.mixing),
         modifier = modifier.graphicsLayer { alpha = pulse.cover * pulse.alpha(1f, restShare = MIXING_LABEL_REST) },
@@ -271,7 +294,7 @@ private fun MixingLabel(pulse: MixPulse, modifier: Modifier = Modifier) {
             fontWeight = FontWeight.SemiBold,
             fontSize = (MaterialTheme.typography.labelMedium.fontSize.value + 1).sp,
         ),
-        color = Color.White.copy(alpha = 0.85f),
+        color = playerInk.copy(alpha = 0.85f),
         maxLines = 1,
     )
 }
@@ -320,6 +343,7 @@ internal fun PlaybackQualityLabel(
  */
 @Composable
 internal fun SleeveNerdStats(song: Song, modifier: Modifier = Modifier) {
+    val playerInk = Color.White
     val showNerdStats by PlayerSettings.showNerdStats.collectAsStateWithLifecycle()
     if (!showNerdStats) return
     val nerdStats by NerdStats.current.collectAsStateWithLifecycle()
@@ -355,7 +379,7 @@ internal fun SleeveNerdStats(song: Song, modifier: Modifier = Modifier) {
             Text(
                 text = stats,
                 style = nerdStyle,
-                color = Color.White.copy(alpha = 0.65f),
+                color = playerInk.copy(alpha = 0.65f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
@@ -387,7 +411,7 @@ internal fun SleeveNerdStats(song: Song, modifier: Modifier = Modifier) {
                 // Dimmer than the measured line above it: that one describes
                 // the audio, this one describes the app, and the ranking
                 // should show.
-                color = Color.White.copy(alpha = 0.5f),
+                color = playerInk.copy(alpha = 0.5f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
@@ -419,6 +443,14 @@ internal fun TransportRow(
     onNext: () -> Unit,
     compact: Boolean = false,
 ) {
+    val playerInk = playerContentColor()
+    if (LocalMaterialExpressive.current) {
+        MaterialTransportRow(
+            isPlaying, isLoading, previousEnabled, nextEnabled,
+            onPrevious, onPlayPause, onNext, compact,
+        )
+        return
+    }
     val playSize = if (compact) 58.dp else 74.dp
     val playTouch = if (compact) 76.dp else 92.dp
     val skipSize = if (compact) 44.dp else PLAYER_SKIP_ICON_SIZE
@@ -444,7 +476,7 @@ internal fun TransportRow(
             // would shunt everything below it on every load.
             Box(Modifier.size(playTouch), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(
-                    color = Color.White,
+                    color = playerInk,
                     strokeWidth = 3.dp,
                     modifier = Modifier.size(if (compact) 30.dp else 38.dp),
                 )
@@ -472,6 +504,92 @@ internal fun TransportRow(
     }
 }
 
+/** Tonal skip targets and a prominent morphing play button use Google's Expressive components. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun MaterialTransportRow(
+    isPlaying: Boolean,
+    isLoading: Boolean,
+    previousEnabled: Boolean,
+    nextEnabled: Boolean,
+    onPrevious: () -> Unit,
+    onPlayPause: () -> Unit,
+    onNext: () -> Unit,
+    compact: Boolean,
+) {
+    val haptics = rememberHaptics()
+    val reduceAnimation by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
+    val colors = MaterialTheme.colorScheme
+    val skipColors = IconButtonDefaults.filledTonalIconButtonColors(
+        containerColor = colors.secondaryContainer,
+        contentColor = colors.onSecondaryContainer,
+        disabledContainerColor = colors.onSurface.copy(alpha = 0.12f),
+        disabledContentColor = colors.onSurface.copy(alpha = 0.38f),
+    )
+    val shape = RoundedCornerShape(if (isPlaying) 26.dp else 50.dp)
+    val shapes = remember(shape, reduceAnimation) {
+        IconButtonShapes(shape, if (reduceAnimation) shape else RoundedCornerShape(18.dp))
+    }
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FilledTonalIconButton(
+            onClick = { haptics.play(Haptic.SkipPrevious); onPrevious() },
+            enabled = previousEnabled,
+            colors = skipColors,
+            modifier = Modifier.size(if (compact) 48.dp else 56.dp),
+        ) {
+            Icon(
+                painterResource(Res.drawable.ic_player_previous),
+                stringResource(Res.string.widget_previous),
+                Modifier.size(28.dp),
+                tint = if (previousEnabled) colors.onSecondaryContainer else colors.onSurface.copy(alpha = 0.38f),
+            )
+        }
+        FilledIconButton(
+            onClick = {
+                haptics.play(if (isPlaying) Haptic.Pause else Haptic.Resume)
+                onPlayPause()
+            },
+            shapes = shapes,
+            enabled = !isLoading,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = colors.primary,
+                contentColor = colors.onPrimary,
+                disabledContainerColor = colors.primaryContainer,
+                disabledContentColor = colors.onPrimaryContainer,
+            ),
+            modifier = Modifier.width(if (compact) 84.dp else 112.dp).height(if (compact) 58.dp else 84.dp),
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(Modifier.size(30.dp), color = colors.onPrimaryContainer, strokeWidth = 3.dp)
+            } else {
+                Icon(
+                    painterResource(if (isPlaying) Res.drawable.ic_player_pause else Res.drawable.ic_player_play),
+                    stringResource(if (isPlaying) Res.string.pause else Res.string.play),
+                    Modifier.size(if (compact) 30.dp else 40.dp),
+                    tint = colors.onPrimary,
+                )
+            }
+        }
+        FilledTonalIconButton(
+            onClick = { haptics.play(Haptic.SkipNext); onNext() },
+            enabled = nextEnabled,
+            colors = skipColors,
+            modifier = Modifier.size(if (compact) 48.dp else 56.dp),
+        ) {
+            Icon(
+                painterResource(Res.drawable.ic_player_next),
+                stringResource(Res.string.widget_next),
+                Modifier.size(28.dp),
+                tint = if (nextEnabled) colors.onSecondaryContainer else colors.onSurface.copy(alpha = 0.38f),
+            )
+        }
+    }
+}
+
 /** ThinSlider's fixed touch target at the volume bar's size: 10dp + 22dp. */
 internal val VOLUME_ROW_HEIGHT = 32.dp
 
@@ -486,6 +604,8 @@ internal fun VolumeRow(
     onValueChange: (Float) -> Unit,
     onValueChangeFinished: () -> Unit,
 ) {
+    val playerInk = playerContentColor()
+    val volumeLabel = stringResource(Res.string.material_expressive_volume)
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -493,23 +613,32 @@ internal fun VolumeRow(
         Icon(
             Icons.AutoMirrored.Rounded.VolumeDown,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.5f),
+            tint = playerInk.copy(alpha = 0.5f),
             modifier = Modifier.size(20.dp),
         )
         Spacer(Modifier.width(10.dp))
-        ThinSlider(
-            value = value(),
-            onValueChange = onValueChange,
-            onValueChangeFinished = onValueChangeFinished,
-            idleHeight = 6.dp,
-            activeHeight = 10.dp,
-            modifier = Modifier.weight(1f),
-        )
+        if (LocalMaterialExpressive.current) {
+            Slider(
+                value = materialSeekFraction(value()),
+                onValueChange = onValueChange,
+                onValueChangeFinished = onValueChangeFinished,
+                modifier = Modifier.weight(1f).height(VOLUME_ROW_HEIGHT).semantics { contentDescription = volumeLabel },
+            )
+        } else {
+            ThinSlider(
+                value = value(),
+                onValueChange = onValueChange,
+                onValueChangeFinished = onValueChangeFinished,
+                idleHeight = 6.dp,
+                activeHeight = 10.dp,
+                modifier = Modifier.weight(1f),
+            )
+        }
         Spacer(Modifier.width(10.dp))
         Icon(
             Icons.AutoMirrored.Rounded.VolumeUp,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.5f),
+            tint = playerInk.copy(alpha = 0.5f),
             modifier = Modifier.size(20.dp),
         )
     }
@@ -640,6 +769,7 @@ internal fun TrackActionGlyph(
     onClick: () -> Unit,
     haptic: Haptic = Haptic.Tap,
 ) {
+    val playerInk = playerContentColor()
     val haptics = rememberHaptics()
     Box(
         modifier = Modifier
@@ -661,7 +791,7 @@ internal fun TrackActionGlyph(
             Icon(
                 imageVector = glyph,
                 contentDescription = contentDescription,
-                tint = Color.White,
+                tint = playerInk,
                 modifier = Modifier.size(19.dp),
             )
         }
@@ -685,6 +815,7 @@ private fun TransportGlyph(
     /** Vertical squash of the glyph alone; its width and touch box are untouched. */
     heightScale: Float = 1f,
 ) {
+    val playerInk = playerContentColor()
     val haptics = rememberHaptics()
     // Faded rather than hidden: the row keeps its shape at the ends of a queue.
     val alpha by animateFloatAsState(
@@ -707,7 +838,7 @@ private fun TransportGlyph(
         Icon(
             painter = painterResource(icon),
             contentDescription = contentDescription,
-            tint = Color.White.copy(alpha = alpha),
+            tint = playerInk.copy(alpha = alpha),
             modifier = Modifier
                 .size(size)
                 .then(if (heightScale != 1f) Modifier.graphicsLayer { scaleY = heightScale } else Modifier),
@@ -750,11 +881,12 @@ private fun Pill(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val playerInk = playerContentColor()
     Row(
         modifier = modifier
             .height(BOTTOM_ACTION_SIZE)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.12f))
+            .background(playerInk.copy(alpha = 0.12f))
             .animateContentSize(
                 animationSpec = spring(
                     dampingRatio = 0.82f,
@@ -768,11 +900,12 @@ private fun Pill(
 
 @Composable
 private fun PillDivider() {
+    val playerInk = playerContentColor()
     Box(
         Modifier
             .width(1.dp)
             .fillMaxHeight()
-            .background(Color.White.copy(alpha = 0.20f)),
+            .background(playerInk.copy(alpha = 0.20f)),
     )
 }
 
@@ -816,13 +949,14 @@ private fun PillSegment(
     tapWindowMs: Long = 0L,
     width: Dp = PILL_SEGMENT_WIDTH_TRIPLE,
 ) {
+    val playerInk = playerContentColor()
     val haptics = rememberHaptics()
     val lastTap = remember { mutableLongStateOf(-tapWindowMs) }
     Box(
         modifier = Modifier
             .width(width)
             .height(BOTTOM_ACTION_SIZE)
-            .background(if (highlighted) Color.White.copy(alpha = 0.14f) else Color.Transparent)
+            .background(if (highlighted) playerInk.copy(alpha = 0.14f) else Color.Transparent)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -838,7 +972,7 @@ private fun PillSegment(
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
-        val tint = Color.White.copy(alpha = if (highlighted) 1f else 0.75f)
+        val tint = playerInk.copy(alpha = if (highlighted) 1f else 0.75f)
         Crossfade(
             targetState = loading,
             animationSpec = tween(durationMillis = 200),
@@ -847,7 +981,7 @@ private fun PillSegment(
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(17.dp),
-                    color = Color.White,
+                    color = playerInk,
                     strokeWidth = 2.dp,
                 )
             } else if (icon != null) {
@@ -903,6 +1037,8 @@ internal fun OutputCaption(
     /** Who's in it, before the settings page — see [ListenTogetherMembersSheet]. */
     onOpenMembers: () -> Unit,
 ) {
+    val playerSecondaryInk = playerSecondaryContentColor()
+    val playerInk = playerContentColor()
     val badge = rememberPartyBadge()
     val outputName = rememberAudioOutputName(accountName)
     val outputFormat by PlayerPlatform.host.outputFormat.collectAsStateWithLifecycle()
@@ -950,7 +1086,7 @@ internal fun OutputCaption(
         Text(
             text = if (badge.inParty) jamName else outputName,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-            color = Color.White.copy(alpha = 0.55f),
+            color = playerSecondaryInk,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -1031,6 +1167,7 @@ private fun BottomGlyph(
      */
     tapWindowMs: Long = 0L,
 ) {
+    val playerInk = playerContentColor()
     val haptics = rememberHaptics()
     // Read only from the click handler, never during composition, so writing it
     // costs no recomposition. Starts a full window in the past so the first tap
@@ -1041,7 +1178,7 @@ private fun BottomGlyph(
             .size(BOTTOM_ACTION_SIZE)
             .clip(CircleShape)
             .background(
-                if (highlighted && highlightBackground) Color.White.copy(alpha = 0.20f) else Color.Transparent,
+                if (highlighted && highlightBackground) playerInk.copy(alpha = 0.20f) else Color.Transparent,
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1057,7 +1194,7 @@ private fun BottomGlyph(
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
-        val tint = Color.White.copy(alpha = if (highlighted) 1f else 0.75f)
+        val tint = playerInk.copy(alpha = if (highlighted) 1f else 0.75f)
         if (icon != null) {
             Icon(
                 imageVector = icon,
@@ -1517,12 +1654,13 @@ private fun LosslessLabel(
     icon: ImageVector = Icons.Rounded.Headphones,
     iconPainter: Painter? = null,
 ) {
+    val playerInk = playerContentColor()
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val tint = Color.White.copy(alpha = if (animated) 0.7f else 0.45f)
+        val tint = playerInk.copy(alpha = if (animated) 0.7f else 0.45f)
         if (iconPainter != null) {
             Icon(
                 painter = iconPainter,
@@ -1547,7 +1685,7 @@ private fun LosslessLabel(
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontSize = (MaterialTheme.typography.labelMedium.fontSize.value + 1).sp,
                 ),
-                color = Color.White.copy(alpha = 0.45f),
+                color = playerInk.copy(alpha = 0.45f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1577,6 +1715,7 @@ private fun ShimmerText(
     ),
     baseAlpha: Float = 0.55f,
 ) {
+    val playerInk = playerContentColor()
     val transition = rememberInfiniteTransition(label = "lossless-shimmer")
     val progress = transition.animateFloat(
         initialValue = 0f,
@@ -1587,7 +1726,7 @@ private fun ShimmerText(
         ),
         label = "lossless-shimmer-progress",
     )
-    val baseColor = Color.White.copy(alpha = baseAlpha)
+    val baseColor = playerInk.copy(alpha = baseAlpha)
     // The glyphs are laid out and drawn once, in plain white, and the moving
     // band is painted over them in the draw phase with SrcIn — which keeps the
     // glyphs' coverage and takes the gradient's colour, the same pixels a
@@ -1597,7 +1736,7 @@ private fun ShimmerText(
     Text(
         text = text,
         style = style,
-        color = Color.White,
+        color = playerInk,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier
@@ -1609,7 +1748,7 @@ private fun ShimmerText(
                 val center = -band + progress.value * (width + 2 * band)
                 drawRect(
                     brush = Brush.linearGradient(
-                        colorStops = arrayOf(0f to baseColor, 0.5f to Color.White, 1f to baseColor),
+                        colorStops = arrayOf(0f to baseColor, 0.5f to playerInk, 1f to baseColor),
                         start = Offset(center - band, 0f),
                         end = Offset(center + band, 0f),
                     ),

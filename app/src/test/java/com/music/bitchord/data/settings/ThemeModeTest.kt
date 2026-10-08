@@ -17,6 +17,11 @@ class ThemeModeTest {
     }
 
     @Test
+    fun materialExpressiveRestoresWithoutChangingExistingThemes() {
+        assertEquals(ThemeMode.MATERIAL_EXPRESSIVE, ThemeMode.fromPersistedName("MATERIAL_EXPRESSIVE"))
+    }
+
+    @Test
     fun missingOrUnknownPreferenceKeepsTheExistingDarkDefault() {
         assertEquals(ThemeMode.DARK, ThemeMode.fromPersistedName(null))
         assertEquals(ThemeMode.DARK, ThemeMode.fromPersistedName("FUTURE_THEME"))

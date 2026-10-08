@@ -51,7 +51,7 @@ kotlin {
             api("org.jetbrains.compose.foundation:foundation:$cmp")
             api("org.jetbrains.compose.animation:animation:$cmp")
             api("org.jetbrains.compose.ui:ui:$cmp")
-            api("org.jetbrains.compose.material3:material3:1.7.3")
+            api("org.jetbrains.compose.material3:material3:1.10.0-alpha05")
             api("org.jetbrains.compose.material:material-icons-extended:1.7.3")
             api("org.jetbrains.compose.components:components-resources:$cmp")
             api("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.8.4")

@@ -314,6 +314,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val artist: String,
         val durationMs: Long,
         val album: String?,
+        val isExplicit: Boolean?,
     )
 
     private var currentLyricsRequest: LyricsRequest? = null
@@ -326,7 +327,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * than leaving the last answer sitting on a player that would now find a
      * different one.
      */
-    private var lyricsFor: Pair<String, Set<LyricsSource>>? = null
+    private data class LyricsLookupKey(
+        val videoId: String,
+        val sources: Set<LyricsSource>,
+        val isExplicit: Boolean?,
+    )
+    private var lyricsFor: LyricsLookupKey? = null
 
     /**
      * Called as the playing track changes; cheap no-op when already loaded.
@@ -345,13 +351,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         durationMs: Long,
         album: String? = null,
         localUri: String? = null,
+        isExplicit: Boolean? = null,
     ) {
         val sources = if (AppSettings.syncedLyrics.value) {
             AppSettings.lyricsSources.value
         } else {
             emptySet()
         }
-        val key = videoId to sources
+        val key = LyricsLookupKey(videoId, sources, isExplicit)
         if (lyricsFor == key) return
         // The duration lands a beat after the track, and a database match needs
         // it. Turned away here rather than inside the job below: claiming the
@@ -364,7 +371,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         lyricsFor = key
         lyricsGeneration += 1
         val generation = lyricsGeneration
-        currentLyricsRequest = LyricsRequest(videoId, title, artist, durationMs, album)
+        currentLyricsRequest = LyricsRequest(videoId, title, artist, durationMs, album, isExplicit)
         selectedLyricsSource = null
         manualLyricsJobs.values.forEach(Job::cancel)
         manualLyricsJobs.clear()
@@ -405,6 +412,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val found = LyricsRepository.lyrics(
                 videoId, title, artist, durationMs, album, sources,
                 AppSettings.lyricsSourceOrder.value, AppSettings.prioritizeSyllableSync.value,
+                isExplicit = isExplicit,
                 onSourceStarted = { source -> providerStarted(generation, source) },
                 onSourceResult = { source, result ->
                     providerFinished(generation, source, result)
@@ -457,6 +465,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 sources = setOf(source),
                 order = listOf(source),
                 prioritizeSyllableSync = false,
+                isExplicit = request.isExplicit,
                 onSourceStarted = { provider -> providerStarted(generation, provider) },
                 onSourceResult = { provider, result ->
                     providerFinished(generation, provider, result)

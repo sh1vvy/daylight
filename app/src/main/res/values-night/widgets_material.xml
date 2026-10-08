@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<resources>
+    <color name="widget_material_surface">#29242F</color>
+    <color name="widget_material_on_surface">#F0E6F6</color>
+    <color name="widget_material_secondary">#CDC0D7</color>
+    <color name="widget_material_primary">#D4BCF4</color>
+    <color name="widget_material_on_primary">#382250</color>
+    <color name="widget_material_container">#4C3F5D</color>
+    <color name="widget_material_on_container">#ECDAFF</color>
+    <color name="widget_material_wave">#BA9CDE</color>
+</resources>

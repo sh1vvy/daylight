@@ -987,6 +987,7 @@ class PlaybackService : MediaLibraryService() {
             // The player this fired on, which is by definition the one the
             // session is currently pointed at.
             if (player == null) return
+            publishWidgetState()
             if (state == Player.STATE_ENDED) {
                 SleepTimer.cancel()
                 // The queue ran dry, so no transition will ever close the last
@@ -1233,6 +1234,13 @@ class PlaybackService : MediaLibraryService() {
                     refreshCustomLayouts()
                     publishWidgetState()
                 }
+        }
+
+        scope.launch {
+            ListenTogether.state
+                .map { it.controlsLocked }
+                .distinctUntilChanged()
+                .collectLatest { publishWidgetState() }
         }
 
         bluetoothTracker.start()
@@ -5191,24 +5199,29 @@ class PlaybackService : MediaLibraryService() {
         // started from the widget or a restart has none until something seeds
         // it. Unknown is not "not liked", so keep what was last published for
         // this same track rather than emptying a heart that was right.
+        val previous = MediaWidgetSnapshot.load(this)
         val liked = LikeState.overrides.value[song.videoId]?.let { it == LikeStatus.LIKE }
-            ?: MediaWidgetSnapshot.load(this).takeIf { it.mediaId == song.videoId }?.isLiked
+            ?: previous.takeIf { it.mediaId == song.videoId }?.isLiked
             ?: false
-        MediaWidgetSnapshot.save(
-            this,
-            MediaWidgetSnapshot(
-                mediaId = song.videoId,
-                title = song.title,
-                artist = song.artist,
-                artworkUrl = song.thumbnailUrl,
-                // playWhenReady, not isPlaying — see MediaWidgetSnapshot.isPlaying.
-                isPlaying = playing ?: exoPlayer.playWhenReady,
-                hasPrevious = exoPlayer.hasPreviousMediaItem(),
-                hasNext = exoPlayer.hasNextMediaItem(),
-                isLiked = liked,
-                shuffleEnabled = QueueShuffle.enabled.value,
-            ),
+        val wantsPlayback = (playing ?: exoPlayer.playWhenReady) && exoPlayer.playbackState != Player.STATE_ENDED
+        val snapshot = MediaWidgetSnapshot(
+            mediaId = song.videoId,
+            title = song.title,
+            artist = song.artist,
+            artworkUrl = song.thumbnailUrl,
+            // playWhenReady, not isPlaying — see MediaWidgetSnapshot.isPlaying.
+            isPlaying = wantsPlayback,
+            hasPrevious = exoPlayer.hasPreviousMediaItem(),
+            hasNext = exoPlayer.hasNextMediaItem(),
+            isLiked = liked,
+            shuffleEnabled = QueueShuffle.enabled.value,
+            isLoading = wantsPlayback && exoPlayer.playbackState == Player.STATE_BUFFERING,
+            controlsLocked = ListenTogether.state.value.controlsLocked,
         )
+        // Buffering and playing callbacks can report the same state in one frame.
+        MediaWidgetSnapshot.notePlaybackPublished()
+        if (snapshot == previous) return
+        MediaWidgetSnapshot.save(this, snapshot)
         MediaWidget.refresh(this)
     }
 
@@ -6527,6 +6540,7 @@ class PlaybackService : MediaLibraryService() {
                     sources = AppSettings.lyricsSources.value,
                     order = AppSettings.lyricsSourceOrder.value,
                     prioritizeSyllableSync = AppSettings.prioritizeSyllableSync.value,
+                    isExplicit = currentSong.isExplicit,
                 )
                 lines = found?.lines
             }

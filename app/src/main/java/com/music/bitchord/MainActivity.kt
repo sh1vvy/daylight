@@ -287,6 +287,7 @@ import com.music.bitchord.ui.screens.ExploreScreen
 import com.music.bitchord.ui.screens.LocalMusicScreen
 import com.music.bitchord.ui.screens.HomeScreen
 import com.music.bitchord.ui.theme.daylightHomeBackground
+import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import com.music.bitchord.ui.theme.LocalPinkCloud
 import com.music.bitchord.ui.screens.LibraryGridPage
 import com.music.bitchord.ui.screens.LibraryScreen
@@ -346,17 +347,23 @@ class MainActivity : AppCompatActivity() {
             val highPerformance by AppSettings.highPerformanceMode.collectAsStateWithLifecycle()
             val liquidGlassEnabled by AppSettings.liquidGlass.collectAsStateWithLifecycle()
             val iosOverscrollFactory = rememberIosOverscrollFactory()
+            val platformOverscrollFactory = LocalOverscrollFactory.current
+            val materialExpressive = theme == ThemeMode.MATERIAL_EXPRESSIVE
             val performanceRefreshRate by AppSettings.performanceRefreshRate.collectAsStateWithLifecycle()
             val composeView = LocalView.current
             LaunchedEffect(highPerformance, performanceRefreshRate, composeView) {
                 applyPerformanceMode(highPerformance, performanceRefreshRate, composeView)
             }
             val darkTheme = when (theme) {
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.SYSTEM, ThemeMode.MATERIAL_EXPRESSIVE -> isSystemInDarkTheme()
                 ThemeMode.LIGHT, ThemeMode.PINK_CLOUD -> false
                 ThemeMode.DARK -> true
             }
-            BitChordTheme(darkTheme = darkTheme, pinkCloud = theme == ThemeMode.PINK_CLOUD) {
+            BitChordTheme(
+                darkTheme = darkTheme,
+                pinkCloud = theme == ThemeMode.PINK_CLOUD,
+                materialExpressive = materialExpressive,
+            ) {
                 // The glass surfaces sample this layer, and a layer records only
                 // what is drawn into it — which, for BitChord, is a page that
                 // paints no background of its own. Everywhere a page is not
@@ -375,8 +382,8 @@ class MainActivity : AppCompatActivity() {
                 }
                 val appBackdrop = rememberLayerBackdrop(onDraw = paintBackdrop)
                 CompositionLocalProvider(
-                    LocalOverscrollFactory provides iosOverscrollFactory,
-                    LocalLiquidGlassEnabled provides liquidGlassEnabled,
+                    LocalOverscrollFactory provides if (materialExpressive) platformOverscrollFactory else iosOverscrollFactory,
+                    LocalLiquidGlassEnabled provides (liquidGlassEnabled && !materialExpressive),
                     LocalAppBackdrop provides appBackdrop,
                 ) {
                 // The window's width, measured rather than asked for.
@@ -1002,7 +1009,7 @@ private fun BitChordApp(
     // the track already playing rather than only the next one.
     val syncedLyricsEnabled by AppSettings.syncedLyrics.collectAsStateWithLifecycle()
     val lyricsSources by AppSettings.lyricsSources.collectAsStateWithLifecycle()
-    LaunchedEffect(player.song?.videoId, player.durationMs, syncedLyricsEnabled, lyricsSources) {
+    LaunchedEffect(player.song?.videoId, player.song?.isExplicit, player.durationMs, syncedLyricsEnabled, lyricsSources) {
         player.song?.let {
             viewModel.loadLyrics(
                 it.videoId,
@@ -1016,6 +1023,7 @@ private fun BitChordApp(
                 player.durationMs.takeIf { ms -> ms > 0L } ?: it.durationMillis(),
                 it.albumName,
                 it.localUri,
+                isExplicit = it.isExplicit,
             )
         }
     }
@@ -2686,7 +2694,7 @@ private fun BitChordApp(
                         }
                     },
                     modifier = Modifier
-                        .hazeSource(hazeState)
+                        .then(if (LocalMaterialExpressive.current) Modifier else Modifier.hazeSource(hazeState))
                         // Folding is shared by both materials. Only liquid glass
                         // records the extra backdrop layer used for refraction.
                         .nestedScroll(navBarScroll)
@@ -3511,7 +3519,7 @@ private fun BitChordApp(
                     !isLocalDetail && pageKey == detail.detailRouteKey()
                 val chromePageColor = when {
                     isDetailVisible -> detailPalette.background
-                    pageKey == "$TAB_KEY$TAB_HOME" -> daylightHomeBackground(MaterialTheme.colorScheme.background, LocalPinkCloud.current)
+                    pageKey == "$TAB_KEY$TAB_HOME" -> daylightHomeBackground(MaterialTheme.colorScheme.background, LocalPinkCloud.current, LocalMaterialExpressive.current)
                     else -> MaterialTheme.colorScheme.background
                 }
                 // This is the bottom floor itself turned upside down, not a
@@ -3946,13 +3954,15 @@ private fun BitChordApp(
                 saver = SheetState.Saver(
                     skipPartiallyExpanded = true,
                     confirmValueChange = confirmSheetValue,
-                    density = sheetDensity,
+                    positionalThreshold = { with(sheetDensity) { 56.dp.toPx() } },
+                    velocityThreshold = { with(sheetDensity) { 125.dp.toPx() } },
                     skipHiddenState = false,
                 ),
             ) {
                 SheetState(
                     skipPartiallyExpanded = true,
-                    density = sheetDensity,
+                    positionalThreshold = { with(sheetDensity) { 56.dp.toPx() } },
+                    velocityThreshold = { with(sheetDensity) { 125.dp.toPx() } },
                     // Already open when the app is the one raising it: its
                     // content is held down, and slid up, by the motion.
                     initialValue = if (playerSheetMotion.holding) SheetValue.Expanded else SheetValue.Hidden,

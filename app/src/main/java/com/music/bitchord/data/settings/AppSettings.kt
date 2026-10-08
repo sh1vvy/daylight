@@ -96,7 +96,8 @@ enum class DownloadQuality(
 }
 
 enum class ThemeMode(val label: String) {
-    SYSTEM("System"), LIGHT("Light"), DARK("Dark"), PINK_CLOUD("Pink Cloud");
+    SYSTEM("System"), LIGHT("Light"), DARK("Dark"), PINK_CLOUD("Pink Cloud"),
+    MATERIAL_EXPRESSIVE("Material Expressive");
 
     companion object {
         /** Existing installs and unknown future theme names retain the dark default. */

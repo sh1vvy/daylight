@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<resources>
+    <color name="widget_material_surface">#F2EDF7</color>
+    <color name="widget_material_on_surface">#211B27</color>
+    <color name="widget_material_secondary">#655D6D</color>
+    <color name="widget_material_primary">#68508E</color>
+    <color name="widget_material_on_primary">#FFFFFF</color>
+    <color name="widget_material_container">#E7DDF1</color>
+    <color name="widget_material_on_container">#302642</color>
+    <color name="widget_material_wave">#8F72B4</color>
+    <string name="widget_choose_music">Tap to choose some music</string>
+    <string name="widget_state_playing">Now playing</string>
+    <string name="widget_state_paused">Ready when you are</string>
+    <string name="widget_state_loading">Getting your music ready</string>
+    <string name="widget_state_locked">The Jam host has the controls</string>
+    <string name="widget_control_locked">%1$s. Only the Jam host can control playback.</string>
+    <string name="widget_accessibility_track">%1$s. %2$s. Open Daylight.</string>
+    <string name="widget_daylight_name" translatable="false">Daylight</string>
+    <string name="widget_material_preview_title">Golden hour</string>
+    <string name="widget_material_preview_artist">Daylight mix</string>
+</resources>

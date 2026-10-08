@@ -1,40 +1,89 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Picker artwork for the 4×1 widget, on hosts older than API 31. The capsule,
-  the placeholder cover, a bar standing in for the title, and the five glyphs.
--->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="250dp"
-    android:height="64dp"
-    android:viewportWidth="250"
-    android:viewportHeight="64">
-
-    <path
-        android:fillColor="#E6141619"
-        android:pathData="M32,0L218,0A32,32 0,0 1,218 64L32,64A32,32 0,0 1,32 0Z" />
-    <path
-        android:fillColor="#FF2E3446"
-        android:pathData="M32,6A26,26 0,1 1,32 58A26,26 0,1 1,32 6Z" />
-
-    <!-- Title. -->
-    <path android:pathData="M72,18L150,18" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeWidth="7" />
-
-    <!-- Like, previous, play, next, shuffle; each 24-unit glyph scaled to 20. -->
-    <group android:translateX="68" android:translateY="30" android:scaleX="0.83" android:scaleY="0.83">
-        <path android:pathData="M12,20C12,20 3.2,14.6 3.2,8.9A4.5,4.5 0,0 1,12 7.4A4.5,4.5 0,0 1,20.8 8.9C20.8,14.6 12,20 12,20Z" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2.4" />
+<vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="280dp"
+    android:height="100dp"
+    android:viewportWidth="280"
+    android:viewportHeight="100">
+    <path android:pathData="M24,0H256Q280,0 280,24V76Q280,100 256,100H24Q0,100 0,76V24Q0,0 24,0Z" android:fillColor="@color/widget_material_surface" />
+    <path android:pathData="M18.4,7H37.6Q44,7 44,13.4V32.6Q44,39 37.6,39H18.4Q12,39 12,32.6V13.4Q12,7 18.4,7Z" android:fillColor="@color/widget_material_container" />
+    <path android:pathData="M21.6,19.16H21.599999999999998Q23.2,19.16 23.2,20.76V25.24Q23.2,26.84 21.599999999999998,26.84H21.6Q20.0,26.84 20.0,25.24V20.76Q20.0,19.16 21.6,19.16Z" android:fillColor="@color/widget_material_primary" />
+    <path android:pathData="M28.0,15.0H27.999999999999996Q29.599999999999998,15.0 29.599999999999998,16.6V29.4Q29.599999999999998,31.0 27.999999999999996,31.0H28.0Q26.4,31.0 26.4,29.4V16.6Q26.4,15.0 28.0,15.0Z" android:fillColor="@color/widget_material_primary" />
+    <path android:pathData="M34.4,19.16H34.4Q36.0,19.16 36.0,20.76V25.24Q36.0,26.84 34.4,26.84H34.4Q32.8,26.84 32.8,25.24V20.76Q32.8,19.16 34.4,19.16Z" android:fillColor="@color/widget_material_primary" />
+    <path android:pathData="M58.5,13H195.5Q198,13 198,15.5V15.5Q198,18 195.5,18H58.5Q56,18 56,15.5V15.5Q56,13 58.5,13Z" android:fillColor="@color/widget_material_on_surface" />
+    <path android:pathData="M58,25H156Q158,25 158,27V27Q158,29 156,29H58Q56,29 56,27V27Q56,25 58,25Z" android:fillColor="@color/widget_material_secondary" />
+    <path android:pathData="M134,46H146Q164,46 164,64V76Q164,94 146,94H134Q116,94 116,76V64Q116,46 134,46Z" android:fillColor="@color/widget_material_primary" />
+    <group
+        android:translateX="20"
+        android:translateY="58"
+        android:scaleX="1.0"
+        android:scaleY="1.0">
+        <path
+            android:pathData="M12,20C12,20 3.2,14.6 3.2,8.9A4.5,4.5 0,0 1,12 7.4A4.5,4.5 0,0 1,20.8 8.9C20.8,14.6 12,20 12,20Z"
+            android:strokeColor="@color/widget_material_on_surface"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2.4" />
     </group>
-    <group android:translateX="103" android:translateY="30" android:scaleX="0.83" android:scaleY="0.83">
-        <path android:pathData="M7,7.4L7,16.6" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeWidth="2.4" />
-        <path android:fillColor="#FFFFFFFF" android:pathData="M16.6,7.7L16.6,16.3L10.7,12Z" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2.4" />
+    <group
+        android:translateX="74"
+        android:translateY="58"
+        android:scaleX="1.0"
+        android:scaleY="1.0">
+        <path
+            android:pathData="M7,7.4L7,16.6"
+            android:strokeColor="@color/widget_material_on_surface"
+            android:strokeLineCap="round"
+            android:strokeWidth="2.4" />
+        <path
+            android:fillColor="@color/widget_material_on_surface"
+            android:pathData="M16.6,7.7L16.6,16.3L10.7,12Z"
+            android:strokeColor="@color/widget_material_on_surface"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2.4" />
     </group>
-    <group android:translateX="138" android:translateY="30" android:scaleX="0.83" android:scaleY="0.83">
-        <path android:fillColor="#FFFFFFFF" android:pathData="M8.4,6.4L8.4,17.6L17.6,12Z" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2.6" />
+    <group
+        android:translateX="128"
+        android:translateY="58"
+        android:scaleX="1.0"
+        android:scaleY="1.0">
+        <path
+            android:fillColor="@color/widget_material_on_primary"
+            android:pathData="M8.4,6.4L8.4,17.6L17.6,12Z"
+            android:strokeColor="@color/widget_material_on_primary"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2.6" />
     </group>
-    <group android:translateX="173" android:translateY="30" android:scaleX="0.83" android:scaleY="0.83">
-        <path android:fillColor="#FFFFFFFF" android:pathData="M7.4,7.7L7.4,16.3L13.3,12Z" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2.4" />
-        <path android:pathData="M17,7.4L17,16.6" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeWidth="2.4" />
+    <group
+        android:translateX="182"
+        android:translateY="58"
+        android:scaleX="1.0"
+        android:scaleY="1.0">
+        <path
+            android:fillColor="@color/widget_material_on_surface"
+            android:pathData="M7.4,7.7L7.4,16.3L13.3,12Z"
+            android:strokeColor="@color/widget_material_on_surface"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2.4" />
+        <path
+            android:pathData="M17,7.4L17,16.6"
+            android:strokeColor="@color/widget_material_on_surface"
+            android:strokeLineCap="round"
+            android:strokeWidth="2.4" />
     </group>
-    <group android:translateX="208" android:translateY="30" android:scaleX="0.83" android:scaleY="0.83">
-        <path android:pathData="M3.4,7.4L7,7.4L16.6,16.6L20.6,16.6M18.1,14.1L20.6,16.6L18.1,19.1M3.4,16.6L7,16.6L9.8,13.9M13.9,10.1L16.6,7.4L20.6,7.4M18.1,4.9L20.6,7.4L18.1,9.9" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2.4" />
+    <group
+        android:translateX="236"
+        android:translateY="58"
+        android:scaleX="1.0"
+        android:scaleY="1.0">
+        <path
+            android:pathData="M3.4,7.4L7,7.4L16.6,16.6L20.6,16.6M18.1,14.1L20.6,16.6L18.1,19.1M3.4,16.6L7,16.6L9.8,13.9M13.9,10.1L16.6,7.4L20.6,7.4M18.1,4.9L20.6,7.4L18.1,9.9"
+            android:strokeColor="@color/widget_material_on_surface"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2.4" />
     </group>
 </vector>

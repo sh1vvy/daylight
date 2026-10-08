@@ -219,6 +219,12 @@ android {
             // so a test of that layer fails on the logging rather than on the
             // logic it was written to check.
             isReturnDefaultValues = true
+            all { test ->
+                val liveProviderTests = providers.environmentVariable("DAYLIGHT_LIVE_PROVIDER_TESTS")
+                    .getOrElse("false")
+                test.inputs.property("daylight.liveProviderTests", liveProviderTests)
+                test.systemProperty("daylight.liveProviderTests", liveProviderTests)
+            }
         }
     }
 }

@@ -31,6 +31,8 @@ Open the repository in Android Studio, or copy `local.properties.example` to `lo
 
 Development APKs are in `app/build/outputs/apk/dev/debug/`. Production APKs use `:app:assembleProdRelease`; without your signing configuration they are unsigned. Configure your own signing key using `keystore.properties.example` before shipping release APKs.
 
+The normal test suite uses local fixtures. The Genius live-provider smoke test is opt-in because its availability depends on the network and external website. To include it, run `DAYLIGHT_LIVE_PROVIDER_TESTS=true ./gradlew :app:testDevDebugUnitTest --tests com.music.bitchord.GeniusTest`.
+
 - Production app ID: `com.sh1vvy.daylight`
 - Development app ID: `com.sh1vvy.daylight.dev`
 - Daylight version: `0.1.7`

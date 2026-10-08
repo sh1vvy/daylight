@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 
 class GeniusTest {
@@ -109,6 +110,12 @@ class GeniusTest {
 
     @Test
     fun `live genius search and scraping test with noisy titles`() = kotlinx.coroutines.runBlocking {
+        // A live website can reject a build runner even when its parser works.
+        // Keep this smoke test explicit; the fixture-based checks above always run.
+        assumeTrue(
+            "Enable with DAYLIGHT_LIVE_PROVIDER_TESTS=true",
+            System.getProperty("daylight.liveProviderTests", "false").toBoolean(),
+        )
         println("--- TEST 1: Queen - Bohemian Rhapsody (Official Video) ---")
         val lyrics1 = Genius.lyrics("Bohemian Rhapsody (Official Video)", "Queen")
         assertNotNull(lyrics1)

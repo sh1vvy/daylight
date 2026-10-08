@@ -80,7 +80,8 @@ fun LyricsSidePanel(
                     lyricsLoadingText
                 },
                 status = lyricsTranslation.status,
-                showLanguageButtons = showLyricsLanguageButtons,
+                showRomanizationButton = showLyricsLanguageButtons && lyricsTranslation.canRomanize,
+                showTranslationButton = showLyricsLanguageButtons && lyricsTranslation.canTranslate,
                 romanizationToggle = {
                     RomanizationToggleButton(
                         state = lyricsTranslation.romanizationState,

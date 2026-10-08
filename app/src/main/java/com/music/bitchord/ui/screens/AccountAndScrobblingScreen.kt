@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.SwitchAccount
 import androidx.compose.material.icons.rounded.Tune
@@ -48,6 +49,7 @@ fun AccountAndScrobblingScreen(
     onOpenLastfmLogin: () -> Unit,
     onOpenDiscord: () -> Unit,
     onOpenSpotify: () -> Unit,
+    onCredits: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
@@ -350,6 +352,14 @@ fun AccountAndScrobblingScreen(
             }
         }
 
+        SettingsGroup {
+            SettingsRow(
+                icon = Icons.Rounded.Info,
+                title = stringResource(R.string.credits),
+                subtitle = stringResource(R.string.credits_subtitle),
+                onClick = onCredits,
+            )
+        }
         Spacer(Modifier.height(24.dp))
     }
 }

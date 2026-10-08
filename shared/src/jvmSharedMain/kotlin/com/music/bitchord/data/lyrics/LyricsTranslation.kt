@@ -231,7 +231,7 @@ object LyricsTranslation {
         if (lines.isEmpty()) return RomanizationResult.Unavailable
         val slots = flatten(lines)
         if (slots.isEmpty()) return RomanizationResult.Unavailable
-        if (!hasNonLatinLetters(slots)) return RomanizationResult.AlreadyRomanized
+        if (!lines.needsRomanization()) return RomanizationResult.AlreadyRomanized
 
         // Romanization always ends in Latin script. The translation destination
         // is still sent as `tl` because the web endpoint requires it, but it is
@@ -469,13 +469,6 @@ object LyricsTranslation {
             }
         }
         return latin > 0 && latin >= other * 4
-    }
-
-    private fun hasNonLatinLetters(slots: List<TextSlot>): Boolean = slots.any { slot ->
-        slot.text.codePoints().anyMatch { codePoint ->
-            Character.isLetter(codePoint) &&
-                Character.UnicodeScript.of(codePoint) != Character.UnicodeScript.LATIN
-        }
     }
 
     private fun unchangedWeight(slots: List<TextSlot>, transformed: List<String>): Int =

@@ -1964,7 +1964,8 @@ fun NowPlayingScreen(
                             lyricsLoadingText
                         },
                         status = lyricsTranslation.status,
-                        showLanguageButtons = showLyricsLanguageButtons,
+                        showRomanizationButton = showLyricsLanguageButtons && lyricsTranslation.canRomanize,
+                        showTranslationButton = showLyricsLanguageButtons && lyricsTranslation.canTranslate,
                         picking = lyricPicker.picking,
                         pickBar = {
                             LyricsPickBar(
@@ -3359,31 +3360,35 @@ fun NowPlayingScreen(
                         label = "translateFade",
                     )
                     if (translateFade > 0.01f && !lyricPicker.picking) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .graphicsLayer { alpha = translateFade },
-                        ) {
-                            RomanizationToggleButton(
-                                state = lyricsTranslation.romanizationState,
-                                showingRomanization = lyricsTranslation.showingRomanization,
-                                enabled = translateShown && !lyrics.isNullOrEmpty(),
-                                onClick = lyricsTranslation.toggleRomanization,
-                            )
+                        if (lyricsTranslation.canRomanize) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .graphicsLayer { alpha = translateFade },
+                            ) {
+                                RomanizationToggleButton(
+                                    state = lyricsTranslation.romanizationState,
+                                    showingRomanization = lyricsTranslation.showingRomanization,
+                                    enabled = translateShown && !lyrics.isNullOrEmpty(),
+                                    onClick = lyricsTranslation.toggleRomanization,
+                                )
+                            }
                         }
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .graphicsLayer { alpha = translateFade },
-                        ) {
-                            TranslationToggleButton(
-                                state = lyricsTranslation.translationState,
-                                showingTranslation = lyricsTranslation.showingTranslation,
-                                // Not tappable on the way out: a disc at 20%
-                                // opacity is on its way to gone, not a target.
-                                enabled = translateShown && !lyrics.isNullOrEmpty(),
-                                onClick = lyricsTranslation.toggleTranslation,
-                            )
+                        if (lyricsTranslation.canTranslate) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .graphicsLayer { alpha = translateFade },
+                            ) {
+                                TranslationToggleButton(
+                                    state = lyricsTranslation.translationState,
+                                    showingTranslation = lyricsTranslation.showingTranslation,
+                                    // Not tappable on the way out: a disc at 20%
+                                    // opacity is on its way to gone, not a target.
+                                    enabled = translateShown && !lyrics.isNullOrEmpty(),
+                                    onClick = lyricsTranslation.toggleTranslation,
+                                )
+                            }
                         }
                     }
                     // The bar arrives and leaves without a transition of its own:

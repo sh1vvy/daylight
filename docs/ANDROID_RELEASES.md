@@ -19,8 +19,11 @@ existing package and signer so an in-place update preserves library and settings
 For the next few updates, provide signed APKs for manual installation. Do not
 create a GitHub release or tag, upload APKs to a release, or change the live Jam page’s public
 download/version badge for these builds. Source changes can still be pushed.
-Increase the Android version code for each delivered APK and keep the existing
-package and signing key so installation updates the app without losing data.
+Keep the existing package and signing key so installation updates the app without
+losing data. Per Shivvy’s preference, manual refreshes of the current build keep
+**version name 0.2.1 and version code 12**. Android supports manually replacing a
+signed APK at the same version code. Change the version only when a new version
+or public release is requested, and then increase the version code.
 
 The current interim build is **0.2.1**, version code **12**; the latest public
 release remains **0.2.0**. Public releases are intended roughly every seven days,

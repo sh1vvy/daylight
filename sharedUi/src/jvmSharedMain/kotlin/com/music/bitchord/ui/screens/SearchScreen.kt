@@ -70,7 +70,7 @@ import com.music.bitchord.data.model.SearchFilter
 import com.music.bitchord.data.model.artworkAt
 import com.music.bitchord.data.model.SearchResult
 import com.music.bitchord.data.model.Song
-import com.music.bitchord.data.model.isSameTrackAs
+import com.music.bitchord.data.model.isSamePlaybackItemAs
 import com.music.bitchord.data.model.UiState
 import com.music.bitchord.data.model.SearchHistoryEntity
 import com.music.bitchord.data.model.EntityType
@@ -352,8 +352,8 @@ fun SearchScreen(
                                     },
                                     onLongPress = { onSongLongPress(row.song) },
                                     onSwipeToQueue = { onSongSwipe(row.song) },
-                                    isCurrent = row.song.isSameTrackAs(currentSong),
-                                    isPlaying = isPlaying && row.song.isSameTrackAs(currentSong),
+                                    isCurrent = row.song.isSamePlaybackItemAs(currentSong),
+                                    isPlaying = isPlaying && row.song.isSamePlaybackItemAs(currentSong),
                                     searchPlayingStyle = true,
                                     activeTint = PlayingAccent,
                                 )
@@ -431,8 +431,8 @@ private fun LazyListScope.librarySearchResults(
                     onClick = { onSongClick(tracks, index) },
                     onLongPress = { onSongLongPress(song) },
                     onSwipeToQueue = { onSongSwipe(song) },
-                    isCurrent = song.isSameTrackAs(currentSong),
-                    isPlaying = isPlaying && song.isSameTrackAs(currentSong),
+                    isCurrent = song.isSamePlaybackItemAs(currentSong),
+                    isPlaying = isPlaying && song.isSamePlaybackItemAs(currentSong),
                     searchPlayingStyle = true,
                     activeTint = PlayingAccent,
                 )
@@ -652,8 +652,8 @@ private fun LazyListScope.searchTypeaheadDropdown(
                 song = result.song,
                 onClick = { onSongClick(result.song) },
                 onLongPress = onSongLongPress?.let { { it(result.song) } },
-                isCurrent = result.song.isSameTrackAs(currentSong),
-                isPlaying = isPlaying && result.song.isSameTrackAs(currentSong),
+                isCurrent = result.song.isSamePlaybackItemAs(currentSong),
+                isPlaying = isPlaying && result.song.isSamePlaybackItemAs(currentSong),
             )
             is SearchResult.Browse -> BrowseRow(
                 item = result.item,
@@ -664,8 +664,8 @@ private fun LazyListScope.searchTypeaheadDropdown(
                 song = result.song,
                 onClick = { onSongClick(result.song) },
                 onLongPress = onSongLongPress?.let { { it(result.song) } },
-                isCurrent = result.song.isSameTrackAs(currentSong),
-                isPlaying = isPlaying && result.song.isSameTrackAs(currentSong),
+                isCurrent = result.song.isSamePlaybackItemAs(currentSong),
+                isPlaying = isPlaying && result.song.isSamePlaybackItemAs(currentSong),
             )
         }
     }

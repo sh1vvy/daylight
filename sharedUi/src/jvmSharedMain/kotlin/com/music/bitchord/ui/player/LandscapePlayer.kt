@@ -492,7 +492,8 @@ internal fun LandscapeLyricsPane(
     /** Shown in place of the sheet while there are no lines to draw. */
     placeholder: String,
     status: String,
-    showLanguageButtons: Boolean,
+    showRomanizationButton: Boolean,
+    showTranslationButton: Boolean,
     /** Whether lines are being picked, which is what the bar stands in for. */
     picking: Boolean = false,
     /** The pick bar itself, drawn in place of the row below. */
@@ -530,14 +531,14 @@ internal fun LandscapeLyricsPane(
         // where.
         if (picking) {
             Box(Modifier.fillMaxWidth()) { pickBar() }
-        } else if ((hasLyrics && showLanguageButtons) || status.isNotBlank()) {
+        } else if ((hasLyrics && (showRomanizationButton || showTranslationButton)) || status.isNotBlank()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (hasLyrics && showLanguageButtons) {
+                if (hasLyrics && showRomanizationButton) {
                     Box(Modifier.size(34.dp)) { romanizationToggle() }
                 }
                 Box(
@@ -548,7 +549,7 @@ internal fun LandscapeLyricsPane(
                 ) {
                     if (status.isNotBlank()) LyricsStatusWithChange(status = status)
                 }
-                if (hasLyrics && showLanguageButtons) {
+                if (hasLyrics && showTranslationButton) {
                     Box(Modifier.size(34.dp)) { translationToggle() }
                 }
             }

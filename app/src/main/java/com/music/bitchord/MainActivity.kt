@@ -2535,7 +2535,9 @@ private fun BitChordApp(
             showEqualizer = false
             if (settingsSubScreen == "equalizer") settingsSubScreen = null
         }
-        BackHandler(enabled = settingsSubScreen == "credits") { settingsSubScreen = null }
+        BackHandler(enabled = settingsSubScreen == "credits") {
+            settingsSubScreen = if (showSettings) "account_scrobbling" else null
+        }
         // One back step out of Settings, or out of any tab but Home, lands on
         // Home rather than exiting — only Home itself hands back to the system,
         // which is what actually closes/minimizes the app.
@@ -2587,6 +2589,7 @@ private fun BitChordApp(
                     // When a sub-screen overlay is active, keep SettingsSheet
                     // mounted so its scroll position survives.  The overlay is
                     // rendered below the AnimatedContent block.
+                    settingsSubScreen == "credits" && !showSettings && showAccountScrobbling -> "account_scrobbling"
                     settingsSubScreen != null -> "settings"
                     showAccountScrobbling -> "account_scrobbling"
                     showSources -> "sources"
@@ -2781,6 +2784,7 @@ private fun BitChordApp(
                             onOpenLastfmLogin = { showLastfmLogin = true },
                             onOpenDiscord = { showDiscord = true },
                             onOpenSpotify = { showSpotify = true },
+                            onCredits = { settingsSubScreen = "credits" },
                             contentPadding = listPadding,
                         )
                     } else if (key == "sources") {
@@ -2845,7 +2849,6 @@ private fun BitChordApp(
                             },
                             onSpotifyCanvasAuth = { showSpotifyCanvasAuth = true },
                             onAppLanguage = { showAppLanguage = true },
-                            onCredits = { settingsSubScreen = "credits" },
                             contentPadding = listPadding,
                         )
                     } else if (page != null && page.browseId.isDeviceFolder()) {
@@ -3126,7 +3129,10 @@ private fun BitChordApp(
                             query = query,
                             onQueryChange = viewModel::onQueryChange,
                             filter = filter,
-                            currentSong = player.song,
+                            // Keep the tapped result selected when its video/audio rendition swaps.
+                            currentSong = convertedFromVideo?.takeIf { convertedAudioId == player.song?.videoId }
+                                ?: convertedFromAudio?.takeIf { convertedVideoId == player.song?.videoId }
+                                ?: player.song,
                             isPlaying = player.isPlaying,
                             onFilterChange = viewModel::onFilterChange,
                             results = results,
@@ -3329,31 +3335,42 @@ private fun BitChordApp(
                 // Discord (pushed over Account) was covered by the page it opened
                 // from — hence skipped while it is up.
                 when (settingsSubScreen.takeUnless { showDiscord || showSpotify }) {
-                    "account_scrobbling" -> {
-                        Surface(
-                            modifier = Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.background,
-                        ) {
-                            AccountAndScrobblingScreen(
-                                signedIn = signedIn,
-                                account = account,
-                                channelName = selectedChannelName,
-                                onSignIn = {
-                                    settingsSubScreen = null
-                                    showSettings = false
-                                    webSession = WebSessionMode.SIGN_IN
-                                },
-                                onSwitchChannel = {
-                                    viewModel.loadChannels()
-                                    showAccountSelector = true
-                                },
-                                onSignOut = { viewModel.signOut() },
-                                onOpenListenBrainzLogin = { showListenBrainzLogin = true },
-                                onOpenLastfmLogin = { showLastfmLogin = true },
-                                onOpenDiscord = { showDiscord = true },
-                                onOpenSpotify = { showSpotify = true },
-                                contentPadding = listPadding,
-                            )
+                    "account_scrobbling", "credits" -> {
+                        if (showSettings || settingsSubScreen == "account_scrobbling") {
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                color = MaterialTheme.colorScheme.background,
+                            ) {
+                                AccountAndScrobblingScreen(
+                                    signedIn = signedIn,
+                                    account = account,
+                                    channelName = selectedChannelName,
+                                    onSignIn = {
+                                        settingsSubScreen = null
+                                        showSettings = false
+                                        webSession = WebSessionMode.SIGN_IN
+                                    },
+                                    onSwitchChannel = {
+                                        viewModel.loadChannels()
+                                        showAccountSelector = true
+                                    },
+                                    onSignOut = { viewModel.signOut() },
+                                    onOpenListenBrainzLogin = { showListenBrainzLogin = true },
+                                    onOpenLastfmLogin = { showLastfmLogin = true },
+                                    onOpenDiscord = { showDiscord = true },
+                                    onOpenSpotify = { showSpotify = true },
+                                    onCredits = { settingsSubScreen = "credits" },
+                                    contentPadding = listPadding,
+                                )
+                            }
+                        }
+                        if (settingsSubScreen == "credits") {
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                color = MaterialTheme.colorScheme.background,
+                            ) {
+                                CreditsScreen(contentPadding = listPadding)
+                            }
                         }
                     }
                     "sources" -> {
@@ -3391,14 +3408,6 @@ private fun BitChordApp(
                                 contentPadding = listPadding,
                                 onEditServer = { editingPartyServer = true },
                             )
-                        }
-                    }
-                    "credits" -> {
-                        Surface(
-                            modifier = Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.background,
-                        ) {
-                            CreditsScreen(contentPadding = listPadding)
                         }
                     }
                     "equalizer" -> {
@@ -3492,6 +3501,7 @@ private fun BitChordApp(
 
                 FrostedTopBar(
                     title = when {
+                        settingsSubScreen == "credits" -> stringResource(R.string.credits)
                         showSpotify && detail == null -> stringResource(R.string.spotify)
                         showDiscord -> "Discord"
                         showHistory -> stringResource(R.string.history)
@@ -3500,7 +3510,6 @@ private fun BitChordApp(
                         showSources -> stringResource(R.string.sources)
                         showListenTogether -> stringResource(R.string.listen_together)
                         showEqualizer -> stringResource(R.string.equalizer)
-                        settingsSubScreen == "credits" -> stringResource(R.string.credits)
                         showSettings -> stringResource(R.string.settings)
                         showReplay -> stringResource(R.string.replay)
                         detail != null && detailActiveShelf != null -> detailActiveShelf?.title.orEmpty()
@@ -3534,6 +3543,9 @@ private fun BitChordApp(
                     refreshing = currentFeed != null && currentFeed in refreshing,
                     pullFraction = { currentPull?.distanceFraction ?: 0f },
                     onBack = when {
+                        settingsSubScreen == "credits" -> ({
+                            settingsSubScreen = if (showSettings) "account_scrobbling" else null
+                        })
                         showSpotify && detail == null -> ({ showSpotify = false })
                         showDiscord -> ({ showDiscord = false })
                         showHistory -> ({ showHistory = false })

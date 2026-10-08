@@ -1,5 +1,7 @@
 package com.music.bitchord.ui.player
 
+import com.music.bitchord.data.lyrics.needsRomanization
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Animatable
@@ -2696,6 +2698,8 @@ internal class LyricsTranslationUi(
     val romanizationState: LyricsTranslationUiState,
     val showingTranslation: Boolean,
     val showingRomanization: Boolean,
+    val canTranslate: Boolean,
+    val canRomanize: Boolean,
     /** Bumped on every switch between versions — the particle motion's trigger. */
     val transition: Int,
     val reduceMotion: Boolean,
@@ -2740,7 +2744,6 @@ internal fun rememberLyricsTranslation(
     // Resolved here, in composition, for the callbacks below to show.
     val alreadyInLanguageMessage = stringResource(Res.string.lyrics_already_in_language, translationLanguageName)
     val translationUnavailableMessage = stringResource(Res.string.lyrics_translation_unavailable)
-    val alreadyRomanizedMessage = stringResource(Res.string.lyrics_already_romanized)
     val romanizationUnavailableMessage = stringResource(Res.string.lyrics_romanization_unavailable)
     var translationState by remember(trackId, translationLanguage, lyrics) {
         mutableStateOf<LyricsTranslationUiState>(LyricsTranslationUiState.Idle)
@@ -2748,6 +2751,9 @@ internal fun rememberLyricsTranslation(
     var romanizationState by remember(trackId, translationLanguage, lyrics) {
         mutableStateOf<LyricsTranslationUiState>(LyricsTranslationUiState.Idle)
     }
+    val needsRomanization = remember(lyrics) { lyrics.orEmpty().needsRomanization() }
+    val canRomanize = needsRomanization && romanizationState !is LyricsTranslationUiState.SameLanguage
+    val canTranslate = !lyrics.isNullOrEmpty() && translationState !is LyricsTranslationUiState.SameLanguage
     var lyricsDisplayMode by remember(trackId, translationLanguage, lyrics) {
         mutableStateOf(LyricsDisplayMode.Original)
     }
@@ -2784,6 +2790,7 @@ internal fun rememberLyricsTranslation(
     }
     val translationScope = rememberCoroutineScope()
     val toggleTranslation: () -> Unit = toggleTranslation@{
+        if (!canTranslate) return@toggleTranslation
         when (val state = translationState) {
             is LyricsTranslationUiState.Ready -> {
                 lyricsDisplayMode = if (showingTranslation) {
@@ -2796,8 +2803,7 @@ internal fun rememberLyricsTranslation(
             }
             LyricsTranslationUiState.Loading -> Unit
             LyricsTranslationUiState.SameLanguage -> {
-                haptics.play(Haptic.Tap)
-                PlayerPlatform.host.showMessage(alreadyInLanguageMessage)
+                Unit
             }
             LyricsTranslationUiState.Idle -> {
                 val source = lyrics.orEmpty()
@@ -2837,6 +2843,7 @@ internal fun rememberLyricsTranslation(
         }
     }
     val toggleRomanization: () -> Unit = toggleRomanization@{
+        if (!canRomanize) return@toggleRomanization
         when (val state = romanizationState) {
             is LyricsTranslationUiState.Ready -> {
                 lyricsDisplayMode = if (showingRomanization) {
@@ -2849,8 +2856,7 @@ internal fun rememberLyricsTranslation(
             }
             LyricsTranslationUiState.Loading -> Unit
             LyricsTranslationUiState.SameLanguage -> {
-                haptics.play(Haptic.Tap)
-                PlayerPlatform.host.showMessage(alreadyRomanizedMessage)
+                Unit
             }
             LyricsTranslationUiState.Idle -> {
                 val source = lyrics.orEmpty()
@@ -2878,7 +2884,6 @@ internal fun rememberLyricsTranslation(
                         }
                         LyricsRomanizationResult.AlreadyRomanized -> {
                             romanizationState = LyricsTranslationUiState.SameLanguage
-                            PlayerPlatform.host.showMessage(alreadyRomanizedMessage)
                         }
                         LyricsRomanizationResult.Unavailable -> {
                             romanizationState = LyricsTranslationUiState.Idle
@@ -2900,10 +2905,6 @@ internal fun rememberLyricsTranslation(
             stringResource(Res.string.lyrics_translated_to, translationLanguageName)
         showingRomanization ->
             stringResource(Res.string.lyrics_romanized)
-        translationState is LyricsTranslationUiState.SameLanguage ->
-            stringResource(Res.string.lyrics_already_in_language, translationLanguageName)
-        romanizationState is LyricsTranslationUiState.SameLanguage ->
-            stringResource(Res.string.lyrics_already_romanized)
         lyricsUnavailable -> stringResource(Res.string.no_lyrics_found)
         lyrics.isNullOrEmpty() -> loadingText
         else -> ""
@@ -2921,6 +2922,8 @@ internal fun rememberLyricsTranslation(
         romanizationState = romanizationState,
         showingTranslation = showingTranslation,
         showingRomanization = showingRomanization,
+        canTranslate = canTranslate,
+        canRomanize = canRomanize,
         transition = translationTransition,
         reduceMotion = reduceTranslationMotion,
         status = status,

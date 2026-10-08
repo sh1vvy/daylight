@@ -53,7 +53,6 @@ import androidx.compose.material.icons.rounded.Gradient
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -179,7 +178,6 @@ fun SettingsScreen(
     onListenTogether: () -> Unit,
     onSpotifyCanvasAuth: () -> Unit,
     onAppLanguage: () -> Unit,
-    onCredits: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
@@ -397,7 +395,7 @@ fun SettingsScreen(
             // What the row opens is the scrobbling screen, so the services it
             // signs into are worth typing at this field even though none of
             // them is named on the row itself.
-            row(accountTitle, "scrobbling", "last.fm", "listenbrainz") {
+            row(accountTitle, "scrobbling", "last.fm", "listenbrainz", "credits", "bitchord", "artwork", "copyright") {
                 SettingsRow(
                     icon = Icons.Rounded.Person,
                     title = accountTitle,
@@ -1401,18 +1399,6 @@ fun SettingsScreen(
                         )
                     },
                     onClick = { AppSettings.setShowNerdStats(!nerdStats) },
-                )
-            }
-        }
-
-        SearchableSettingsGroup(search) {
-            val creditsTitle = stringResource(R.string.credits)
-            row(creditsTitle, "bitchord", "artwork", "icon", "copyright", "acknowledgments") {
-                SettingsRow(
-                    icon = Icons.Rounded.Info,
-                    title = creditsTitle,
-                    subtitle = stringResource(R.string.credits_subtitle),
-                    onClick = onCredits,
                 )
             }
         }

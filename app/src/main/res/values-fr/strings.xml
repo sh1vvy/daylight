@@ -1292,4 +1292,9 @@
     <string name="accessibility">Accessibilité</string>
     <string name="lyric_language_buttons">Boutons de langue des paroles</string>
     <string name="lyric_language_buttons_subtitle">Afficher les boutons de romanisation et de traduction dans le lecteur de paroles</string>
+    <string name="credits">Crédits</string>
+    <string name="credits_subtitle">Remerciements pour BitChord et l’icône de l’application</string>
+    <string name="credits_bitchord_heading">Basé sur BitChord</string>
+    <string name="credits_bitchord_authors">Kushagra Singh et les contributeurs</string>
+    <string name="credits_icon_heading">Icône de l’application</string>
 </resources>

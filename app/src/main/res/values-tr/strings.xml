@@ -1248,4 +1248,9 @@
     <string name="accessibility">Erişilebilirlik</string>
     <string name="lyric_language_buttons">Şarkı sözü dil düğmeleri</string>
     <string name="lyric_language_buttons_subtitle">Şarkı sözü oynatıcısında Latin harflerine çevirme ve çeviri düğmelerini göster</string>
+    <string name="credits">Emeği geçenler</string>
+    <string name="credits_subtitle">BitChord ve uygulama simgesine teşekkürler</string>
+    <string name="credits_bitchord_heading">BitChord temel alınmıştır</string>
+    <string name="credits_bitchord_authors">Kushagra Singh ve katkıda bulunanlar</string>
+    <string name="credits_icon_heading">Uygulama simgesi</string>
 </resources>

@@ -53,6 +53,7 @@ import androidx.compose.material.icons.rounded.Gradient
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -178,6 +179,7 @@ fun SettingsScreen(
     onListenTogether: () -> Unit,
     onSpotifyCanvasAuth: () -> Unit,
     onAppLanguage: () -> Unit,
+    onCredits: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
@@ -1403,6 +1405,18 @@ fun SettingsScreen(
             }
         }
 
+        SearchableSettingsGroup(search) {
+            val creditsTitle = stringResource(R.string.credits)
+            row(creditsTitle, "bitchord", "artwork", "icon", "copyright", "acknowledgments") {
+                SettingsRow(
+                    icon = Icons.Rounded.Info,
+                    title = creditsTitle,
+                    subtitle = stringResource(R.string.credits_subtitle),
+                    onClick = onCredits,
+                )
+            }
+        }
+
         // Read after every group above has had its turn at the query, which is
         // what makes this an accurate "nothing here" rather than a guess.
         if (!search.anyMatch) {
@@ -1428,16 +1442,7 @@ fun SettingsScreen(
                 withLink(LinkAnnotation.Url("https://github.com/sh1vvy", linkStyles)) {
                     append("Developer")
                 }
-                append("  ")
-                withLink(LinkAnnotation.Url("https://github.com/kushagrasinghx/BitChord", linkStyles)) {
-                    append("Based on BitChord")
-                }
                 append("\nGPLv3 · Daylight by sh1vvy")
-                append("\n© art by 11 (")
-                withLink(LinkAnnotation.Url("https://www.instagram.com/_artbyeleven/", linkStyles)) {
-                    append("_artbyeleven on IG")
-                }
-                append(")")
             },
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

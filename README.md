@@ -14,9 +14,9 @@ An independent Android music player by [sh1vvy](https://github.com/sh1vvy), base
 
 ## About
 
-Daylight starts with BitChord’s playback engine and Android interface, with its own name, butterfly icon, warm accent colors, installation identity, and release channel. Android is the supported platform for this fork.
+Daylight uses BitChord’s playback engine and Android interface, with its own name, butterfly icon, warm accent colors, installation identity, release channel, and Jam service. Android is the supported platform. This repository is hosted independently of BitChord’s GitHub fork network.
 
-Inherited features include YouTube Music search and playback, local music, downloads, synchronized lyrics, artwork-driven player colors, crossfade, Automix, equalizer, sleep timer, playlists, and optional account integrations. Availability depends on providers and device support. This initial fork changes the product identity; it does not represent a new playback engine.
+Inherited features include YouTube Music search and playback, local music, downloads, synchronized lyrics, artwork-driven player colors, crossfade, Automix, equalizer, sleep timer, playlists, and optional account integrations. Availability depends on providers and device support.
 
 ## Build for Android
 
@@ -33,7 +33,7 @@ Development APKs are in `app/build/outputs/apk/dev/debug/`. Production APKs use 
 
 - Production app ID: `com.sh1vvy.daylight`
 - Development app ID: `com.sh1vvy.daylight.dev`
-- Daylight version: `0.1.3`
+- Daylight version: `0.1.7`
 
 Daylight installs alongside BitChord and maintains separate application data. Internal Kotlin namespaces and native entry points are preserved for engine compatibility; see [UPSTREAM.md](UPSTREAM.md).
 
@@ -61,6 +61,6 @@ BitChord was created by **Kushagra Singh and its contributors**. Daylight retain
 
 Daylight uses [Inter 4.1 and Inter Display](https://rsms.me/inter/) by Rasmus Andersson throughout its interface, lyrics, widgets, and shared image cards, distributed under the [SIL Open Font License](docs/licenses/Inter-OFL.txt). The license is also bundled with the app.
 
-**© art by 11 ([_artbyeleven on IG](https://www.instagram.com/_artbyeleven/))**. The launcher uses the supplied butterfly artwork; in-app branding uses a flat butterfly mark adapted from it. The artist credit is also included in Settings and the app’s assets.
+**© art by 11 ([_artbyeleven on IG](https://www.instagram.com/_artbyeleven/))**. The launcher uses the supplied butterfly artwork; in-app branding uses a flat butterfly mark adapted from it. BitChord and artist acknowledgments are included in Settings → Credits; the artwork credit is also bundled in the app’s assets.
 
 Daylight is independent of BitChord’s maintainers and is not affiliated with YouTube, Google, Spotify, Discord, or other service providers. Provider names identify integrations. If you distribute this derivative, provide its corresponding source under GPLv3.

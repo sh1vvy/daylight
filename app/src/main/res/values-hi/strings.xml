@@ -1291,4 +1291,9 @@
     <string name="accessibility">सुलभता</string>
     <string name="lyric_language_buttons">लिरिक्स के भाषा बटन</string>
     <string name="lyric_language_buttons_subtitle">लिरिक्स प्लेयर में रोमन लिपि और अनुवाद के बटन दिखाएँ</string>
+    <string name="credits">श्रेय</string>
+    <string name="credits_subtitle">BitChord और ऐप आइकन का श्रेय</string>
+    <string name="credits_bitchord_heading">BitChord पर आधारित</string>
+    <string name="credits_bitchord_authors">Kushagra Singh और योगदानकर्ता</string>
+    <string name="credits_icon_heading">ऐप आइकन</string>
 </resources>

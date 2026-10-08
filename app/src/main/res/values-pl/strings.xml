@@ -1331,4 +1331,9 @@
     <string name="accessibility">Ułatwienia dostępu</string>
     <string name="lyric_language_buttons">Przyciski języka tekstu</string>
     <string name="lyric_language_buttons_subtitle">Pokazuj przyciski transliteracji i tłumaczenia w odtwarzaczu tekstu</string>
+    <string name="credits">Podziękowania</string>
+    <string name="credits_subtitle">Podziękowania dla BitChord i autora ikony</string>
+    <string name="credits_bitchord_heading">Na podstawie BitChord</string>
+    <string name="credits_bitchord_authors">Kushagra Singh i współtwórcy</string>
+    <string name="credits_icon_heading">Ikona aplikacji</string>
 </resources>

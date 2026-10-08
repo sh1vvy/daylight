@@ -1296,4 +1296,9 @@
     <string name="accessibility">נגישות</string>
     <string name="lyric_language_buttons">כפתורי שפה למילים</string>
     <string name="lyric_language_buttons_subtitle">הצגת כפתורי תעתיק ותרגום בנגן המילים</string>
+    <string name="credits">קרדיטים</string>
+    <string name="credits_subtitle">תודות ל-BitChord וליוצר סמל האפליקציה</string>
+    <string name="credits_bitchord_heading">מבוסס על BitChord</string>
+    <string name="credits_bitchord_authors">Kushagra Singh והתורמים</string>
+    <string name="credits_icon_heading">סמל האפליקציה</string>
 </resources>

@@ -1269,4 +1269,9 @@
     <string name="accessibility">アクセシビリティ</string>
     <string name="lyric_language_buttons">歌詞の言語ボタン</string>
     <string name="lyric_language_buttons_subtitle">歌詞プレーヤーにローマ字表示と翻訳のボタンを表示</string>
+    <string name="credits">クレジット</string>
+    <string name="credits_subtitle">BitChordとアプリアイコンの謝辞</string>
+    <string name="credits_bitchord_heading">BitChordをベースにしています</string>
+    <string name="credits_bitchord_authors">Kushagra Singhと貢献者</string>
+    <string name="credits_icon_heading">アプリアイコン</string>
 </resources>

@@ -1230,4 +1230,9 @@
     <string name="accessibility">Accessibilità</string>
     <string name="lyric_language_buttons">Pulsanti della lingua dei testi</string>
     <string name="lyric_language_buttons_subtitle">Mostra i pulsanti di traslitterazione e traduzione nel lettore dei testi</string>
+    <string name="credits">Crediti</string>
+    <string name="credits_subtitle">Riconoscimenti a BitChord e all’icona dell’app</string>
+    <string name="credits_bitchord_heading">Basato su BitChord</string>
+    <string name="credits_bitchord_authors">Kushagra Singh e collaboratori</string>
+    <string name="credits_icon_heading">Icona dell’app</string>
 </resources>

@@ -1268,4 +1268,9 @@
     <string name="accessibility">无障碍</string>
     <string name="lyric_language_buttons">歌词语言按钮</string>
     <string name="lyric_language_buttons_subtitle">在歌词播放器中显示罗马音和翻译按钮</string>
+    <string name="credits">致谢</string>
+    <string name="credits_subtitle">BitChord 和应用图标致谢</string>
+    <string name="credits_bitchord_heading">基于 BitChord</string>
+    <string name="credits_bitchord_authors">Kushagra Singh 及贡献者</string>
+    <string name="credits_icon_heading">应用图标</string>
 </resources>

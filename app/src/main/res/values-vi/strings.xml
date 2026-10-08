@@ -1208,4 +1208,9 @@
     <string name="accessibility">Trợ năng</string>
     <string name="lyric_language_buttons">Nút ngôn ngữ lời bài hát</string>
     <string name="lyric_language_buttons_subtitle">Hiển thị nút chuyển sang chữ Latinh và dịch trong trình phát lời bài hát</string>
+    <string name="credits">Ghi công</string>
+    <string name="credits_subtitle">Ghi công BitChord và tác giả biểu tượng ứng dụng</string>
+    <string name="credits_bitchord_heading">Dựa trên BitChord</string>
+    <string name="credits_bitchord_authors">Kushagra Singh và những người đóng góp</string>
+    <string name="credits_icon_heading">Biểu tượng ứng dụng</string>
 </resources>

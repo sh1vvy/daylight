@@ -1323,4 +1323,9 @@
     <string name="accessibility">Специальные возможности</string>
     <string name="lyric_language_buttons">Языковые кнопки текста песни</string>
     <string name="lyric_language_buttons_subtitle">Показывать кнопки транслитерации и перевода в окне текста песни</string>
+    <string name="credits">Благодарности</string>
+    <string name="credits_subtitle">Благодарности BitChord и автору иконки</string>
+    <string name="credits_bitchord_heading">На основе BitChord</string>
+    <string name="credits_bitchord_authors">Kushagra Singh и участники проекта</string>
+    <string name="credits_icon_heading">Иконка приложения</string>
 </resources>

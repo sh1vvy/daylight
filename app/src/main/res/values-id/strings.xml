@@ -1268,4 +1268,9 @@
     <string name="accessibility">Aksesibilitas</string>
     <string name="lyric_language_buttons">Tombol bahasa lirik</string>
     <string name="lyric_language_buttons_subtitle">Tampilkan tombol romanisasi dan terjemahan di pemutar lirik</string>
+    <string name="credits">Kredit</string>
+    <string name="credits_subtitle">Penghargaan untuk BitChord dan ikon aplikasi</string>
+    <string name="credits_bitchord_heading">Berbasis BitChord</string>
+    <string name="credits_bitchord_authors">Kushagra Singh dan para kontributor</string>
+    <string name="credits_icon_heading">Ikon aplikasi</string>
 </resources>

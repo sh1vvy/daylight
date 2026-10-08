@@ -1296,4 +1296,9 @@
     <string name="accessibility">Acessibilidade</string>
     <string name="lyric_language_buttons">Botões de idioma das letras</string>
     <string name="lyric_language_buttons_subtitle">Mostrar botões de romanização e tradução no leitor de letras</string>
+    <string name="credits">Créditos</string>
+    <string name="credits_subtitle">Agradecimentos ao BitChord e à arte do ícone</string>
+    <string name="credits_bitchord_heading">Baseado no BitChord</string>
+    <string name="credits_bitchord_authors">Kushagra Singh e colaboradores</string>
+    <string name="credits_icon_heading">Ícone do app</string>
 </resources>

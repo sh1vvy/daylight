@@ -1291,4 +1291,9 @@
     <string name="accessibility">Barrierefreiheit</string>
     <string name="lyric_language_buttons">Sprachschaltflächen für Songtexte</string>
     <string name="lyric_language_buttons_subtitle">Schaltflächen für Umschrift und Übersetzung im Songtext-Player anzeigen</string>
+    <string name="credits">Mitwirkende</string>
+    <string name="credits_subtitle">Danksagungen für BitChord und das App-Symbol</string>
+    <string name="credits_bitchord_heading">Basierend auf BitChord</string>
+    <string name="credits_bitchord_authors">Kushagra Singh und Mitwirkende</string>
+    <string name="credits_icon_heading">App-Symbol</string>
 </resources>

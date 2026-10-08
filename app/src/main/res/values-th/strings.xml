@@ -1274,4 +1274,9 @@
     <string name="accessibility">การช่วยการเข้าถึง</string>
     <string name="lyric_language_buttons">ปุ่มภาษาของเนื้อเพลง</string>
     <string name="lyric_language_buttons_subtitle">แสดงปุ่มอักษรโรมันและการแปลในหน้าจอเนื้อเพลง</string>
+    <string name="credits">เครดิต</string>
+    <string name="credits_subtitle">ขอบคุณ BitChord และผู้สร้างไอคอนแอป</string>
+    <string name="credits_bitchord_heading">พัฒนาจาก BitChord</string>
+    <string name="credits_bitchord_authors">Kushagra Singh และผู้ร่วมพัฒนา</string>
+    <string name="credits_icon_heading">ไอคอนแอป</string>
 </resources>

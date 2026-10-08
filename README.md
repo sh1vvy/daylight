@@ -57,7 +57,9 @@ Some music, lyrics, and audio options depend on the provider and your device.
 
 **Android 8.0 or newer.** Download the signed **[daylight.apk](https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk)** from the latest release, then open it to install. Android may ask you to allow installation from your browser.
 
-Already using **Daylight Dev**? Keep that installation and use its in-app update popup, or download the matching **[daylight-dev.apk](https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.2/daylight-dev.apk)**.
+Already using **Daylight Dev**? Keep that installation and use its in-app update popup, or download the matching **[daylight-dev.apk](https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.3/daylight-dev.apk)**.
+
+**New in Dev:** Material 3 Expressive, adaptive Android widgets, and explicit-recording matching for synced lyrics. Explore the new theme in **Settings → Appearance → Theme**. [See the update →](https://github.com/sh1vvy/daylight/releases/tag/v0.2.2-dev.3)
 
 For future updates, fully close and reopen the app. When a newer release is available, Daylight offers a download and opens Android's installer for your confirmation. Android may first ask you to allow installs from Daylight; return to the app and tap Install again afterward.
 

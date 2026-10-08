@@ -1,8 +1,12 @@
 const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const appUrl = 'https://github.com/sh1vvy/daylight';
-const buildsUrl = `${appUrl}/actions/workflows/android.yml`;
+const downloadUrl = `${appUrl}/releases/latest/download/daylight.apk`;
+const devDownloadUrl = `${appUrl}/releases/latest/download/daylight-dev.apk`;
+const releaseUrl = `${appUrl}/releases/latest`;
+const appVersion = '0.2.0';
 const icons = {
   arrow: '<path d="M5 12h14m-6-6 6 6-6 6"/>',
+  download: '<path d="M12 3v12m-5-5 5 5 5-5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>',
   external: '<path d="M14 4h6v6m0-6-9 9"/><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>',
   phone: '<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18h4"/>',
   headphones: '<path d="M4 14v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="12" width="4" height="8" rx="2"/><rect x="17" y="12" width="4" height="8" rx="2"/>',
@@ -12,6 +16,12 @@ const icons = {
   music: '<path d="M9 18V5l12-3v13M9 9l12-3"/><ellipse cx="6" cy="18" rx="3" ry="3"/><ellipse cx="18" cy="15" rx="3" ry="3"/>',
 };
 const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${icons[name]}</svg>`;
+
+function downloadBadge() {
+  return `<a class="download-badge" href="${downloadUrl}" aria-label="Download Daylight ${appVersion} for Android as an APK">
+    <span class="download-icon">${icon('download')}</span><span class="download-copy"><strong>Download Daylight</strong><span>Android · v${appVersion} · APK</span></span>${icon('arrow')}
+  </a>`;
+}
 
 function codeForm({error, input = ''} = {}) {
   return `<form class="code-form" action="/join" method="get">
@@ -48,8 +58,9 @@ function steps() {
 
 function installHelp() {
   return `<details class="install-help" id="install-help"><summary>New to Daylight, or the app didn’t open?</summary>
-    <div class="help-content"><p>Jam lives in the Daylight Android app. Install an Android build from the project, then open this invite again. In the app, you can also enter the code in Settings → Listen together.</p>
-    <a href="${buildsUrl}">View Android builds ${icon('external')}</a><span class="help-note">Build downloads on GitHub may need a GitHub account.</span></div>
+    <div class="help-content"><p>Jam lives in the Daylight Android app. Download and install Daylight, then open this invite again. In the app, you can also enter the code in Settings → Listen together.</p>
+    ${downloadBadge()}<span class="help-note">Your phone may ask you to allow installs from your browser. <a href="${releaseUrl}">Release notes ${icon('external')}</a></span>
+    <span class="help-note">Already using Daylight Dev? <a href="${devDownloadUrl}">Get the matching update ${icon('external')}</a></span></div>
   </details>`;
 }
 
@@ -80,6 +91,7 @@ export function landing(room, origin, status = 200, options = {}) {
   : `<div class="hero-copy">
     <p class="eyebrow">${icon('headphones')} Better together</p><h1>Different places.<br><span>Same song.</span></h1>
     <p class="intro">For the songs you send each other.<br>Listen together with your people on Daylight.</p>
+    <div class="download-callout">${downloadBadge()}</div>
     ${codeForm(options)}
     <p class="start-hint">Starting one? <a href="#how-title">Here’s how ${icon('arrow')}</a></p>${installHelp()}</div>`;
   return new Response(`<!doctype html>
@@ -88,10 +100,10 @@ export function landing(room, origin, status = 200, options = {}) {
 <meta property="og:title" content="${escape(title)}"><meta property="og:description" content="${escape(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escape(inviteUrl)}">
 ${status !== 200 ? '<meta name="robots" content="noindex">' : ''}<link rel="canonical" href="${escape(inviteUrl)}"><title>${escape(title)}</title>
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="preload" href="/assets/Inter-Regular-v4.1.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/jam-v1.css"><script src="/assets/jam-v1.js" defer></script></head>
+<link rel="stylesheet" href="/assets/jam-v2.css"><script src="/assets/jam-v1.js" defer></script></head>
 <body><a class="skip-link" href="#main">Skip to content</a><div class="page">
 <header class="site-header"><a class="brand" href="/" aria-label="Daylight Jam home"><img src="/assets/daylight-mark.svg" width="42" height="31" alt=""><span>daylight</span><span class="brand-divider"></span><span class="brand-jam">jam</span></a>
-<a class="app-link" href="${appUrl}">${icon('phone')} Daylight for Android ${icon('external')}</a></header>
+<a class="app-link" href="${downloadUrl}" aria-label="Download Daylight for Android">${icon('phone')} Get Daylight ${icon('download')}</a></header>
 <main id="main"><section class="hero${active ? ' hero-invite' : ''}">${content}${illustration()}</section>${active ? '' : steps()}</main>
 <footer class="site-footer"><div><p class="footer-message">A shared moment. A little daylight.</p><p class="byline">Made with care by <a href="https://sh1vvy.com">sh1vvy ${icon('external')}</a></p></div>
 <div class="footer-links"><a href="${appUrl}">The app ${icon('external')}</a><details class="credits"><summary>Credits</summary><div><p>Daylight is open source, based on <a href="https://github.com/kushagrasinghx/BitChord">BitChord</a>, under <a href="${appUrl}/blob/main/LICENSE">GPL-3.0</a>.</p><p>© art by 11 (<a href="https://www.instagram.com/_artbyeleven/">_artbyeleven on IG</a>)</p><p>Set in <a href="/assets/font-license.txt">Inter by Rasmus Andersson</a>.</p></div></details></div></footer>

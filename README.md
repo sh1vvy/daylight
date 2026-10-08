@@ -45,7 +45,9 @@ Daylight installs alongside BitChord and maintains separate application data. In
 
 The [Android workflow](.github/workflows/android.yml) runs Android and shared-library unit tests and produces a debug APK plus production APKs. Release signing is optional: configure `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD` repository secrets to sign production builds. With no signing secrets, the workflow produces unsigned production APKs and an installable development APK. The workflow does not publish releases automatically.
 
-Daylight checks [its own GitHub releases](https://github.com/sh1vvy/daylight/releases) for updates. Publish only Daylight APKs there, signed consistently with your own key.
+Download the signed Android app from [Daylight’s latest release](https://github.com/sh1vvy/daylight/releases/latest) or the download button at [Daylight Jam](https://jam.sh1vvy.com). `daylight.apk` is the public app; `daylight-dev.apk` updates existing Daylight Dev installations.
+
+Daylight checks [its own GitHub releases](https://github.com/sh1vvy/daylight/releases) once at startup and offers an in-app download and Android installation prompt. Close and reopen an older version after a release is published. Each package selects its matching APK and retains its signing key across releases. See [Android releases](docs/ANDROID_RELEASES.md) for publishing and signing details.
 
 ## Optional integrations
 

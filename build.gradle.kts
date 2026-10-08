@@ -24,12 +24,16 @@ buildscript {
          * and it is fixed as of 8.11.32. 8.13.x is the newest 8.x line, and also
          * the first to read Kotlin 2.3 @Metadata: 8.10.9 caps out at 2.2.0 and
          * warns "malformed kotlin.Metadata" on every class this project compiles.
+         * The current dependency graph also contains Kotlin 2.4 metadata, which
+         * requires R8 9.1.29 or newer. Use the published 9.1.56 patch to cover
+         * both that metadata and the earlier register-allocation fix:
+         * https://developer.android.com/build/kotlin-support
          *
          * Only debug dexing is affected — release-mode allocation keeps the
          * palette in place, which is why prod builds were fine and only dev
-         * crashed. Removable once AGP itself bundles something past 8.11.32.
+         * crashed. Removable once AGP itself covers both fixes and Kotlin 2.4.
          */
-        classpath("com.android.tools:r8:8.13.23")
+        classpath("com.android.tools:r8:9.1.56")
     }
 }
 plugins {

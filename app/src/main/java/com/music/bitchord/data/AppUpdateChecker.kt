@@ -14,13 +14,12 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Request
 import java.io.File
 
 /**
- * BitChord ships as a sideloaded APK off GitHub Releases rather than through
+ * Daylight ships as a sideloaded APK off GitHub Releases rather than through
  * a store, so there's nothing to push an update notice on its own — this
  * polls the repo's "latest release" once per launch and compares its tag
  * against the running build.
@@ -74,10 +73,10 @@ object AppUpdateChecker {
             val release = json.parseToJsonElement(body) as? JsonObject ?: return@runCatching
             val tag = release["tag_name"]?.jsonPrimitive?.contentOrNull ?: return@runCatching
             val url = release["html_url"]?.jsonPrimitive?.contentOrNull ?: return@runCatching
-            val apkUrl = apkAssetUrl(release)
             val notes = release["body"]?.jsonPrimitive?.contentOrNull
             val latest = tag.removePrefix("v")
-            if (isNewer(latest, BuildConfig.VERSION_NAME)) {
+            val apkUrl = AppRelease.apkAssetUrl(release, BuildConfig.APPLICATION_ID, latest)
+            if (AppRelease.isNewer(latest, BuildConfig.VERSION_NAME)) {
                 _available.value = UpdateInfo(latest, url, apkUrl, notes)
             }
         }
@@ -92,24 +91,6 @@ object AppUpdateChecker {
     suspend fun clearCache(context: Context) = withContext(Dispatchers.IO) {
         File(context.cacheDir, CACHE_SUBDIR).listFiles()?.forEach { it.delete() }
     }
-
-    /**
-     * The release usually carries exactly one `.apk`; take its direct download
-     * URL. A release without one (source-only draft, renamed asset) leaves
-     * [UpdateInfo.apkUrl] null and the UI falls back to opening the releases
-     * page as before.
-     */
-    private fun apkAssetUrl(release: JsonObject): String? = runCatching {
-        release["assets"]?.jsonArray
-            ?.mapNotNull { it as? JsonObject }
-            ?.firstOrNull { asset ->
-                asset["name"]?.jsonPrimitive?.contentOrNull?.endsWith(".apk", ignoreCase = true) == true &&
-                    asset["state"]?.jsonPrimitive?.contentOrNull == "uploaded"
-            }
-            ?.get("browser_download_url")
-            ?.jsonPrimitive
-            ?.contentOrNull
-    }.getOrNull()
 
     /**
      * Streams the current update's APK into the app cache, reporting progress
@@ -205,33 +186,5 @@ object AppUpdateChecker {
                         Intent.FLAG_ACTIVITY_NEW_TASK,
                 ),
         )
-    }
-
-    /** A version split into its numeric dotted parts and whether it carries a "-suffix" (e.g. "-beta2"). */
-    private data class ParsedVersion(val parts: List<Int>, val isPreRelease: Boolean)
-
-    private fun parseVersion(raw: String): ParsedVersion {
-        val dash = raw.indexOf('-')
-        val base = if (dash >= 0) raw.substring(0, dash) else raw
-        return ParsedVersion(base.split(".").map { it.toIntOrNull() ?: 0 }, dash >= 0)
-    }
-
-    /**
-     * Numeric, dot-separated comparison — "1.10" outranks "1.9" — with one
-     * extra rule: a "-betaN" build (see the debug build type's
-     * `versionNameSuffix` in app/build.gradle.kts) is treated as older than a
-     * plain release of the same numbers, since the beta by definition predates
-     * the tag it was testing toward. Without this, a beta and the release it
-     * matches compare equal and testers never get nudged onto the real build.
-     */
-    private fun isNewer(latest: String, current: String): Boolean {
-        val l = parseVersion(latest)
-        val c = parseVersion(current)
-        for (i in 0 until maxOf(l.parts.size, c.parts.size)) {
-            val a = l.parts.getOrElse(i) { 0 }
-            val b = c.parts.getOrElse(i) { 0 }
-            if (a != b) return a > b
-        }
-        return c.isPreRelease && !l.isPreRelease
     }
 }

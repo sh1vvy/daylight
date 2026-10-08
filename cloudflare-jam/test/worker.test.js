@@ -158,7 +158,7 @@ test('full invitation keeps an app-opening action and redacts private identity',
 });
 test('static assets load with correct types without intercepting app verification or the protocol',async () => {
   const assets=[
-    ['/assets/jam-v1.css',/^text\/css/],
+    ['/assets/jam-v2.css',/^text\/css/],
     ['/assets/jam-v1.js',/^(?:text|application)\/javascript/],
     ['/assets/daylight-mark.svg',/^image\/svg\+xml/],
     ['/assets/favicon.svg',/^image\/svg\+xml/],

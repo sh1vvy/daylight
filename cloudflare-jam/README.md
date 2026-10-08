@@ -45,6 +45,15 @@ invites. The code form uses `GET /join?code=CODE`, validates and normalizes the
 existing six-character alphabet, then redirects to the invite preview. It works
 without JavaScript. Creating a party and playing music remain in the Android app.
 
+The homepage and invitation install help offer a direct Android APK download from
+`https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk`, without
+a GitHub sign-in. Keep the release asset name `daylight.apk` when publishing future
+releases, and update the displayed version in `src/website.js` at the same time.
+The dark download badge is specific to the APK and does not imply a Play Store
+listing. Invitations keep “Open in Daylight” as their main action.
+Install help also links `daylight-dev.apk` for people who already have Daylight
+Dev installed; they can update that package without installing a second app.
+
 `public/assets` contains the lightweight stylesheet, optional clipboard/install
 helpers, flat Daylight butterfly icons and self-hosted Inter fonts. Static assets
 are served directly by Cloudflare; dynamic HTML is never cached, so room previews
@@ -102,8 +111,9 @@ The new APK handles the HTTPS invite directly. `/.well-known/assetlinks.json`
 contains the public SHA-256 signing certificate for the development APK built on
 sh1vvy's Mac. Other debug keys (including GitHub builds) need their own certificate
 entry to verify app links; the landing page's custom scheme remains available.
-Before distributing production APKs, add `com.sh1vvy.daylight` and its actual
-release signing certificate to `src/asset-links.js`, then redeploy. `ASSET_LINKS`
+The public APK uses `com.sh1vvy.daylight`; its production signing certificate is
+also registered in `src/asset-links.js`. Keep these fingerprints in sync with
+the keys used for future releases. `ASSET_LINKS`
 can override the JSON array as a deployment variable. Never upload private keys.
 
 ## Source and licensing

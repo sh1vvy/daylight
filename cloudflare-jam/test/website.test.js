@@ -23,7 +23,14 @@ test('homepage has a server-rendered code form and real Android installation gui
   assert.match(html, /<label\b[^>]*\bfor="[^"]+"/);
   assert.match(html, /Settings → Listen together/);
   assert.ok(hrefs(html).some(href => href.startsWith('https://github.com/sh1vvy/daylight')));
-  assert.ok(!hrefs(html).some(href => href.includes('/releases/latest')));
+  assert.ok(hrefs(html).includes('https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk'));
+  assert.ok(hrefs(html).includes('https://github.com/sh1vvy/daylight/releases/latest'));
+  assert.ok(hrefs(html).includes('https://github.com/sh1vvy/daylight/releases/latest/download/daylight-dev.apk'));
+  assert.match(html, /class="download-badge"/);
+  assert.match(html, /Download Daylight/);
+  assert.match(html, /Android · v0\.2\.0 · APK/);
+  assert.ok(!html.includes('/actions/workflows/'));
+  assert.ok(!html.includes('GitHub account'));
   assert.equal(hrefs(html).filter(href => href.startsWith('daylight://')).length, 0);
 });
 
@@ -38,6 +45,8 @@ test('active invite preserves the server and code through both Android links and
   assert.equal(decodeURIComponent(fallback), `${origin}/invite/${room.code}#install-help`);
   assert.match(html, /id="install-help"/);
   assert.match(html, /Open in Daylight/);
+  assert.ok(links.includes('https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk'));
+  assert.ok(links.includes('https://github.com/sh1vvy/daylight/releases/latest/download/daylight-dev.apk'));
   assert.match(html, /data-copy-code(?:="ABC123")?/);
   assert.ok(html.includes(room.hostName));
 });
@@ -102,7 +111,7 @@ test('HTML uses same-origin assets without allowing inline scripts, remote reque
   }
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
   assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff');
-  assert.match(html, /\bhref="\/assets\/jam-v1\.css"/);
+  assert.match(html, /\bhref="\/assets\/jam-v2\.css"/);
   assert.match(html, /<script\b[^>]*\bsrc="\/assets\/jam-v1\.js"[^>]*>\s*<\/script>/);
   assert.match(html, /\bhref="\/assets\/favicon\.svg"/);
   assert.ok(!/<style\b|\bstyle=|\bon(?:click|load|error)=/i.test(html));

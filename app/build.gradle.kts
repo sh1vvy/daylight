@@ -58,7 +58,7 @@ require(discordApplicationId.isEmpty() || discordApplicationId.all(Char::isDigit
 /*
  * Bump this by hand before cutting each sideloaded test build ("beta2",
  * "beta3", ...) and blank it out before cutting the real release. Marks the
- * versionName below as a pre-release: AppUpdateChecker.isNewer() treats any
+ * versionName below as a pre-release: AppRelease.isNewer() treats any
  * "-suffix" as older than a clean release of the same number, so testers
  * still get the update prompt once the matching tag is actually published.
  *
@@ -83,8 +83,8 @@ android {
         // Haze falls back to a translucent scrim below that.
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.1.9"
+        versionCode = 11
+        versionName = "0.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

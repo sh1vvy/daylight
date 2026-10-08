@@ -4,6 +4,11 @@
   "main": "src/worker.js",
   "compatibility_date": "2026-10-08",
   "workers_dev": false,
+  "assets": {
+    "directory": "./public",
+    "html_handling": "none",
+    "not_found_handling": "none"
+  },
   "routes": [{ "pattern": "jam.sh1vvy.com", "custom_domain": true }],
   "vars": {
     "PUBLIC_ORIGIN": "https://jam.sh1vvy.com",

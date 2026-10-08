@@ -38,6 +38,25 @@ then leaves. It never prints bearer tokens. Set `DAYLIGHT_JAM_URL` to test anoth
 HTTPS deployment. The regular tests use a local Workers runtime and make no
 production requests.
 
+## Jam website
+
+`src/website.js` renders the homepage, active/full invitations and unavailable
+invites. The code form uses `GET /join?code=CODE`, validates and normalizes the
+existing six-character alphabet, then redirects to the invite preview. It works
+without JavaScript. Creating a party and playing music remain in the Android app.
+
+`public/assets` contains the lightweight stylesheet, optional clipboard/install
+helpers, flat Daylight butterfly icons and self-hosted Inter fonts. Static assets
+are served directly by Cloudflare; dynamic HTML is never cached, so room previews
+stay current. There are no remote font/icon services, analytics or animation loops.
+Credits for BitChord, the icon artist and Inter are available in the footer.
+
+CSS, JavaScript and fonts use versioned filenames and long-lived immutable caches.
+When changing these files after deployment, use a new filename/version and update
+the references and `public/_headers` together. Unversioned SVGs and the font license
+have a one-hour cache. The existing API, WebSockets, Durable Objects and Android
+app-link registration keep their original routes and behavior.
+
 ## Room behavior
 
 - Six-character codes; five listeners by default, host can choose 2–10.

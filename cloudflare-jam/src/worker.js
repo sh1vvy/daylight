@@ -49,6 +49,12 @@ export default {
       if (request.method === 'GET' && url.pathname === '/healthz') return json({ok:true,service:'daylight-jam',serverMs:Date.now()});
       if (request.method === 'GET' && url.pathname === '/api/time') return json({serverMs:Date.now()});
       if (request.method === 'GET' && url.pathname === '/') return landing(null,env.PUBLIC_ORIGIN);
+      if (request.method === 'GET' && url.pathname === '/join') {
+        const raw = url.searchParams.get('code') ?? '';
+        const code = normalizeCode(raw);
+        if (raw.length > 64 || !validCode(code)) return landing(null,env.PUBLIC_ORIGIN,422,{input:raw.slice(0,64),error:'Enter the six-character code from your invite.'});
+        return new Response(null,{status:303,headers:{Location:`/invite/${code}`,'Cache-Control':'no-store'}});
+      }
       if (request.method === 'GET' && url.pathname === '/.well-known/assetlinks.json') return json(env.ASSET_LINKS ? JSON.parse(env.ASSET_LINKS) : assetLinks);
       if (request.method === 'POST' && url.pathname === '/api/parties') {
         const who = identity(await body(request));
@@ -58,6 +64,7 @@ export default {
       const match = /^\/(api|ws)\/parties\/([^/]+)(?:\/(join|leave|preview))?$/.exec(url.pathname);
       const invite = /^\/invite\/([^/]+)$/.exec(url.pathname);
       const code = normalizeCode(match?.[2] ?? invite?.[1] ?? '');
+      if (invite && request.method === 'GET' && !validCode(code)) return landing({expired:true,invalid:true},env.PUBLIC_ORIGIN,404);
       if ((!match && !invite) || !validCode(code)) fail(404,'not_found','This page does not exist.');
       const stub = roomStub(env,code);
       if (invite && request.method === 'GET') {

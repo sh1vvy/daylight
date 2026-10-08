@@ -2,12 +2,14 @@ import {test,before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {fileURLToPath} from 'node:url';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
+import {assetLinks} from '../src/asset-links.js';
 let mf, ip = 0;
 const origin = 'https://jam.sh1vvy.com';
 before(async () => {
   mf = new Miniflare(convertV4MiniflareOptions({unsafeInspectDurableObjects:true,name:'daylight-jam',modules:['worker.js','party.js','website.js','asset-links.js'].map(file=>({type:'ESModule',path:fileURLToPath(new URL('../src/'+file,import.meta.url))})),compatibilityDate:'2026-10-08',
     durableObjects:{DIRECTORY:{className:'JamDirectory',useSQLite:true},ROOMS:{className:'JamRoom',useSQLite:true}},
-    bindings:{PUBLIC_ORIGIN:origin,MAX_PARTIES:'50',MAX_UPCOMING_QUEUE:'25'}}));
+    bindings:{PUBLIC_ORIGIN:origin,MAX_PARTIES:'50',MAX_UPCOMING_QUEUE:'25'},
+    assets:{directory:fileURLToPath(new URL('../public',import.meta.url)),routerConfig:{has_user_worker:true},assetConfig:{html_handling:'none',not_found_handling:'none'}}}));
   await mf.ready;
 });
 after(async () => { await mf?.dispose(); });
@@ -111,4 +113,71 @@ test('invite page escapes display names from other devices',async () => {
   const room=await create('<script>alert(1)</script>');
   const text=await (await request(`/invite/${room.code}`)).text();
   assert.ok(text.includes('&lt;script&gt;')); assert.ok(!text.includes('<script>alert(1)</script>'));
+});
+test('code form routes normalize the app alphabet without silently truncating long input',async () => {
+  for (const [raw,code] of [['abc-123','ABC123'],[' ilO 123 ','110123']]) {
+    const response=await request(`/join?code=${encodeURIComponent(raw)}`,{redirect:'manual'});
+    assert.equal(response.status,303);
+    assert.equal(new URL(response.headers.get('Location'),origin).pathname,`/invite/${code}`);
+  }
+  for (const raw of ['', 'ABC12', 'ABC1234', 'ABC12!', 'A'.repeat(1000), 'ABC123'+' '.repeat(58)+'4', '"><img src=x onerror=alert(1)>']) {
+    const response=await request(`/join?code=${encodeURIComponent(raw)}`);
+    const html=await response.text();
+    assert.equal(response.status,422);
+    assert.match(response.headers.get('Content-Type'),/^text\/html/);
+    assert.match(html,/Enter the six-character code from your invite\./);
+    assert.ok(!html.includes('<img src=x'));
+    assert.ok(!html.includes('A'.repeat(65)));
+  }
+});
+test('missing and malformed invitations render friendly HTML without altering API errors',async () => {
+  for (const code of ['ZZZ999','not-a-valid-code']) {
+    const response=await request(`/invite/${code}`);
+    assert.equal(response.status,404);
+    assert.match(response.headers.get('Content-Type'),/^text\/html/);
+    assert.match(await response.text(),/Daylight/);
+  }
+  const api=await request('/api/parties/ZZZ999/preview');
+  assert.equal(api.status,404);
+  assert.match(api.headers.get('Content-Type'),/^application\/json/);
+});
+test('full invitation keeps an app-opening action and redacts private identity',async () => {
+  const response=await post('/api/parties',{...identity('Full room host'),maxMembers:2},{'CF-Connecting-IP':`192.0.2.${++ip}`});
+  assert.equal(response.status,201);
+  const host=await response.json();
+  const guest=await (await post(`/api/parties/${host.code}/join`,identity('Full room guest'))).json();
+  const invite=await request(`/invite/${host.code}`);
+  const html=await invite.text();
+  assert.equal(invite.status,200);
+  assert.match(html,/This Jam is full/);
+  assert.match(html,/Open in Daylight/);
+  assert.ok(!html.includes(host.token));
+  assert.ok(!html.includes(guest.token));
+  await post(`/api/parties/${host.code}/leave`,null,{Authorization:`Bearer ${host.token}`});
+  await post(`/api/parties/${host.code}/leave`,null,{Authorization:`Bearer ${guest.token}`});
+});
+test('static assets load with correct types without intercepting app verification or the protocol',async () => {
+  const assets=[
+    ['/assets/jam-v1.css',/^text\/css/],
+    ['/assets/jam-v1.js',/^(?:text|application)\/javascript/],
+    ['/assets/daylight-mark.svg',/^image\/svg\+xml/],
+    ['/assets/favicon.svg',/^image\/svg\+xml/],
+    ['/assets/Inter-Regular-v4.1.woff2',/^font\/woff2/],
+    ['/assets/Inter-SemiBold-v4.1.woff2',/^font\/woff2/],
+    ['/assets/font-license.txt',/^text\/plain/],
+  ];
+  for (const [path,type] of assets) {
+    const response=await request(path);
+    assert.equal(response.status,200,path);
+    assert.match(response.headers.get('Content-Type'),type,path);
+    assert.ok((await response.arrayBuffer()).byteLength>0,path);
+    assert.ok(response.headers.get('Cache-Control'),path);
+    const maxAges=response.headers.get('Cache-Control').match(/max-age=/g) ?? [];
+    assert.equal(maxAges.length,1,path+' must have exactly one cache lifetime');
+  }
+  const links=await request('/.well-known/assetlinks.json');
+  assert.equal(links.status,200);
+  assert.deepEqual(await links.json(),assetLinks);
+  assert.equal((await (await request('/healthz')).json()).service,'daylight-jam');
+  assert.equal((await request('/assets/does-not-exist.svg')).status,404);
 });

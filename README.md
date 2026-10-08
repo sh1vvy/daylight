@@ -33,7 +33,7 @@ Development APKs are in `app/build/outputs/apk/dev/debug/`. Production APKs use 
 
 - Production app ID: `com.sh1vvy.daylight`
 - Development app ID: `com.sh1vvy.daylight.dev`
-- Initial Daylight version: `0.1.0`
+- Daylight version: `0.1.1`
 
 Daylight installs alongside BitChord and maintains separate application data. Internal Kotlin namespaces and native entry points are preserved for engine compatibility; see [UPSTREAM.md](UPSTREAM.md).
 
@@ -49,11 +49,11 @@ Set these in the ignored `local.properties` file or as build environment variabl
 
 | Setting | Purpose |
 | --- | --- |
-| `LISTEN_TOGETHER_SERVER` | Your party server URL; empty by default. The optional server source is in `backend/`. |
+| `LISTEN_TOGETHER_SERVER` | Optional party server override; defaults to `https://jam.sh1vvy.com`. |
 | `LASTFM_API_KEY`, `LASTFM_SECRET` | Your Last.fm app credentials. |
 | `DISCORD_APPLICATION_ID` | Your Discord application ID for presence artwork and buttons; empty by default. |
 
-Daylight does not report installations to BitChord’s live usage counter. Party invites use `daylight://party/` links, or your configured server’s invitation page. A party backend built from this fork opens Daylight rather than BitChord.
+Daylight does not report installations to BitChord’s live usage counter. Jam runs on Daylight’s own Cloudflare service at [jam.sh1vvy.com](https://jam.sh1vvy.com). Shared invites use its HTTPS invitation pages and open Daylight. See [Cloudflare Jam setup and free-tier limits](cloudflare-jam/README.md). The original Go backend remains in `backend/` as a reference and alternative deployment.
 
 ## Attribution and license
 

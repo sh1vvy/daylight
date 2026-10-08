@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "daylight-jam",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-08",
+  "workers_dev": false,
+  "routes": [{ "pattern": "jam.sh1vvy.com", "custom_domain": true }],
+  "vars": {
+    "PUBLIC_ORIGIN": "https://jam.sh1vvy.com",
+    "MAX_PARTIES": "50",
+    "MAX_UPCOMING_QUEUE": "25"
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "DIRECTORY", "class_name": "JamDirectory" },
+      { "name": "ROOMS", "class_name": "JamRoom" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["JamDirectory", "JamRoom"] }
+  ],
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 }
+}

@@ -13,10 +13,10 @@ data class ParsedJamInvite(
     val serverUrl: String? = null,
 )
 
-/** Relays a Daylight scheme invite from [com.music.bitchord.MainActivity] to Compose. */
+/** Relays a Daylight web or scheme invite from [com.music.bitchord.MainActivity] to Compose. */
 object JamInviteLink {
 
-    const val ORIGIN = "daylight://party"
+    const val ORIGIN = "https://jam.sh1vvy.com"
 
     private const val EXTRA_CONSUMED = "daylight.jamInviteConsumed"
     private const val CUSTOM_SCHEME = "daylight"
@@ -49,6 +49,7 @@ object JamInviteLink {
     /**
      * Parses an incoming invite:
      * 1. daylight://party/<CODE>?server=<SERVER>
+     * 2. https://jam.sh1vvy.com/invite/<CODE>
      */
     fun parseInvite(value: String?): ParsedJamInvite? {
         val uri = runCatching { URI(value ?: return null) }.getOrNull() ?: return null
@@ -56,6 +57,15 @@ object JamInviteLink {
         val host = uri.host?.lowercase() ?: return null
         val query = uri.rawQuery
         val server = extractQueryParam(query, "server")?.let { sanitizeServerUrl(it) }
+
+        // Web invites belong to this server. Query parameters cannot redirect
+        // a verified Daylight link to a different deployment.
+        if (scheme == "https" && host == "jam.sh1vvy.com" && uri.port == -1 && uri.userInfo == null) {
+            val path = uri.path.orEmpty()
+            if (!path.startsWith("/invite/")) return null
+            val code = cleanCode(path.removePrefix("/invite/")) ?: return null
+            return ParsedJamInvite(code = code, serverUrl = ORIGIN)
+        }
 
         // 1. Custom scheme: daylight://party/<CODE> or daylight://party?code=<CODE>
         if (scheme == CUSTOM_SCHEME && host == CUSTOM_HOST) {
@@ -70,11 +80,7 @@ object JamInviteLink {
 
     fun url(code: String, customServer: String? = null): String {
         val base = customServer?.trim()?.trimEnd('/')
-        return if (!base.isNullOrBlank() && !base.equals(ORIGIN, ignoreCase = true)) {
-            "$base/invite/${code.uppercase()}"
-        } else {
-            "$ORIGIN/${code.uppercase()}"
-        }
+        return "${base.takeUnless { it.isNullOrBlank() } ?: ORIGIN}/invite/${code.uppercase()}"
     }
 
     fun schemeUrl(code: String, customServer: String? = null): String {
@@ -117,4 +123,3 @@ object JamInviteLink {
     }
 
 }
-

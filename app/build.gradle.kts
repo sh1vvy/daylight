@@ -40,16 +40,13 @@ val lastfmSecret: String = (
  * deployment-specific rather than a property of the source, which is what puts
  * it here beside the others instead of in a constant.
  *
- * Empty is a supported state, not a broken build: the field below is only the
- * *default* the address box on the Listen Together screen starts with, and
- * anything typed there wins and persists. So a fresh checkout without this line
- * builds and runs, and simply asks for an address the first time somebody opens
- * the screen. See ListenTogether.DEFAULT_SERVER.
+ * Daylight uses its own Cloudflare service by default. A nonblank local/build
+ * override or an address entered in the app can select another deployment.
  */
 val listenTogetherServer: String = (
-    localProps.getProperty("LISTEN_TOGETHER_SERVER")
-        ?: System.getenv("LISTEN_TOGETHER_SERVER")
-        ?: ""
+    localProps.getProperty("LISTEN_TOGETHER_SERVER")?.takeIf { it.isNotBlank() }
+        ?: System.getenv("LISTEN_TOGETHER_SERVER")?.takeIf { it.isNotBlank() }
+        ?: "https://jam.sh1vvy.com"
     ).trim().trimEnd('/')
 
 val discordApplicationId = (localProps.getProperty("DISCORD_APPLICATION_ID")
@@ -86,8 +83,8 @@ android {
         // Haze falls back to a translucent scrim below that.
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

@@ -195,6 +195,14 @@
                 <data android:host="youtu.be" />
             </intent-filter>
 
+            <!-- Daylight's own verified web invites. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="jam.sh1vvy.com" android:pathPrefix="/invite/" />
+            </intent-filter>
+
             <!-- Custom scheme for Listen Together invites on custom server deployments. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

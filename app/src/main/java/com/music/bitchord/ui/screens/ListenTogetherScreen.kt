@@ -191,11 +191,7 @@ fun ListenTogetherScreen(
     /** The invite URL for a code, pointing at whichever server holds the party. */
     val inviteLinkFor: (String) -> String = { partyCode ->
         val host = ListenTogether.activePartyServerBase()
-        if (host == null || host == ListenTogether.defaultServer) {
-            JamInviteLink.url(partyCode, null)
-        } else {
-            JamInviteLink.url(partyCode, host)
-        }
+        JamInviteLink.url(partyCode, host ?: ListenTogether.defaultServer)
     }
 
     /** The system chooser, with the link and the spoken-aloud code together. */

@@ -2,8 +2,10 @@
 # macOS example (replace with your own absolute SDK directory):
 sdk.dir=/Users/YOUR_USERNAME/Library/Android/sdk
 
+# Jam defaults to Daylight's Cloudflare service; optional override:
+LISTEN_TOGETHER_SERVER=https://jam.sh1vvy.com
+
 # Optional integrations owned/configured by you. Leave blank to omit.
-LISTEN_TOGETHER_SERVER=
 LASTFM_API_KEY=
 LASTFM_SECRET=
 DISCORD_APPLICATION_ID=

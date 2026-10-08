@@ -44,3 +44,9 @@ keystore.properties
 # AI agent configuration
 AGENTS.md
 /output/
+
+# Cloudflare Jam local dependencies and credentials
+node_modules/
+.wrangler/
+.dev.vars
+.env

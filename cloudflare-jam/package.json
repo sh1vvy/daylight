@@ -1,0 +1,20 @@
+{
+  "name": "daylight-jam",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "node --test test/*.test.js",
+    "test:live": "node test/live-smoke.js",
+    "deploy": "wrangler deploy",
+    "check": "wrangler deploy --dry-run"
+  },
+  "overrides": { "sharp": "0.35.5" },
+  "devDependencies": {
+    "miniflare": "5.20261006.0-alpha",
+    "wrangler": "4.148.0",
+    "ws": "8.21.0"
+  }
+}

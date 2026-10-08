@@ -20,6 +20,26 @@ import org.junit.Test
 class JamInviteLinkTest {
 
     @Test
+    fun `own website invite resolves to its own server`() {
+        val invite = JamInviteLink.parseInvite("https://jam.sh1vvy.com/invite/abc123?server=https%3A%2F%2Felsewhere.example")
+        assertEquals("ABC123", invite?.code)
+        assertEquals("https://jam.sh1vvy.com", invite?.serverUrl)
+    }
+
+    @Test
+    fun `website invite rejects lookalike hosts ports and malformed paths`() {
+        listOf(
+            "https://jam.sh1vvy.com.evil.example/invite/ABC123",
+            "http://jam.sh1vvy.com/invite/ABC123",
+            "https://jam.sh1vvy.com:8443/invite/ABC123",
+            "https://someone@jam.sh1vvy.com/invite/ABC123",
+            "https://jam.sh1vvy.com/invite/ABC123/extra",
+            "https://jam.sh1vvy.com/invite/ABC123/",
+            "https://jam.sh1vvy.com/other/ABC123",
+        ).forEach { assertNull(JamInviteLink.parseInvite(it)) }
+    }
+
+    @Test
     fun `parses and normalizes a public invite`() {
         assertEquals(
             "A1B2C3",
@@ -55,7 +75,7 @@ class JamInviteLinkTest {
     @Test
     fun `builds the canonical share URL`() {
         assertEquals(
-            "daylight://party/ABC123",
+            "https://jam.sh1vvy.com/invite/ABC123",
             JamInviteLink.url("abc123"),
         )
     }
@@ -71,11 +91,11 @@ class JamInviteLinkTest {
             JamInviteLink.url("abc123", "https://my-party.onrender.com/"),
         )
         assertEquals(
-            "daylight://party/ABC123",
+            "https://jam.sh1vvy.com/invite/ABC123",
             JamInviteLink.url("abc123", ""),
         )
         assertEquals(
-            "daylight://party/ABC123",
+            "https://jam.sh1vvy.com/invite/ABC123",
             JamInviteLink.url("abc123", null),
         )
     }
@@ -141,7 +161,7 @@ class JamInviteLinkTest {
         } else {
             JamInviteLink.url(code, activePartyHost)
         }
-        assertEquals("daylight://party/JAM001", link)
+        assertEquals("https://jam.sh1vvy.com/invite/JAM001", link)
     }
 
     @Test
@@ -582,4 +602,3 @@ class JamInviteLinkTest {
         assertEquals(ServerConnectionState.CustomOnline(25L), currentState)
     }
 }
-

@@ -28,7 +28,7 @@ test('homepage has a server-rendered code form and real Android installation gui
   assert.ok(hrefs(html).includes('https://github.com/sh1vvy/daylight/releases/latest/download/daylight-dev.apk'));
   assert.match(html, /class="download-badge"/);
   assert.match(html, /Download Daylight/);
-  assert.match(html, /Android · v0\.2\.0 · APK/);
+  assert.match(html, /Android · v0\.2\.1 · APK/);
   assert.ok(!html.includes('/actions/workflows/'));
   assert.ok(!html.includes('GitHub account'));
   assert.equal(hrefs(html).filter(href => href.startsWith('daylight://')).length, 0);

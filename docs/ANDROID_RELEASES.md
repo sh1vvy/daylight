@@ -1,6 +1,6 @@
 # Daylight Android releases
 
-The initial public release is **v0.2.0**, Android version code **11**. Releases
+The latest public release is **v0.2.1**, Android version code **12**. Releases
 are published at <https://github.com/sh1vvy/daylight/releases>. The Jam website
 downloads the public APK through the stable URL
 `https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk`.
@@ -23,11 +23,12 @@ Keep the existing package and signing key so installation updates the app withou
 losing data. Per Shivvy’s preference, manual refreshes of the current build keep
 **version name 0.2.1 and version code 12**. Android supports manually replacing a
 signed APK at the same version code. Change the version only when a new version
-or public release is requested, and then increase the version code.
+or public release is requested and the candidate does not already exceed the
+latest public version and version code.
 
-The current interim build is **0.2.1**, version code **12**; the latest public
-release remains **0.2.0**. Public releases are intended roughly every seven days,
-when Shivvy explicitly asks to publish. This cadence does not authorize automatic
+The current build and latest public release are **0.2.1**, version code **12**.
+Public releases are intended roughly every seven days, when Shivvy explicitly
+asks to publish. This cadence does not authorize automatic
 publishing. Run the checks below for manual APKs too, then deliver both package
 variants with checksums. Install the variant matching the app already installed.
 
@@ -52,8 +53,10 @@ signed output from the holder of the production key.
 
 Follow these steps only when a public release is explicitly requested.
 
-1. Increase `versionName` and `versionCode` in `app/build.gradle.kts`, leaving
-   `betaSuffix` empty for a normal release. Update the version on the Jam badge.
+1. Check that the candidate's `versionName` and `versionCode` both exceed the
+   latest public release. Increase them in `app/build.gradle.kts` only if needed;
+   a verified interim APK with a newer version can be promoted without rebuilding.
+   Leave `betaSuffix` empty for a normal release. Update the version on the Jam badge.
 2. Run the Android/shared tests and build `:app:assembleDevDebug` and
    `:app:assembleProdRelease`. Verify the universal APKs’ package, version code
    and signing certificates with the Android build tools.

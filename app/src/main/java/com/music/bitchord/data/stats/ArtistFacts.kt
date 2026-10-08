@@ -319,7 +319,7 @@ object ArtistFacts {
 
     private const val TAG = "BitChordArtists"
     private const val FILE_NAME = "artist_facts.json"
-    private const val USER_AGENT = "BitChord/${BuildConfig.VERSION_NAME}"
+    private const val USER_AGENT = "Daylight/${BuildConfig.VERSION_NAME}"
     private const val MAX_NAME_LENGTH = 120
     private const val MAX_GENRES_PER_ARTIST = 2
     private const val MAX_ARTISTS = 4_000

@@ -406,11 +406,11 @@ private fun drawHeader(
     val brand = type.heading(46f, 0xE6FFFFFF.toInt()).apply {
         textAlign = Paint.Align.RIGHT
     }
-    canvas.drawText("BitChord", POSTER_W - MARGIN, 132f, brand)
+    canvas.drawText("Daylight", POSTER_W - MARGIN, 132f, brand)
     // The mark, to the left of the word, exactly as the story header and the
     // card carry it. Without it the one artefact of this app that ends up in
     // somebody else's chat was the only place the logo didn't appear.
-    val wordWidth = brand.measureText("BitChord")
+    val wordWidth = brand.measureText("Daylight")
     drawLogo(canvas, context, POSTER_W - MARGIN - wordWidth - LOGO_GAP, 132f)
 
     val credit = listOfNotNull(
@@ -692,7 +692,7 @@ private fun drawRuns(
 }
 
 /**
- * The BitChord mark, baseline-aligned with the word beside it.
+ * The Daylight mark, baseline-aligned with the word beside it.
  *
  * The same vector the app draws everywhere, tinted and given bounds rather than
  * rasterised to a PNG first — a vector drawable renders into an ordinary canvas
@@ -767,9 +767,9 @@ private const val POSTER_H = 1920
 
 private const val MARGIN = 72f
 
-/** The mark's drawn size. 730×484 in the vector, so this keeps its proportions. */
+/** The mark's drawn size. 100×68 in the vector, so this keeps its proportions. */
 private const val LOGO_W = 66f
-private const val LOGO_H = 44f
+private const val LOGO_H = LOGO_W * 68f / 100f
 private const val LOGO_GAP = 20f
 
 /** The width type and artwork are laid out in. */

@@ -89,7 +89,7 @@ class AddonClient(rawBaseUrl: String) {
             }
             if (!manifest.isPlayable) {
                 val declared = manifest.resources.joinToString(", ")
-                throw AddonException("This addon declares $declared — BitChord needs search")
+                throw AddonException("This addon declares $declared — Daylight needs search")
             }
             manifest
         }.recoverCatching { failure ->
@@ -219,7 +219,7 @@ class AddonClient(rawBaseUrl: String) {
      *
      * Without it an addon holding an Atmos mix has no way to know it may serve
      * one, so it takes its default branch and sends stereo. That is the whole
-     * of why BitChord never heard Atmos from an addon: not a detection bug —
+     * of why Daylight never heard Atmos from an addon: not a detection bug —
      * [AddonStream.isDolbyAtmos] reads every spelling an addon sends — but a
      * question that was never asked.
      *
@@ -334,7 +334,7 @@ class AddonClient(rawBaseUrl: String) {
                     // sends people to re-paste a URL that was always correct.
                     response.code >= 500 -> throw AddonUnavailable("HTTP ${response.code}")
                     response.code != 429 -> throw AddonException("HTTP ${response.code}")
-                    attempt >= MAX_RETRIES -> throw AddonUnavailable("This addon is rate limiting BitChord")
+                    attempt >= MAX_RETRIES -> throw AddonUnavailable("This addon is rate limiting Daylight")
                     else -> retryAfterMs(response.header("Retry-After"), attempt)
                 }
             }
@@ -386,7 +386,7 @@ class AddonClient(rawBaseUrl: String) {
     private fun keyOf(vararg parts: String) = parts.joinToString("|") { "${it.length}:$it" }
 
     companion object {
-        private const val TAG = "BitChord"
+        private const val TAG = "Daylight"
 
         /** The tiers [AddonSource][com.music.bitchord.data.sources.AddonSource] asks in. */
         const val TIER_LOSSLESS = "LOSSLESS"
@@ -395,7 +395,7 @@ class AddonClient(rawBaseUrl: String) {
 
         private const val QUALITY_KEY = "quality"
 
-        /** The spec's immersive-audio hint, and the only value BitChord ever sends for it. */
+        /** The spec's immersive-audio hint, and the only value Daylight ever sends for it. */
         private const val ATMOS_KEY = "atmos"
         private const val ATMOS_AUTO = "auto"
 
@@ -474,7 +474,7 @@ class AddonClient(rawBaseUrl: String) {
         private const val BACKOFF_BASE_MS = 500L
         private const val BACKOFF_CAP_MS = 8_000L
 
-        private val USER_AGENT = "BitChord/v${com.music.bitchord.BuildConfig.VERSION_NAME}"
+        private val USER_AGENT = "Daylight/v${com.music.bitchord.BuildConfig.VERSION_NAME}"
 
         /**
          * What [probeSearch] asks for. Deliberately an ordinary word rather

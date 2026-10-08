@@ -1,158 +1,62 @@
 <div align="center">
+<img src="Logo.png" alt="Daylight sunrise icon" width="150" />
 
-<br/>
-<br/>
+# Daylight
 
-<img src="Logo.png" alt="BitChord app icon" width="200" />
+**Your music. A little brighter.**
 
-# BitChord
+An independent Android music player by [sh1vvy](https://github.com/sh1vvy), based on [BitChord](https://github.com/kushagrasinghx/BitChord).
 
-### Aesthetic YouTube Music Client
+[Source](https://github.com/sh1vvy/daylight) · [Builds](https://github.com/sh1vvy/daylight/actions/workflows/android.yml) · [License](LICENSE) · [Upstream credits](UPSTREAM.md)
 
-<br/>
-
-[![Latest release](https://img.shields.io/github/v/release/kushagrasinghx/BitChord?style=for-the-badge&labelColor=0d1117)](https://github.com/kushagrasinghx/BitChord/releases)
-[![License](https://img.shields.io/github/license/kushagrasinghx/BitChord?style=for-the-badge&labelColor=0d1117)](https://github.com/kushagrasinghx/BitChord/blob/main/LICENSE)
-[![Downloads](https://img.shields.io/github/downloads/kushagrasinghx/BitChord/total?style=for-the-badge&labelColor=0d1117)](https://github.com/kushagrasinghx/BitChord/releases)
-[![Listening now](https://api.bitchord.kushagrasingh.in/api/stats/live/badge.svg)](https://api.bitchord.kushagrasingh.in/api/stats/live)
-
-<br/>
-
-[**Download**](#download) · [**Features**](#features) · [**Contributing**](#contributing) · [**Support**](#support) · [**Disclaimer**](#disclaimer)
-
-<br/>
-
-<a href="https://fmhy.net/mobile#youtube-music" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/available/fmhy/cozy.svg" alt="Featured on FMHY" height="55"/></a>
-<a href="https://trendshift.io/repositories/177639?utm_source=trendshift-badge&utm_medium=badge&utm_campaign=badge-trendshift-177639" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/177639/daily?language=Kotlin" alt="kushagrasinghx%2FBitChord | Trendshift" width="250" height="55"/></a>
-<a href="https://trendshift.io/repositories/177639?utm_source=trendshift-badge&utm_medium=badge&utm_campaign=badge-trendshift-177639" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/177639/weekly?language=Kotlin" alt="kushagrasinghx%2FBitChord | Trendshift" width="250" height="55"/></a>
-
+<img src="Banner.png" alt="Daylight — an independent Android music player" width="100%" />
 </div>
 
-> [!IMPORTANT]
-> BitChord is not affiliated with, endorsed by, or connected to YouTube or Google in any way. Use it at your own discretion.
+## About
 
----
+Daylight starts with BitChord’s playback engine and Android interface, with its own name, sunrise icon, warm accent colors, installation identity, and release channel. Android is the supported platform for this fork.
 
-<div align="center">
+Inherited features include YouTube Music search and playback, local music, downloads, synchronized lyrics, artwork-driven player colors, crossfade, Automix, equalizer, sleep timer, playlists, and optional account integrations. Availability depends on providers and device support. This initial fork changes the product identity; it does not represent a new playback engine.
 
-<img src="Banner.png" alt="BitChord banner" width="100%" />
+## Build for Android
 
-<h1><a id="features"></a>Features</h1>
+Requirements: JDK 17, Android SDK platforms 36 and 37.0, build-tools 35.0.0, Android NDK 27.0.12077973, and CMake 3.22.1. Android 8.0 (API 26) or newer is supported.
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
+Open the repository in Android Studio, or copy `local.properties.example` to `local.properties` and set `sdk.dir` to your SDK directory. Gradle requires a configured Android SDK to include the app module.
 
-#### Playback
-- **Search, browse and play** anything available on YouTube Music.
-- **Hi-Res lossless audio** — FLAC/ALAC from a configured module source, with YouTube Music as fallback.
-- **Gapless playback with true crossfade**, adjustable 0–12s.
-- **Automix [Beta]** — DJ-style transitions with beat-matching and tempo-stretching.
-- **Offline downloads** — save tracks with embedded metadata.
-- **Local music library** integration.
-- **Background playback** via a proper foreground media session.
-- **Apple-like lyrics animation** — credit to [binimum](https://github.com/binimum/am-lyrics).
+```sh
+./gradlew :app:assembleDevDebug
+./gradlew :app:testDevDebugUnitTest
+```
 
-#### Connectivity & Accounts
-- **Sign in with your Google account** for personalized content.
-- **Spotify integration** — connect your account to play your playlists and Liked Songs.
-- **Discord Rich Presence** — in-app login, live track/artist/album and progress.
-- **Scrobbling** to Last.fm and ListenBrainz.
-- **Pluggable sources** — add, edit, test and health-check module sources.
+Development APKs are in `app/build/outputs/apk/dev/debug/`. Production APKs use `:app:assembleProdRelease`; without your signing configuration they are unsigned. Configure your own signing key using `keystore.properties.example` before shipping release APKs.
 
-    </td>
-    <td width="50%" valign="top">
+- Production app ID: `com.sh1vvy.daylight`
+- Development app ID: `com.sh1vvy.daylight.dev`
+- Initial Daylight version: `0.1.0`
 
-#### Experience
-- **Animated album canvas** — motion artwork on the now-playing screen.
-- **Word-synced lyrics** — word/syllable-level highlighting from multiple sources.
-- **Lyrics providers** — credit to [lrc.red](https://lrc.red), [BiniLyrics](https://github.com/binimum), [BetterLyrics](https://github.com/better-lyrics/better-lyrics), [PaxSenix](https://lyrics.paxsenix.org), [LyricsPlus](https://github.com/ibratabian17/YouLyPlus), [SimpMusic](https://github.com/maxrave-dev/SimpMusic), [Unison](https://unison.boidu.dev), [Megalobiz](https://www.megalobiz.com), [KuGou](https://www.kugou.com), [LRCLIB](https://lrclib.net), [Musixmatch](https://www.musixmatch.com) and [Genius](https://genius.com).
-- **Dynamic, artwork-driven theming** — Material palette extracted from album art.
-- **Frosted-glass UI** — Telegram-style translucent bars via Haze, Material 3 theming.
+Daylight installs alongside BitChord and maintains separate application data. Internal Kotlin namespaces and native entry points are preserved for engine compatibility; see [UPSTREAM.md](UPSTREAM.md).
 
-#### Controls & Tweaks
-- **Per-network audio quality** — separate quality ceilings for Wi-Fi and mobile data.
-- **Playback speed control** (0.5×–2.0×) and **skip silence**.
-- **Sleep timer** — fixed presets or "stop after this track".
-- **System equalizer** integration.
-- **Stats for nerds** — codec, bit depth, sample rate, and more on the now-playing screen.
+## GitHub builds
 
-    </td>
-  </tr>
-</table>
+The [Android workflow](.github/workflows/android.yml) runs Android unit tests and produces a debug APK plus production APKs. Release signing is optional: configure `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD` repository secrets to sign production builds. With no signing secrets, the workflow produces unsigned production APKs and an installable development APK. The workflow does not publish releases automatically.
 
-</div>
+Daylight checks [its own GitHub releases](https://github.com/sh1vvy/daylight/releases) for updates. Publish only Daylight APKs there, signed consistently with your own key.
 
----
+## Optional integrations
 
-<div align="center">
+Set these in the ignored `local.properties` file or as build environment variables:
 
-<h1><a id="download"></a>Download</h1>
+| Setting | Purpose |
+| --- | --- |
+| `LISTEN_TOGETHER_SERVER` | Your party server URL; empty by default. The optional server source is in `backend/`. |
+| `LASTFM_API_KEY`, `LASTFM_SECRET` | Your Last.fm app credentials. |
+| `DISCORD_APPLICATION_ID` | Your Discord application ID for presence artwork and buttons; empty by default. |
 
-<a href="https://github.com/kushagrasinghx/BitChord/releases" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/android/cozy.svg" alt="Download for Android" height="55"/></a>
-<a href="https://github.com/kushagrasinghx/BitChord/releases" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/windows/cozy.svg" alt="Download for Windows" height="55"/></a>
+Daylight does not report installations to BitChord’s live usage counter. Party invites use `daylight://party/` links, or your configured server’s invitation page. A party backend built from this fork opens Daylight rather than BitChord.
 
-Grab the latest signed APK from the [Releases](https://github.com/kushagrasinghx/BitChord/releases) page. Sideloading requires enabling "Install unknown apps" for whichever app you download it with.
+## Attribution and license
 
-For the Windows and Linux desktop app, see [DESKTOP.md](DESKTOP.md).
+BitChord was created by **Kushagra Singh and its contributors**. Daylight retains their Git history, copyright notices, and the **GNU General Public License v3.0**. See [LICENSE](LICENSE), [UPSTREAM.md](UPSTREAM.md), and [original contributor credits](docs/UPSTREAM_MAINTAINERS.md).
 
-</div>
-
----
-
-<div align="center">
-
-<h1><a id="contributing"></a>Contributing</h1>
-
-We welcome contributions to BitChord! Please review our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a Pull Request.
-
-[**Contributing Guide**](CONTRIBUTING.md) · [**Code of Conduct**](CODE_OF_CONDUCT.md) · [**Maintainers**](MAINTAINERS.md) · [**Additional Docs**](ADDITIONAL.md)
-
-### Thanks to all contributors ❤
-
-<a href="https://github.com/kushagrasinghx/BitChord/graphs/contributors">
-  <img src="https://raw.githubusercontent.com/kushagrasinghx/BitChord/contributors/contributors.svg" />
-</a>
-
-</div>
-
----
-
-<div align="center">
-
-<h1><a id="support"></a>Support</h1>
-
-BitChord is free and always will be — if it's earned a spot in your rotation, you can chip in here:
-
-<a href="https://ko-fi.com/kushagrasinghx" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/donate/kofi-singular-alt/cozy.svg" alt="Support me on Ko-fi" height="55"/></a>
-<a href="https://paypal.me/kuxhagrasingh" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/donate/paypal-plural/cozy.svg" alt="Support us on PayPal" height="55"/></a>
-
-<br/>
-<img src="upi_support.jpg" alt="UPI Support" width="250" />
-
-</div>
-
----
-
-<div align="center">
-
-<h1><a id="disclaimer"></a>Disclaimer & Legal Notice</h1>
-
-BitChord is an independent, community-driven third-party audio player and client. It is **not** associated with Google LLC, YouTube Music, Deezer, Telegram, or any of their parent companies.
-
-* **No Media Hosting:** BitChord does not host, upload, or store copyrighted music files. It operates strictly as an interface to scan local device storage or stream media directly from public, public-facing, or user-authenticated APIs.
-* **Fair Use & API Usage:** This software is created solely for personal research, educational, and fair-use purposes. The user is entirely responsible for ensuring their usage aligns with their local copyright laws and YouTube Terms of Service.
-* **No Ad-Blocking Guarantee:** While BitChord focuses on providing a clean listening environment, it does not guarantee permanent bypasses or modifications to commercial third-party platform conditions.
-* **Copyleft:** BitChord is free software under the GPLv3. The license does not let anyone forbid others from selling or redistributing copies, but any distribution must come with the Corresponding Source under the same license.
-
-</div>
-
----
-
-<div align="center">
-
-<h1><a id="license"></a>License</h1>
-
-This project is licensed under the **GNU General Public License v3.0 (GPLv3)**. See the [LICENSE](LICENSE) file for details.
-
-</div>
+Daylight is independent of BitChord’s maintainers and is not affiliated with YouTube, Google, Spotify, Discord, or other service providers. Provider names identify integrations. If you distribute this derivative, provide its corresponding source under GPLv3.

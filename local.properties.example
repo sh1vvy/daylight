@@ -1,0 +1,9 @@
+# Copy to local.properties; the local file is ignored by Git.
+# macOS example (replace with your own absolute SDK directory):
+sdk.dir=/Users/YOUR_USERNAME/Library/Android/sdk
+
+# Optional integrations owned/configured by you. Leave blank to omit.
+LISTEN_TOGETHER_SERVER=
+LASTFM_API_KEY=
+LASTFM_SECRET=
+DISCORD_APPLICATION_ID=

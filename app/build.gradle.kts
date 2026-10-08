@@ -49,8 +49,14 @@ val lastfmSecret: String = (
 val listenTogetherServer: String = (
     localProps.getProperty("LISTEN_TOGETHER_SERVER")
         ?: System.getenv("LISTEN_TOGETHER_SERVER")
-        ?: "https://bitchord-listen-together.onrender.com"
+        ?: ""
     ).trim().trimEnd('/')
+
+val discordApplicationId = (localProps.getProperty("DISCORD_APPLICATION_ID")
+    ?: System.getenv("DISCORD_APPLICATION_ID") ?: "").trim()
+require(discordApplicationId.isEmpty() || discordApplicationId.all(Char::isDigit)) {
+    "DISCORD_APPLICATION_ID must be a numeric Discord application ID"
+}
 
 /*
  * Bump this by hand before cutting each sideloaded test build ("beta2",
@@ -71,19 +77,21 @@ val betaSuffix = ""
 
 android {
     namespace = "com.music.bitchord"
-    // InnerTubeX's AAR requires compiling against 37; targetSdk (runtime behaviour) stays 36.
-    compileSdk = 37
+    // Use the SDK’s published 37.0 target name; runtime behaviour remains at API 36.
+    compileSdkVersion("android-37.0")
 
     defaultConfig {
-        applicationId = "com.music.bitchord"
+        applicationId = "com.sh1vvy.daylight"
         // 26 keeps reach wide; real-time blur (RenderEffect) kicks in on API 31+,
         // Haze falls back to a translucent scrim below that.
         minSdk = 26
         targetSdk = 36
-        versionCode = 26
-        versionName = "1.8"
+        versionCode = 1
+        versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "DISCORD_APPLICATION_ID", "\"$discordApplicationId\"")
 
         // Last.fm credentials are supplied locally and never committed.
         buildConfigField("String", "LASTFM_API_KEY", "\"${lastfmApiKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
@@ -118,12 +126,12 @@ android {
     productFlavors {
         create("dev") {
             dimension = "env"
-            applicationId = "com.dev.bitchord"
-            resValue("string", "app_name", "BitChord Dev")
+            applicationId = "com.sh1vvy.daylight.dev"
+            resValue("string", "app_name", "Daylight Dev")
         }
         create("prod") {
             dimension = "env"
-            // Matches defaultConfig — this is the package already shipped/installed.
+            // Uses Daylight’s independent production application ID.
         }
     }
 
@@ -433,10 +441,10 @@ val verifyDevInstall = tasks.register("verifyDevInstall") {
             .drop(1)
             .mapNotNull { line -> line.split('\t').takeIf { it.size == 2 && it[1] == "device" }?.get(0) }
         serials.forEach { serial ->
-            logger.lifecycle("verifyDevInstall: compiling com.dev.bitchord on $serial")
+            logger.lifecycle("verifyDevInstall: compiling com.sh1vvy.daylight.dev on $serial")
             ProcessBuilder(
                 adbPath, "-s", serial, "shell", "cmd", "package", "compile",
-                "-m", "verify", "-f", "com.dev.bitchord",
+                "-m", "verify", "-f", "com.sh1vvy.daylight.dev",
             ).inheritIO().start().waitFor()
         }
     }

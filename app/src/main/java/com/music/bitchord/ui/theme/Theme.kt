@@ -18,13 +18,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.R
 
-// Apple Music's signature red. No longer the primary accent, but kept for the
-// spots (Replay's rank badge) that want that specific red regardless of theme.
-val AccentRed = Color(0xFFFA2D48)
+// Daylight’s warm sunrise accent; the name is retained for shared callers.
+val AccentRed = Color(0xFFB94F10)
 
 private val DarkColors = darkColorScheme(
-    primary = Color.White,
-    onPrimary = Color.Black,
+    primary = Color(0xFFFFB86C),
+    onPrimary = Color(0xFF3D2100),
     background = Color.Black,
     onBackground = Color.White,
     surface = Color(0xFF0D0D0F),
@@ -35,7 +34,7 @@ private val DarkColors = darkColorScheme(
 )
 
 private val LightColors = lightColorScheme(
-    primary = Color.Black,
+    primary = Color(0xFF9C440E),
     onPrimary = Color.White,
     background = Color.White,
     onBackground = Color.Black,

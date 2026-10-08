@@ -13,14 +13,13 @@ data class ParsedJamInvite(
     val serverUrl: String? = null,
 )
 
-/** Relays a BitChord web or scheme invite from [com.music.bitchord.MainActivity] to Compose. */
+/** Relays a Daylight scheme invite from [com.music.bitchord.MainActivity] to Compose. */
 object JamInviteLink {
 
-    const val ORIGIN = "https://bitchord.kushagrasingh.in"
+    const val ORIGIN = "daylight://party"
 
-    private const val EXTRA_CONSUMED = "bitchord.jamInviteConsumed"
-    private const val HOST = "bitchord.kushagrasingh.in"
-    private const val CUSTOM_SCHEME = "bitchord"
+    private const val EXTRA_CONSUMED = "daylight.jamInviteConsumed"
+    private const val CUSTOM_SCHEME = "daylight"
     private const val CUSTOM_HOST = "party"
 
     private val _pending = MutableStateFlow<ParsedJamInvite?>(null)
@@ -49,8 +48,7 @@ object JamInviteLink {
 
     /**
      * Parses an incoming invite:
-     * 1. bitchord://party/<CODE>?server=<SERVER>
-     * 2. https://bitchord.kushagrasingh.in/invite/<CODE>?server=<SERVER>
+     * 1. daylight://party/<CODE>?server=<SERVER>
      */
     fun parseInvite(value: String?): ParsedJamInvite? {
         val uri = runCatching { URI(value ?: return null) }.getOrNull() ?: return null
@@ -59,18 +57,11 @@ object JamInviteLink {
         val query = uri.rawQuery
         val server = extractQueryParam(query, "server")?.let { sanitizeServerUrl(it) }
 
-        // 1. Custom scheme: bitchord://party/<CODE> or bitchord://party?code=<CODE>
+        // 1. Custom scheme: daylight://party/<CODE> or daylight://party?code=<CODE>
         if (scheme == CUSTOM_SCHEME && host == CUSTOM_HOST) {
-            val pathPart = uri.path.orEmpty().trim('/').takeIf { it.isNotBlank() }
+            val pathPart = uri.path.orEmpty().removePrefix("/").takeIf { it.isNotBlank() }
             val candidate = pathPart ?: extractQueryParam(query, "code") ?: return null
             val code = cleanCode(candidate) ?: return null
-            return ParsedJamInvite(code = code, serverUrl = server)
-        }
-
-        // 2. Official web domain: https://bitchord.kushagrasingh.in/invite/<CODE>
-        if (scheme == "https" && host == HOST) {
-            val match = INVITE_PATH.matchEntire(uri.path.orEmpty()) ?: return null
-            val code = match.groupValues[1].uppercase()
             return ParsedJamInvite(code = code, serverUrl = server)
         }
 
@@ -82,7 +73,7 @@ object JamInviteLink {
         return if (!base.isNullOrBlank() && !base.equals(ORIGIN, ignoreCase = true)) {
             "$base/invite/${code.uppercase()}"
         } else {
-            "$ORIGIN/invite/${code.uppercase()}"
+            "$ORIGIN/${code.uppercase()}"
         }
     }
 
@@ -91,14 +82,15 @@ object JamInviteLink {
         val base = customServer?.trim()?.trimEnd('/')
         return if (!base.isNullOrBlank()) {
             val encoded = runCatching { URLEncoder.encode(base, "UTF-8") }.getOrDefault(base)
-            "bitchord://party/$normalizedCode?server=$encoded"
+            "daylight://party/$normalizedCode?server=$encoded"
         } else {
-            "bitchord://party/$normalizedCode"
+            "daylight://party/$normalizedCode"
         }
     }
 
     private fun cleanCode(raw: String): String? {
-        val cleaned = raw.filter { it.isLetterOrDigit() }.uppercase()
+        if (!raw.all { it.isLetterOrDigit() }) return null
+        val cleaned = raw.uppercase()
         return if (cleaned.length == ListenTogether.CODE_LENGTH) cleaned else null
     }
 
@@ -124,6 +116,5 @@ object JamInviteLink {
         return withScheme
     }
 
-    private val INVITE_PATH = Regex("""/invite/([A-Za-z0-9]{${ListenTogether.CODE_LENGTH}})""")
 }
 

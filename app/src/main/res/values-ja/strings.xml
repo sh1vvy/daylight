@@ -422,7 +422,7 @@
     <string name="scrobble_timing">スクロブルのタイミング</string>
     <string name="scrobble_tracks">トラックをスクロブル</string>
     <string name="scrobble_tracks_subtitle">再生をLast.fmのタイムラインに記録します</string>
-    <string name="scrobbling_footer">再生した曲をLast.fmとListenBrainzにスクロブルします。</string>
+    <string name="scrobbling_footer">再生した曲をLast.fmにスクロブルします。</string>
     <string name="scrobbling_paused_footer">Last.fmとListenBrainzは今回のリリースでは一時停止しており、後日再開されます。既存の連携は保存されたままです。</string>
     <string name="search_this_folder">このフォルダ内を検索</string>
     <string name="search_this_list">このリスト内を検索</string>
@@ -1272,7 +1272,7 @@
     <string name="lyric_language_buttons">歌詞の言語ボタン</string>
     <string name="lyric_language_buttons_subtitle">歌詞プレーヤーにローマ字表示と翻訳のボタンを表示</string>
     <string name="credits">クレジット</string>
-    <string name="credits_subtitle">BitChordとアプリアイコンの謝辞</string>
+    <string name="credits_subtitle">アプリとアートワークの謝辞</string>
     <string name="credits_bitchord_heading">BitChordをベースにしています</string>
     <string name="credits_bitchord_authors">Kushagra Singhと貢献者</string>
     <string name="credits_icon_heading">アプリアイコン</string>
@@ -1284,4 +1284,13 @@
     <string name="playlist_create_failed">プレイリストを作成できませんでした。もう一度お試しください。</string>
     <string name="playlist_saved_on_device">この端末に保存済み</string>
     <string name="playlist_import_partial">%1$sを%3$d曲中%2$d曲で作成しました。曲を失わないよう端末のコピーを保持してください。</string>
+    <string name="settings_expand_category">Expand %1$s</string>
+    <string name="settings_collapse_category">Collapse %1$s</string>
+    <string name="settings_made_with_love">Made with ♥ for Gunnu</string>
+    <string name="settings_category_lyrics_accessibility">Lyrics &amp; accessibility</string>
+    <string name="settings_category_downloads_storage">Downloads &amp; storage</string>
+    <string name="playlist_creator">Playlist creator</string>
+    <string name="creator_public_playlists">Public playlists</string>
+    <string name="creator_on_device">On this device</string>
+    <string name="creator_you">You</string>
 </resources>

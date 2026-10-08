@@ -71,7 +71,7 @@ Want to build, contribute, or see what happens under the covers?
 
 Made with care by **[sh1vvy](https://sh1vvy.com)**. Daylight is free and open source under the **[GNU GPL v3.0](LICENSE)**; original copyright notices and corresponding source remain available.
 
-Based on **BitChord**, created by Kushagra Singh and its contributors. [Acknowledgments](UPSTREAM.md) · [Contributor credits](docs/UPSTREAM_MAINTAINERS.md).
+Based on **BitChord**.
 
 **© art by 11 ([_artbyeleven on IG](https://www.instagram.com/_artbyeleven/))** — butterfly artwork and the mark adapted from it.
 

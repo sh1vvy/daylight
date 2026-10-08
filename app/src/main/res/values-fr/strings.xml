@@ -437,7 +437,7 @@
     <string name="scrobble_timing">Moment du scrobbling</string>
     <string name="scrobble_tracks">Scrobbler les titres</string>
     <string name="scrobble_tracks_subtitle">Enregistre les écoutes sur votre chronologie Last.fm</string>
-    <string name="scrobbling_footer">Scrobblez vos écoutes sur Last.fm et ListenBrainz.</string>
+    <string name="scrobbling_footer">Scrobblez vos écoutes sur Last.fm.</string>
     <string name="scrobbling_paused_footer">Last.fm et ListenBrainz sont en pause pour cette version et reviendront plus tard. Les connexions existantes restent enregistrées.</string>
     <string name="search_this_folder">Rechercher dans ce dossier</string>
     <string name="search_this_list">Rechercher dans cette liste</string>
@@ -1295,7 +1295,7 @@
     <string name="lyric_language_buttons">Boutons de langue des paroles</string>
     <string name="lyric_language_buttons_subtitle">Afficher les boutons de romanisation et de traduction dans le lecteur de paroles</string>
     <string name="credits">Crédits</string>
-    <string name="credits_subtitle">Remerciements pour BitChord et l’icône de l’application</string>
+    <string name="credits_subtitle">Remerciements pour l’application et les illustrations</string>
     <string name="credits_bitchord_heading">Basé sur BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh et les contributeurs</string>
     <string name="credits_icon_heading">Icône de l’application</string>
@@ -1307,4 +1307,13 @@
     <string name="playlist_create_failed">Impossible de créer la playlist. Réessayez.</string>
     <string name="playlist_saved_on_device">Enregistrée sur cet appareil</string>
     <string name="playlist_import_partial">%1$s a été créée avec %2$d chansons sur %3$d. Gardez la copie locale pour ne perdre aucune chanson.</string>
+    <string name="settings_expand_category">Expand %1$s</string>
+    <string name="settings_collapse_category">Collapse %1$s</string>
+    <string name="settings_made_with_love">Made with ♥ for Gunnu</string>
+    <string name="settings_category_lyrics_accessibility">Lyrics &amp; accessibility</string>
+    <string name="settings_category_downloads_storage">Downloads &amp; storage</string>
+    <string name="playlist_creator">Playlist creator</string>
+    <string name="creator_public_playlists">Public playlists</string>
+    <string name="creator_on_device">On this device</string>
+    <string name="creator_you">You</string>
 </resources>

@@ -1,16 +1,28 @@
 package com.music.bitchord.ui.screens
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Lan
 import androidx.compose.material.icons.rounded.Storage
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -27,6 +39,7 @@ import com.music.bitchord.ui.components.ReplayCardRowSkeleton
 import com.music.bitchord.ui.replay.ReplayCardRow
 import com.music.bitchord.ui.replay.ReplayHeroCard
 import com.music.bitchord.ui.replay.ReplayStoryPage
+import com.music.bitchord.ui.icons.BitChordIcons
 
 // The phone's halves of the shared Library page: its list of folders, what
 // sits on its "On device" shelf, and the way in to Replay at its head.
@@ -131,9 +144,8 @@ const val SPOTIFY_BROWSE_ID = "app:spotify"
 const val CACHE_FOLDER_BROWSE_ID = "local:cache"
 
 /**
- * The phone's way in to Replay: its row of headline cards, placeholders for
- * them while the history is read, and nothing at all while there is not yet
- * enough listening to deal them — Settings still opens Replay either way.
+ * Replay is always reachable, including before the first listening session.
+ * The headline cards below it still open their specific charts directly.
  */
 @Composable
 fun LibraryReplayEntry(
@@ -143,16 +155,46 @@ fun LibraryReplayEntry(
     memberSince: String?,
     onOpenReplay: (ReplayStoryPage) -> Unit,
 ) {
-    if (loading) {
-        ReplayCardRowSkeleton()
-    } else if (cards.isNotEmpty()) {
-        ReplayCardRow(
-            cards = cards,
-            holder = holder,
-            memberSince = memberSince,
-            onCardClick = onOpenReplay,
-            modifier = Modifier.padding(vertical = 6.dp),
-            contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
-        )
+    Column(Modifier.padding(bottom = 10.dp)) {
+        Surface(
+            onClick = { onOpenReplay(ReplayStoryPage.INTRO) },
+            shape = RoundedCornerShape(22.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = PAGE_GUTTER, vertical = 8.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.padding(18.dp),
+            ) {
+                Icon(
+                    Icons.Rounded.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(26.dp),
+                )
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.your_replay), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.replay_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(BitChordIcons.ChevronRight, contentDescription = null, modifier = Modifier.size(20.dp))
+            }
+        }
+        if (loading) {
+            ReplayCardRowSkeleton()
+        } else if (cards.isNotEmpty()) {
+            ReplayCardRow(
+                cards = cards,
+                holder = holder,
+                memberSince = memberSince,
+                onCardClick = onOpenReplay,
+                modifier = Modifier.padding(vertical = 6.dp),
+                contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
+            )
+        }
     }
 }

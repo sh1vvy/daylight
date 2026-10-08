@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import com.music.bitchord.ui.components.ShelfRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -37,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -50,6 +52,7 @@ import com.music.bitchord.data.model.HomeShelf
 import com.music.bitchord.data.model.LibraryPage
 import com.music.bitchord.data.model.ShelfItem
 import com.music.bitchord.data.model.UiState
+import com.music.bitchord.data.model.playlistCreationOrderKey
 import com.music.bitchord.data.settings.LibrarySort
 import com.music.bitchord.ui.AppUi
 import com.music.bitchord.ui.icons.BitChordIcons
@@ -118,6 +121,8 @@ fun LibraryScreen(
     deviceItems: List<ShelfItem>,
     /** The big "Library" heading; the desktop's pages carry none. */
     showTitle: Boolean = true,
+    /** Actual creation history supplied by Android; absent on other platforms. */
+    createdPlaylistIds: List<String> = emptyList(),
 ) {
     val pinnedPlaylists by AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
     val onDevice = stringResource(Res.string.on_device)
@@ -148,12 +153,16 @@ fun LibraryScreen(
             }
             if (deviceItems.isNotEmpty()) {
                 item(key = "shelf:$onDevice") {
-                    val onDeviceShelf = HomeShelf(title = onDevice, items = deviceItems)
+                    val onDeviceShelf = remember(onDevice, deviceItems, createdPlaylistIds, pinnedPlaylists) {
+                        HomeShelf(title = onDevice, items = deviceItems)
+                            .orderedForLibrary(pinnedPlaylists, LibrarySort.DEFAULT, createdPlaylistIds)
+                    }
                     LibraryGridShelf(
                         shelf = onDeviceShelf,
                         onItemClick = onShelfItemClick,
                         onItemLongPress = onShelfItemLongPress,
                         onShowAll = { onShowAll(onDeviceShelf) },
+                        newestCreatedPlaylistId = onDeviceShelf.newestCreatedPlaylistId(createdPlaylistIds),
                     )
                 }
             }
@@ -206,15 +215,18 @@ fun LibraryScreen(
                     shelves.forEach { shelf ->
                         item(key = "shelf:${shelf.title}") {
                             if (shelf.title == PLAYLISTS) {
-                                val pinnedFirst = remember(shelf, pinnedPlaylists) { shelf.pinnedFirst(pinnedPlaylists) }
+                                val ordered = remember(shelf, pinnedPlaylists, createdPlaylistIds) {
+                                    shelf.orderedForLibrary(pinnedPlaylists, LibrarySort.DEFAULT, createdPlaylistIds)
+                                }
                                 PlaylistShelf(
-                                    shelf = pinnedFirst,
+                                    shelf = ordered,
                                     onItemClick = onShelfItemClick,
                                     onItemLongPress = onShelfItemLongPress,
                                     onNewPlaylist = onNewPlaylist,
                                     onImportSpotifyPlaylist = onImportSpotifyPlaylist,
-                                    onShowAll = { onShowAll(pinnedFirst) },
+                                    onShowAll = { onShowAll(ordered) },
                                     pinnedPlaylists = pinnedPlaylists,
+                                    newestCreatedPlaylistId = ordered.newestCreatedPlaylistId(createdPlaylistIds),
                                 )
                             } else {
                                 LibraryGridShelf(
@@ -315,6 +327,7 @@ private fun PlaylistShelf(
     onShowAll: () -> Unit,
     pinnedPlaylists: List<String> = emptyList(),
     savedLocally: Boolean = false,
+    newestCreatedPlaylistId: String? = null,
 ) {
     LibraryGridShelf(
         shelf = shelf,
@@ -322,6 +335,7 @@ private fun PlaylistShelf(
         onItemLongPress = onItemLongPress,
         onShowAll = onShowAll,
         pinnedPlaylists = pinnedPlaylists,
+        newestCreatedPlaylistId = newestCreatedPlaylistId,
         leadingCard = {
             Row(horizontalArrangement = Arrangement.spacedBy(LIBRARY_GRID_SPACING)) {
                 NewShelfCard(
@@ -365,12 +379,28 @@ internal fun LibraryGridShelf(
     onShowAll: () -> Unit,
     leadingCard: (@Composable () -> Unit)? = null,
     pinnedPlaylists: List<String> = emptyList(),
+    newestCreatedPlaylistId: String? = null,
 ) {
     val leadingCount = if (leadingCard != null) 1 else 0
     val visibleItems = remember(shelf.items, leadingCount) {
         shelf.items.take((LIBRARY_ROW_MAX_ITEMS - leadingCount).coerceAtLeast(0))
     }
     val itemKeys = remember(visibleItems) { shelfItemKeys(visibleItems) }
+    val rowState = rememberLazyListState()
+    // LazyRow retains the old first visible key after a prepend. Reveal an
+    // actual new creation once, while retaining scroll on normal refreshes,
+    // renames and revisiting the page.
+    val observedCreations = remember {
+        mutableSetOf<String>().apply { newestCreatedPlaylistId?.let(::add) }
+    }
+    LaunchedEffect(newestCreatedPlaylistId) {
+        val createdId = newestCreatedPlaylistId ?: return@LaunchedEffect
+        if (!observedCreations.add(createdId)) return@LaunchedEffect
+        val index = visibleItems.indexOfFirst { item ->
+            item.browseId?.let(::playlistCreationOrderKey) == createdId
+        }
+        if (index >= 0) rowState.scrollToItem(index + leadingCount)
+    }
     Column(Modifier.padding(bottom = 26.dp)) {
         SectionHeader(
             title = shelf.title,
@@ -380,6 +410,7 @@ internal fun LibraryGridShelf(
         ShelfRow(
             contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
             horizontalArrangement = Arrangement.spacedBy(LIBRARY_GRID_SPACING),
+            state = rowState,
         ) {
             leadingCard?.let { card -> item(key = "leading", contentType = "leading-card") { card() } }
             itemsIndexed(
@@ -411,6 +442,7 @@ fun LibraryGridPage(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
     onNewPlaylist: (() -> Unit)? = null,
+    createdPlaylistIds: List<String> = emptyList(),
 ) {
     // Re-read live rather than trusting [shelf] to already be sorted: this page
     // is opened from a snapshot (see `libraryShowAll` in MainActivity), and a
@@ -418,11 +450,10 @@ fun LibraryGridPage(
     // immediately rather than waiting for the row underneath to be revisited.
     val pinnedPlaylists by AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
     val librarySort by AppUi.host.librarySort.collectAsStateWithLifecycle()
-    // Pinning wins over the default order, but an explicit sort is a stronger,
-    // more deliberate signal than a pin and is left to reorder the whole grid,
-    // pinned cards included.
-    val sortedShelf = remember(shelf, pinnedPlaylists, librarySort) {
-        shelf.pinnedFirst(pinnedPlaylists).sortedForLibrary(librarySort)
+    // New playlists stay easy to find even after a title sort or provider
+    // refresh. Pins and explicit sorting still arrange the older collections.
+    val sortedShelf = remember(shelf, pinnedPlaylists, librarySort, createdPlaylistIds) {
+        shelf.orderedForLibrary(pinnedPlaylists, librarySort, createdPlaylistIds)
     }
     val itemKeys = remember(sortedShelf.items) { shelfItemKeys(sortedShelf.items) }
     BoxWithConstraints(modifier.fillMaxSize()) {
@@ -461,35 +492,6 @@ fun LibraryGridPage(
             }
         }
     }
-}
-
-/**
- * Moves whichever of this shelf's cards are in [pinned] to the front, in the
- * order they were pinned, leaving everything else in its existing order behind
- * them.
- *
- * A no-op on any shelf that isn't Playlists: [pinned] only ever holds playlist
- * browse ids, so an album or artist shelf never has a card that matches.
- */
-private fun HomeShelf.pinnedFirst(pinned: List<String>): HomeShelf {
-    if (pinned.isEmpty()) return this
-    val byId = items.filter { it.browseId != null }.associateBy { it.browseId }
-    val pinnedItems = pinned.mapNotNull { byId[it] }
-    if (pinnedItems.isEmpty()) return this
-    val pinnedSet = pinnedItems.toSet()
-    return copy(items = pinnedItems + items.filter { it !in pinnedSet })
-}
-
-/**
- * A card's title is all a Library shelf carries, so [LibrarySort.DEFAULT] is
- * the only option that isn't alphabetical — everything else sorts on it.
- */
-private fun HomeShelf.sortedForLibrary(sort: LibrarySort): HomeShelf = when (sort) {
-    LibrarySort.DEFAULT -> this
-    LibrarySort.TITLE_ASC -> copy(items = items.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title }))
-    LibrarySort.TITLE_DESC -> copy(
-        items = items.sortedWith(compareByDescending(String.CASE_INSENSITIVE_ORDER) { it.title }),
-    )
 }
 
 /** The library feed whose cards are the account's own — see [PlaylistShelf]. */

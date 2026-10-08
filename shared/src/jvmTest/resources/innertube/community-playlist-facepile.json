@@ -1,0 +1,115 @@
+{
+  "header": {
+    "musicResponsiveHeaderRenderer": {
+      "title": {
+        "runs": [
+          {
+            "text": "MOST ROMANTIC ALBUM😘😘"
+          }
+        ]
+      },
+      "subtitle": {
+        "runs": [
+          {
+            "text": "Playlist"
+          },
+          {
+            "text": " • "
+          },
+          {
+            "text": "2022"
+          }
+        ]
+      },
+      "secondSubtitle": {
+        "runs": [
+          {
+            "text": "4.1M views"
+          },
+          {
+            "text": " • "
+          },
+          {
+            "text": "48 tracks"
+          },
+          {
+            "text": " • "
+          },
+          {
+            "text": "3 hours, 59 minutes"
+          }
+        ]
+      },
+      "thumbnail": {
+        "musicThumbnailRenderer": {
+          "thumbnail": {
+            "thumbnails": [
+              {
+                "url": "https://yt3.ggpht.com/lARf7ulCYIsFXz8pcjboMaKAwfhQU4KiP1CpFSOpxsVWuVmjAmTd2qlQM8qGuYNI9QARcZa0GDP2=s192",
+                "width": 192,
+                "height": 192
+              },
+              {
+                "url": "https://yt3.ggpht.com/lARf7ulCYIsFXz8pcjboMaKAwfhQU4KiP1CpFSOpxsVWuVmjAmTd2qlQM8qGuYNI9QARcZa0GDP2=s576",
+                "width": 576,
+                "height": 576
+              },
+              {
+                "url": "https://yt3.ggpht.com/lARf7ulCYIsFXz8pcjboMaKAwfhQU4KiP1CpFSOpxsVWuVmjAmTd2qlQM8qGuYNI9QARcZa0GDP2=s1200",
+                "width": 1200,
+                "height": 1200
+              }
+            ]
+          },
+          "thumbnailCrop": "MUSIC_THUMBNAIL_CROP_UNSPECIFIED",
+          "thumbnailScale": "MUSIC_THUMBNAIL_SCALE_UNSPECIFIED"
+        }
+      },
+      "facepile": {
+        "avatarStackViewModel": {
+          "avatars": [
+            {
+              "avatarViewModel": {
+                "image": {
+                  "sources": [
+                    {
+                      "url": "https://yt3.ggpht.com/ytc/AIdro_mw-NJSHMAYLBAx-mitZaxuUCo-r-2nFkqC2mylFRZTBHY=s48-c-k-c0x00000000-no-cc-rj-rp"
+                    }
+                  ],
+                  "processor": {
+                    "borderImageProcessor": {
+                      "circular": true
+                    }
+                  }
+                },
+                "avatarImageSize": "AVATAR_SIZE_XS"
+              }
+            }
+          ],
+          "text": {
+            "content": "Siddh Shah"
+          },
+          "rendererContext": {
+            "accessibilityContext": {
+              "label": "Siddh Shah"
+            },
+            "commandContext": {
+              "onTap": {
+                "innertubeCommand": {
+                  "browseEndpoint": {
+                    "browseId": "UCp6UBtikk9qNpyNaecUc8iw",
+                    "browseEndpointContextSupportedConfigs": {
+                      "browseEndpointContextMusicConfig": {
+                        "pageType": "MUSIC_PAGE_TYPE_USER_CHANNEL"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

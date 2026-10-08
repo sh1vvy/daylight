@@ -616,7 +616,7 @@
     <string name="scrobble_timing">Scrobble timing</string>
     <string name="scrobble_tracks">Scrobble tracks</string>
     <string name="scrobble_tracks_subtitle">Log plays to your Last.fm timeline</string>
-    <string name="scrobbling_footer">Scrobble your listens to Last.fm and ListenBrainz.</string>
+    <string name="scrobbling_footer">Scrobble your listens to Last.fm.</string>
     <string name="scrobbling_paused_footer">Last.fm and ListenBrainz are paused for this release and will return later. Existing connections remain saved.</string>
     <string name="search_this_folder">Search this folder</string>
     <string name="search_this_list">Search this list</string>
@@ -1131,7 +1131,7 @@
     <string name="spotify_import_empty_playlist">No songs in this playlist</string>
     <string name="spotify_library_subtitle">Your Spotify playlists</string>
     <string name="credits">Credits</string>
-    <string name="credits_subtitle">BitChord and app icon acknowledgments</string>
+    <string name="credits_subtitle">App and artwork acknowledgments</string>
     <string name="credits_bitchord_heading">Based on BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh and contributors</string>
     <string name="credits_icon_heading">App icon</string>
@@ -1143,4 +1143,13 @@
     <string name="playlist_create_failed">Couldn’t create the playlist. Try again.</string>
     <string name="playlist_saved_on_device">Saved on this device</string>
     <string name="playlist_import_partial">Created %1$s with %2$d of %3$d songs. Keep the local copy to avoid losing tracks.</string>
+    <string name="settings_expand_category">Expand %1$s</string>
+    <string name="settings_collapse_category">Collapse %1$s</string>
+    <string name="settings_made_with_love">Made with ♥ for Gunnu</string>
+    <string name="settings_category_lyrics_accessibility">Lyrics &amp; accessibility</string>
+    <string name="settings_category_downloads_storage">Downloads &amp; storage</string>
+    <string name="playlist_creator">Playlist creator</string>
+    <string name="creator_public_playlists">Public playlists</string>
+    <string name="creator_on_device">On this device</string>
+    <string name="creator_you">You</string>
 </resources>

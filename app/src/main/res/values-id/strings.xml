@@ -422,7 +422,7 @@
     <string name="scrobble_timing">Waktu scrobble</string>
     <string name="scrobble_tracks">Scrobble trek</string>
     <string name="scrobble_tracks_subtitle">Catat putaran ke linimasa Last.fm Anda</string>
-    <string name="scrobbling_footer">Scrobble apa yang Anda dengarkan ke Last.fm dan ListenBrainz.</string>
+    <string name="scrobbling_footer">Scrobble apa yang Anda dengarkan ke Last.fm.</string>
     <string name="scrobbling_paused_footer">Last.fm dan ListenBrainz dijeda untuk rilisan ini dan akan kembali nanti. Koneksi yang ada tetap tersimpan.</string>
     <string name="search_this_folder">Cari di folder ini</string>
     <string name="search_this_list">Cari di daftar ini</string>
@@ -1271,7 +1271,7 @@
     <string name="lyric_language_buttons">Tombol bahasa lirik</string>
     <string name="lyric_language_buttons_subtitle">Tampilkan tombol romanisasi dan terjemahan di pemutar lirik</string>
     <string name="credits">Kredit</string>
-    <string name="credits_subtitle">Penghargaan untuk BitChord dan ikon aplikasi</string>
+    <string name="credits_subtitle">Penghargaan untuk aplikasi dan karya seni</string>
     <string name="credits_bitchord_heading">Berbasis BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh dan para kontributor</string>
     <string name="credits_icon_heading">Ikon aplikasi</string>
@@ -1283,4 +1283,13 @@
     <string name="playlist_create_failed">Playlist tidak dapat dibuat. Coba lagi.</string>
     <string name="playlist_saved_on_device">Disimpan di perangkat ini</string>
     <string name="playlist_import_partial">%1$s dibuat dengan %2$d dari %3$d lagu. Simpan salinan lokal agar tidak kehilangan lagu.</string>
+    <string name="settings_expand_category">Expand %1$s</string>
+    <string name="settings_collapse_category">Collapse %1$s</string>
+    <string name="settings_made_with_love">Made with ♥ for Gunnu</string>
+    <string name="settings_category_lyrics_accessibility">Lyrics &amp; accessibility</string>
+    <string name="settings_category_downloads_storage">Downloads &amp; storage</string>
+    <string name="playlist_creator">Playlist creator</string>
+    <string name="creator_public_playlists">Public playlists</string>
+    <string name="creator_on_device">On this device</string>
+    <string name="creator_you">You</string>
 </resources>

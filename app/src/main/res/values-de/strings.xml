@@ -436,7 +436,7 @@
     <string name="scrobble_timing">Scrobble-Zeitpunkt</string>
     <string name="scrobble_tracks">Titel scrobbeln</string>
     <string name="scrobble_tracks_subtitle">Zeichnet Wiedergaben in deiner Last.fm-Timeline auf</string>
-    <string name="scrobbling_footer">Scrobble deine Wiedergaben zu Last.fm und ListenBrainz.</string>
+    <string name="scrobbling_footer">Scrobble deine Wiedergaben zu Last.fm.</string>
     <string name="scrobbling_paused_footer">Last.fm und ListenBrainz sind für diese Version pausiert und kehren später zurück. Bestehende Verbindungen bleiben gespeichert.</string>
     <string name="search_this_folder">Diesen Ordner durchsuchen</string>
     <string name="search_this_list">Diese Liste durchsuchen</string>
@@ -1294,7 +1294,7 @@
     <string name="lyric_language_buttons">Sprachschaltflächen für Songtexte</string>
     <string name="lyric_language_buttons_subtitle">Schaltflächen für Umschrift und Übersetzung im Songtext-Player anzeigen</string>
     <string name="credits">Mitwirkende</string>
-    <string name="credits_subtitle">Danksagungen für BitChord und das App-Symbol</string>
+    <string name="credits_subtitle">Danksagungen für App und Artwork</string>
     <string name="credits_bitchord_heading">Basierend auf BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh und Mitwirkende</string>
     <string name="credits_icon_heading">App-Symbol</string>
@@ -1306,4 +1306,13 @@
     <string name="playlist_create_failed">Die Playlist konnte nicht erstellt werden. Versuche es erneut.</string>
     <string name="playlist_saved_on_device">Auf diesem Gerät gespeichert</string>
     <string name="playlist_import_partial">%1$s wurde mit %2$d von %3$d Titeln erstellt. Behalte die lokale Kopie, damit keine Titel verloren gehen.</string>
+    <string name="settings_expand_category">Expand %1$s</string>
+    <string name="settings_collapse_category">Collapse %1$s</string>
+    <string name="settings_made_with_love">Made with ♥ for Gunnu</string>
+    <string name="settings_category_lyrics_accessibility">Lyrics &amp; accessibility</string>
+    <string name="settings_category_downloads_storage">Downloads &amp; storage</string>
+    <string name="playlist_creator">Playlist creator</string>
+    <string name="creator_public_playlists">Public playlists</string>
+    <string name="creator_on_device">On this device</string>
+    <string name="creator_you">You</string>
 </resources>

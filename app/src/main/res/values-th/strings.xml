@@ -450,7 +450,7 @@
     <string name="scrobble_timing">จังหวะเวลาสโครบเบิล</string>
     <string name="scrobble_tracks">สโครบเบิลแทร็ก</string>
     <string name="scrobble_tracks_subtitle">บันทึกการเล่นลงไทม์ไลน์ Last.fm ของคุณ</string>
-    <string name="scrobbling_footer">สโครบเบิลสิ่งที่คุณฟังไปยัง Last.fm และ ListenBrainz</string>
+    <string name="scrobbling_footer">สโครบเบิลสิ่งที่คุณฟังไปยัง Last.fm</string>
     <string name="scrobbling_paused_footer">Last.fm และ ListenBrainz ถูกหยุดไว้ชั่วคราวสำหรับเวอร์ชันนี้ และจะกลับมาในภายหลัง การเชื่อมต่อที่มีอยู่ยังคงถูกบันทึกไว้</string>
     <string name="search_this_folder">ค้นหาในโฟลเดอร์นี้</string>
     <string name="search_this_list">ค้นหาในรายการนี้</string>
@@ -1277,7 +1277,7 @@
     <string name="lyric_language_buttons">ปุ่มภาษาของเนื้อเพลง</string>
     <string name="lyric_language_buttons_subtitle">แสดงปุ่มอักษรโรมันและการแปลในหน้าจอเนื้อเพลง</string>
     <string name="credits">เครดิต</string>
-    <string name="credits_subtitle">ขอบคุณ BitChord และผู้สร้างไอคอนแอป</string>
+    <string name="credits_subtitle">ขอบคุณผู้สร้างแอปและงานศิลป์</string>
     <string name="credits_bitchord_heading">พัฒนาจาก BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh และผู้ร่วมพัฒนา</string>
     <string name="credits_icon_heading">ไอคอนแอป</string>
@@ -1289,4 +1289,13 @@
     <string name="playlist_create_failed">สร้างเพลย์ลิสต์ไม่ได้ โปรดลองอีกครั้ง</string>
     <string name="playlist_saved_on_device">บันทึกบนอุปกรณ์นี้แล้ว</string>
     <string name="playlist_import_partial">สร้าง %1$s พร้อม %2$d จาก %3$d เพลงแล้ว เก็บสำเนาในอุปกรณ์ไว้เพื่อไม่ให้เพลงสูญหาย</string>
+    <string name="settings_expand_category">Expand %1$s</string>
+    <string name="settings_collapse_category">Collapse %1$s</string>
+    <string name="settings_made_with_love">Made with ♥ for Gunnu</string>
+    <string name="settings_category_lyrics_accessibility">Lyrics &amp; accessibility</string>
+    <string name="settings_category_downloads_storage">Downloads &amp; storage</string>
+    <string name="playlist_creator">Playlist creator</string>
+    <string name="creator_public_playlists">Public playlists</string>
+    <string name="creator_on_device">On this device</string>
+    <string name="creator_you">You</string>
 </resources>

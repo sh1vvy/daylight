@@ -9,6 +9,8 @@ import com.music.bitchord.data.model.isExactArtistMatch
 import com.music.bitchord.data.model.normalizedArtistName
 import com.music.bitchord.data.model.ArtistPage
 import com.music.bitchord.data.model.BrowseType
+import com.music.bitchord.data.model.PlaylistCreator
+import com.music.bitchord.data.model.CreatorProfileData
 import com.music.bitchord.data.model.HomeFeed
 import com.music.bitchord.data.model.HomeShelf
 import com.music.bitchord.data.model.LibraryPage
@@ -653,6 +655,8 @@ object YtMusicRepository {
         val description: String? = null,
         /** Album header's authoritative listing, fetched only by song-list readers. */
         val backingPlaylistId: String? = null,
+        /** Playlist author returned by its own header, never by a track. */
+        val creator: PlaylistCreator? = null,
     )
 
     /**
@@ -678,7 +682,10 @@ object YtMusicRepository {
             // Only a playlist has an owner in the sense that matters — see
             // parsePlaylistOwned — and only its own first response can be asked.
             if (continuation || !id.startsWith("VL")) page
-            else page.copy(owned = InnertubeParser.parsePlaylistOwned(response))
+            else page.copy(
+                owned = InnertubeParser.parsePlaylistOwned(response),
+                creator = InnertubeParser.parsePlaylistCreator(response),
+            )
         }
 
     /**
@@ -697,6 +704,7 @@ object YtMusicRepository {
             owned = metadata.owned,
             header = metadata.header,
             description = metadata.description,
+            creator = null,
         )
     }
 
@@ -1029,6 +1037,12 @@ object YtMusicRepository {
         } finally {
             clearBrowseCache()
         }
+    }
+
+    /** Fetches only the creator's own header and public playlist cards. */
+    suspend fun creatorProfile(browseId: String): Result<CreatorProfileData> = call("creator:$browseId") {
+        require(browseId.startsWith("UC")) { "A public creator channel is required" }
+        InnertubeParser.parseCreatorProfile(Innertube.browse(browseId))
     }
 
     /**

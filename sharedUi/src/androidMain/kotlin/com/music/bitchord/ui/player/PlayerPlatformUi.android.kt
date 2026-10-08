@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 
 internal actual fun uptimeMillis(): Long = SystemClock.uptimeMillis()
 
@@ -33,10 +33,12 @@ internal actual fun KeepScreenOn(enabled: Boolean) {
 
 @Composable
 internal actual fun appLanguageTag(): String {
-    val context = LocalContext.current
+    // Observe locale changes even when Android updates an existing activity's
+    // configuration. An explicit app language takes priority over the device.
+    val configuration = LocalConfiguration.current
     return AppCompatDelegate.getApplicationLocales().get(0)?.toLanguageTag()
         ?.takeIf { it.isNotBlank() }
-        ?: context.resources.configuration.locales.get(0).toLanguageTag()
+        ?: configuration.locales.get(0).toLanguageTag()
 }
 
 /**

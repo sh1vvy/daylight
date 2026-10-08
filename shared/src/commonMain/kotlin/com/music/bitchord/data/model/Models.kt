@@ -456,6 +456,32 @@ data class LibraryPage(
         get() = likedSongs.isEmpty() && librarySongs.isEmpty() && shelves.isEmpty()
 }
 
+enum class CreatorProvider { YOUTUBE_MUSIC, SPOTIFY, LOCAL }
+
+/** The account credited by a playlist header; it is independent of its tracks' artists. */
+data class PlaylistCreator(
+    val name: String,
+    val browseId: String? = null,
+    val thumbnailUrl: String? = null,
+    val provider: CreatorProvider = CreatorProvider.YOUTUBE_MUSIC,
+)
+
+/** A creator visit keeps its originating playlist visible while public collections load. */
+data class CreatorProfilePage(
+    val creator: PlaylistCreator,
+    val currentPlaylist: BrowseItem,
+    val playlists: UiState<List<BrowseItem>>,
+    val description: String? = null,
+)
+
+/** Public creator information returned by its own catalogue page. */
+data class CreatorProfileData(
+    val name: String?,
+    val thumbnailUrl: String?,
+    val playlists: List<BrowseItem>,
+    val description: String? = null,
+)
+
 /** A browsed album / artist / playlist page. */
 data class DetailPage(
     val browseId: String,
@@ -497,6 +523,10 @@ data class DetailPage(
     val subscription: SubscriptionState? = null,
     /** Ephemeral identity for a stack entry; two visits can share the same browse id. */
     val instanceId: Long = 0L,
+    /** Playlist-header author; never inferred from the first song. */
+    val creator: PlaylistCreator? = null,
+    /** Non-null for a creator profile occupying this navigation stack entry. */
+    val creatorProfile: CreatorProfilePage? = null,
 )
 
 /**

@@ -1,4 +1,4 @@
-package com.music.bitchord.data.canvas
+package com.music.bitchord.data.spotify
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -34,17 +34,20 @@ import java.util.Base64
 /**
  * The bearer token behind Spotify's own web player, minted from the
  * listener's session cookie ([AppSettings.spotifySpdcToken]) rather than an
- * app credential — there is no public API for a track's Canvas, so this walks
- * the same door the web player itself uses to fetch one.
+ * app credential. Only explicit Spotify library and playlist requests use it;
+ * playback and animated artwork never load the web player.
  *
- * Call [init] once at process start, same as [CanvasCache] and the other
+ * Call [init] once at process start, same as the other
  * app-scoped singletons — the WebView harvest below needs a [Context] and
  * none of the suspend call chain that reaches [accessToken] has one to hand.
  */
-internal object SpotifyToken {
+internal object SpotifySessionTokens {
 
-    private const val TAG = "SpotifyToken"
-    private const val BRIDGE_NAME = "BitChordSpotifyTokenBridge"
+    private const val TAG = "SpotifySessionTokens"
+    private const val BRIDGE_NAME = "DaylightSpotifySessionBridge"
+    internal const val USER_AGENT =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/122.0.0.0 Safari/537.36"
     private const val HARVEST_TIMEOUT_MS = 20_000L
     private const val DEFAULT_TOKEN_LIFETIME_MS = 3_600_000L
 
@@ -79,8 +82,8 @@ internal object SpotifyToken {
     /**
      * The current bearer token, or null when there is no cookie to mint one
      * from, [init] was never called, or the harvest failed. Cached until
-     * shortly before it expires so a skip through a queue doesn't pay for
-     * this per track.
+     * shortly before it expires so paging through a library or importing a
+     * long playlist does not repeat the harvest.
      *
      * Minted by loading the real web player in an offscreen WebView with the
      * listener's cookie applied and reading the token it mints for itself —
@@ -100,7 +103,7 @@ internal object SpotifyToken {
 
             val context = appContext
             if (context == null) {
-                Log.w(TAG, "SpotifyToken.init was never called; no context for the harvest")
+                Log.w(TAG, "SpotifySessionTokens.init was never called; no context for the harvest")
                 return@withLock null
             }
 
@@ -154,7 +157,7 @@ internal object SpotifyToken {
             webView = RecoverableWebView(context).apply {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
-                settings.userAgentString = CANVAS_UA
+                settings.userAgentString = USER_AGENT
                 cookieManager.setAcceptThirdPartyCookies(this, true)
                 addJavascriptInterface(TokenBridge(deferred), BRIDGE_NAME)
 
@@ -211,7 +214,7 @@ internal object SpotifyToken {
                 val anonymous = root["isAnonymous"]?.jsonPrimitive?.contentOrNull
                     ?.toBooleanStrictOrNull() ?: false
                 // The player also mints an anonymous token before the cookie
-                // takes effect; that one can't read canvases, so keep waiting
+                // takes effect; that one can't read the library, so keep waiting
                 // for the logged-in one.
                 if (token.isNullOrBlank() || anonymous) return
                 val expiresAt = root["accessTokenExpirationTimestampMs"]?.jsonPrimitive?.contentOrNull
@@ -312,7 +315,7 @@ internal object SpotifyToken {
             .url("https://clienttoken.spotify.com/v1/clienttoken")
             .post(payload.toString().toByteArray(Charsets.UTF_8).toRequestBody("application/json".toMediaType()))
             .header("Accept", "application/json")
-            .header("User-Agent", CANVAS_UA)
+            .header("User-Agent", USER_AGENT)
             .build()
 
         var lastCode = -1
@@ -364,7 +367,7 @@ internal object SpotifyToken {
 
         val request = Request.Builder()
             .url("https://open.spotify.com")
-            .header("User-Agent", CANVAS_UA)
+            .header("User-Agent", USER_AGENT)
             .build()
         val (html, deviceId) = runCatching {
             Http.client.newCall(request).execute().use { response ->

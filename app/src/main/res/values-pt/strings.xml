@@ -402,7 +402,7 @@
     <string name="scrobble_timing">Tempo de scrobble</string>
     <string name="scrobble_tracks">Fazer scrobble das faixas</string>
     <string name="scrobble_tracks_subtitle">Registrar reproduções em sua linha do tempo do Last.fm</string>
-    <string name="scrobbling_footer">Faça scrobble das suas reproduções para o Last.fm e ListenBrainz.</string>
+    <string name="scrobbling_footer">Faça scrobble das suas reproduções para o Last.fm.</string>
     <string name="scrobbling_paused_footer">Last.fm e ListenBrainz estão pausados para esta versão e retornarão mais tarde. As conexões existentes permanecem salvas.</string>
     <string name="search_this_folder">Pesquisar nesta pasta</string>
     <string name="search_this_list">Pesquisar nesta lista</string>
@@ -1299,7 +1299,7 @@
     <string name="lyric_language_buttons">Botões de idioma das letras</string>
     <string name="lyric_language_buttons_subtitle">Mostrar botões de romanização e tradução no leitor de letras</string>
     <string name="credits">Créditos</string>
-    <string name="credits_subtitle">Agradecimentos ao BitChord e à arte do ícone</string>
+    <string name="credits_subtitle">Agradecimentos pelo app e pela arte</string>
     <string name="credits_bitchord_heading">Baseado no BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh e colaboradores</string>
     <string name="credits_icon_heading">Ícone do app</string>
@@ -1311,4 +1311,13 @@
     <string name="playlist_create_failed">Não foi possível criar a playlist. Tente novamente.</string>
     <string name="playlist_saved_on_device">Salva neste dispositivo</string>
     <string name="playlist_import_partial">%1$s criada com %2$d de %3$d músicas. Mantenha a cópia local para não perder músicas.</string>
+    <string name="settings_expand_category">Expand %1$s</string>
+    <string name="settings_collapse_category">Collapse %1$s</string>
+    <string name="settings_made_with_love">Made with ♥ for Gunnu</string>
+    <string name="settings_category_lyrics_accessibility">Lyrics &amp; accessibility</string>
+    <string name="settings_category_downloads_storage">Downloads &amp; storage</string>
+    <string name="playlist_creator">Playlist creator</string>
+    <string name="creator_public_playlists">Public playlists</string>
+    <string name="creator_on_device">On this device</string>
+    <string name="creator_you">You</string>
 </resources>

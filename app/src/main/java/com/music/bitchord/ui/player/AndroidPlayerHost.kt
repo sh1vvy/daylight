@@ -47,6 +47,11 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
     private val app = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val main = Handler(Looper.getMainLooper())
+    // The desktop still supports Spotify Canvas and an independent lyric
+    // language. Android removed both: blank makes the shared lyrics follow
+    // appLanguageTag() in composition, including language changes at runtime.
+    private val spotifyCanvasUnavailable = MutableStateFlow(false).asStateFlow()
+    private val followAppLanguage = MutableStateFlow("").asStateFlow()
 
     override val settings: PlayerSettingsSource = object : PlayerSettingsSource {
         override val animatedCanvas get() = AppSettings.animatedCanvas
@@ -64,7 +69,7 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
         override val lyricsSourceOrder get() = AppSettings.lyricsSourceOrder
         override val meteredConnection get() = AppSettings.meteredConnection
         override val preferUsbDac get() = AppSettings.preferUsbDac
-        override val prioritizeSpotifyCanvas get() = AppSettings.prioritizeSpotifyCanvas
+        override val prioritizeSpotifyCanvas get() = spotifyCanvasUnavailable
         override val reduceAnimation get() = AppSettings.reduceAnimation
         override val reduceDynamicBlur get() = AppSettings.reduceDynamicBlur
         override val showNerdStats get() = AppSettings.showNerdStats
@@ -73,9 +78,9 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
         override val smartMixInProgress get() = AppSettings.smartMixInProgress
         override val smartMixBlend get() = AppSettings.smartMixBlend
         override val smartTransitionWindow get() = AppSettings.smartTransitionWindow
-        override val spotifyCanvasAutoHide get() = AppSettings.spotifyCanvasAutoHide
+        override val spotifyCanvasAutoHide get() = spotifyCanvasUnavailable
         override val syncedLyrics get() = AppSettings.syncedLyrics
-        override val translationLanguage get() = AppSettings.translationLanguage
+        override val translationLanguage get() = followAppLanguage
         override val versionAlignmentInProgress get() = AppSettings.versionAlignmentInProgress
 
         override fun setLastPlayerScreen(value: LastPlayerScreen) = AppSettings.setLastPlayerScreen(value)

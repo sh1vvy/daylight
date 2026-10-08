@@ -436,7 +436,7 @@
     <string name="scrobble_timing">स्क्रॉबल टाइमिंग</string>
     <string name="scrobble_tracks">ट्रैक स्क्रॉबल करें</string>
     <string name="scrobble_tracks_subtitle">अपनी Last.fm टाइमलाइन पर प्ले लॉग करें</string>
-    <string name="scrobbling_footer">अपनी सुनी चीज़ों को Last.fm और ListenBrainz पर स्क्रॉबल करें।</string>
+    <string name="scrobbling_footer">अपनी सुनी चीज़ों को Last.fm पर स्क्रॉबल करें।</string>
     <string name="scrobbling_paused_footer">इस रिलीज़ के लिए Last.fm और ListenBrainz को रोक दिया गया है और वे बाद में वापस आएंगे। मौजूदा कनेक्शन सेव रहेंगे।</string>
     <string name="search_this_folder">इस फ़ोल्डर में खोजें</string>
     <string name="search_this_list">इस लिस्ट में खोजें</string>
@@ -1294,7 +1294,7 @@
     <string name="lyric_language_buttons">लिरिक्स के भाषा बटन</string>
     <string name="lyric_language_buttons_subtitle">लिरिक्स प्लेयर में रोमन लिपि और अनुवाद के बटन दिखाएँ</string>
     <string name="credits">श्रेय</string>
-    <string name="credits_subtitle">BitChord और ऐप आइकन का श्रेय</string>
+    <string name="credits_subtitle">ऐप और कलाकृति का श्रेय</string>
     <string name="credits_bitchord_heading">BitChord पर आधारित</string>
     <string name="credits_bitchord_authors">Kushagra Singh और योगदानकर्ता</string>
     <string name="credits_icon_heading">ऐप आइकन</string>
@@ -1306,4 +1306,13 @@
     <string name="playlist_create_failed">प्लेलिस्ट नहीं बनाई जा सकी। फिर से कोशिश करें।</string>
     <string name="playlist_saved_on_device">इस डिवाइस पर सहेजी गई</string>
     <string name="playlist_import_partial">%1$s में %3$d में से %2$d गाने जोड़े गए। गाने खोने से बचाने के लिए स्थानीय कॉपी रखें।</string>
+    <string name="settings_expand_category">Expand %1$s</string>
+    <string name="settings_collapse_category">Collapse %1$s</string>
+    <string name="settings_made_with_love">Made with ♥ for Gunnu</string>
+    <string name="settings_category_lyrics_accessibility">Lyrics &amp; accessibility</string>
+    <string name="settings_category_downloads_storage">Downloads &amp; storage</string>
+    <string name="playlist_creator">Playlist creator</string>
+    <string name="creator_public_playlists">Public playlists</string>
+    <string name="creator_on_device">On this device</string>
+    <string name="creator_you">You</string>
 </resources>

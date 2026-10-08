@@ -171,7 +171,7 @@ import com.music.bitchord.ui.screens.SettingsScreen
 import com.music.bitchord.ui.screens.SourceEditorAlert
 import com.music.bitchord.ui.screens.SourcesScreen
 import com.music.bitchord.data.sources.TrackMatcher
-import com.music.bitchord.ui.screens.SpotifyCanvasAuthScreen
+import com.music.bitchord.ui.screens.CreatorProfileScreen
 import com.music.bitchord.ui.screens.SpotifyLibraryScreen
 import com.music.bitchord.data.spotify.SPOTIFY_PAGE_PREFIX
 import com.music.bitchord.playback.AudioCache
@@ -245,7 +245,6 @@ import com.music.bitchord.ui.components.isGlassSupported
 import com.music.bitchord.data.sources.SourceConfig
 import com.music.bitchord.data.sources.SourceKind
 import com.music.bitchord.data.sources.SourceRegistry
-import com.music.bitchord.ui.components.ListenBrainzTokenAlert
 import com.music.bitchord.ui.components.MiniPlayer
 import com.music.bitchord.ui.components.QueueActionNotice
 import com.music.bitchord.ui.components.QueueActionNoticeHost
@@ -259,7 +258,6 @@ import com.music.bitchord.ui.components.TopBarDownloadButton
 import com.music.bitchord.ui.components.optimizedHazeEffect
 import com.music.bitchord.ui.components.topBarContentPadding
 import com.music.bitchord.ui.components.AppLanguageDialog
-import com.music.bitchord.ui.components.TranslationLanguageDialog
 import com.music.bitchord.ui.components.LyricsSourcesDialog
 import com.music.bitchord.ui.components.ServerEditorHost
 import com.music.bitchord.ui.components.UpdateAvailableDialog
@@ -561,7 +559,6 @@ private fun BitChordApp(
     var showSources by rememberSaveable { mutableStateOf(false) }
     var showListenTogether by rememberSaveable { mutableStateOf(false) }
     var showEqualizer by rememberSaveable { mutableStateOf(false) }
-    var showSpotifyCanvasAuth by remember { mutableStateOf(false) }
 
     // Hosted here rather than inside SourcesScreen so its frosted card has
     // something to blur: that screen is drawn inside the `hazeSource` subtree,
@@ -579,9 +576,7 @@ private fun BitChordApp(
     var librarySortMenuOpen by remember { mutableStateOf(false) }
     var showLyricsSources by remember { mutableStateOf(false) }
     var showAppLanguage by remember { mutableStateOf(false) }
-    var showTranslationLanguage by remember { mutableStateOf(false) }
     var showAccountSelector by remember { mutableStateOf(false) }
-    var showListenBrainzLogin by remember { mutableStateOf(false) }
     var showLastfmLogin by remember { mutableStateOf(false) }
     var showWebDavEditor by remember { mutableStateOf(false) }
     var showSmbEditor by remember { mutableStateOf(false) }
@@ -673,7 +668,6 @@ private fun BitChordApp(
     // turned the party's setting on while the label already said so.
     val autoplayEnabled = autoplayEnabledFor(partyState, autoplay)
     val partyServerStatus by ListenTogether.serverConnectionState.collectAsStateWithLifecycle()
-    val listenBrainzToken by AppSettings.listenBrainzToken.collectAsStateWithLifecycle()
     // Set each time the search tab is tapped, which SearchScreen uses as a
     // signal to focus the input field.
     var searchFocusRequested by remember { mutableStateOf(false) }
@@ -838,6 +832,7 @@ private fun BitChordApp(
     // Playlists imported without (or instead of) a YouTube Music account live
     // in the app's own store, and sit on the same shelf as the downloaded ones.
     val localPlaylists by com.music.bitchord.data.spotify.LocalPlaylistStore.playlists.collectAsStateWithLifecycle()
+    val createdPlaylistIds by com.music.bitchord.data.library.LibraryPlaylistOrderStore.createdPlaylistIds.collectAsStateWithLifecycle()
     val configuration = LocalConfiguration.current
     val localPlaylistItems = remember(localPlaylists, configuration, context) {
         localPlaylists.map { playlist ->
@@ -1115,6 +1110,7 @@ private fun BitChordApp(
     // while it is on the navigation stack instead.
     val detailListStates = remember { mutableMapOf<String, LazyListState>() }
     val detailSaveableStateHolder = rememberSaveableStateHolder()
+    val settingsSaveableStateHolder = rememberSaveableStateHolder()
     var retainedDetailStateKeys by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val detailListState = detail?.let { page ->
         detailListStates.getOrPut(page.detailRouteKey()) { LazyListState() }
@@ -2605,7 +2601,6 @@ private fun BitChordApp(
             selectedTab = TAB_HOME
         }
         BackHandler(enabled = showUpdateDialog) { showUpdateDialog = false }
-        BackHandler(enabled = showListenBrainzLogin) { showListenBrainzLogin = false }
         BackHandler(enabled = showLastfmLogin) { showLastfmLogin = false }
         BackHandler(enabled = discordDialog != null) { discordDialog = null }
         BackHandler(enabled = editingSource != null) { editingSource = null }
@@ -2748,8 +2743,15 @@ private fun BitChordApp(
                         )
                     } else if (key == "library_show_all") {
                         libraryShowAll?.let { shelf ->
+                            val liveShelf = if (shelf.title == YtMusicRepository.PLAYLISTS_SHELF) {
+                                (libraryState as? UiState.Success)?.data?.shelves
+                                    ?.firstOrNull { it.title == shelf.title } ?: shelf
+                            } else if (shelf.title == context.getString(R.string.on_device)) {
+                                shelf.copy(items = localPlaylistItems + libraryDeviceItems(downloadedReleases))
+                            } else shelf
                             LibraryGridPage(
-                                shelf = shelf,
+                                shelf = liveShelf,
+                                createdPlaylistIds = createdPlaylistIds,
                                 gridState = libraryShowAllGridState,
                                 onItemClick = onLibraryItemClick,
                                 onItemLongPress = onBrowseLongPress,
@@ -2829,7 +2831,6 @@ private fun BitChordApp(
                                 showAccountSelector = true
                             },
                             onSignOut = { viewModel.signOut() },
-                            onOpenListenBrainzLogin = { showListenBrainzLogin = true },
                             onOpenLastfmLogin = { showLastfmLogin = true },
                             onOpenDiscord = { showDiscord = true },
                             onOpenSpotify = { showSpotify = true },
@@ -2864,41 +2865,48 @@ private fun BitChordApp(
                     } else if (key == "equalizer") {
                         EqualizerScreen(contentPadding = listPadding)
                     } else if (key == "settings") {
-                        SettingsScreen(
-                            windowWidth = windowWidth,
-                            signedIn = signedIn,
-                            account = account,
-                            onSignIn = {
-                                showSettings = false
-                                webSession = WebSessionMode.SIGN_IN
-                            },
-                            onSignOut = { viewModel.signOut() },
-                            onAccountScrobbling = {
-                                settingsSubScreen = "account_scrobbling"
-                                showAccountScrobbling = true
-                            },
-                            onEqualizer = {
-                                settingsSubScreen = "equalizer"
-                                showEqualizer = true
-                            },
-                            onOpenReplay = {
-                                settingsSubScreen = "replay"
-                                replayLandingPage = ReplayStoryPage.INTRO
-                                showReplay = true
-                            },
-                            onLyricsSources = { showLyricsSources = true },
-                            onTranslationLanguage = { showTranslationLanguage = true },
-                            onSources = {
-                                settingsSubScreen = "sources"
-                                showSources = true
-                            },
-                            onListenTogether = {
-                                settingsSubScreen = "listen_together"
-                                showListenTogether = true
-                            },
-                            onSpotifyCanvasAuth = { showSpotifyCanvasAuth = true },
-                            onAppLanguage = { showAppLanguage = true },
+                        settingsSaveableStateHolder.SaveableStateProvider("settings") {
+                            SettingsScreen(
+                                windowWidth = windowWidth,
+                                signedIn = signedIn,
+                                account = account,
+                                onSignIn = {
+                                    showSettings = false
+                                    webSession = WebSessionMode.SIGN_IN
+                                },
+                                onSignOut = { viewModel.signOut() },
+                                onAccountScrobbling = {
+                                    settingsSubScreen = "account_scrobbling"
+                                    showAccountScrobbling = true
+                                },
+                                onEqualizer = {
+                                    settingsSubScreen = "equalizer"
+                                    showEqualizer = true
+                                },
+                                onLyricsSources = { showLyricsSources = true },
+                                onSources = {
+                                    settingsSubScreen = "sources"
+                                    showSources = true
+                                },
+                                onListenTogether = {
+                                    settingsSubScreen = "listen_together"
+                                    showListenTogether = true
+                                },
+                                onAppLanguage = { showAppLanguage = true },
+                                contentPadding = listPadding,
+                            )
+                        }
+                    } else if (page?.creatorProfile != null) {
+                        CreatorProfileScreen(
+                            profile = requireNotNull(page.creatorProfile),
                             contentPadding = listPadding,
+                            listState = pageDetailListState,
+                            onPlaylistClick = { item ->
+                                item.browseId?.let { id ->
+                                    viewModel.openDetail(id, item.title, item.subtitle, item.thumbnailUrl, BrowseType.PLAYLIST)
+                                }
+                            },
+                            onRetry = { viewModel.retryCreatorProfile(page.instanceId) },
                         )
                     } else if (page != null && page.browseId.isDeviceFolder()) {
                         // Local Music and Downloads — both the tabbed Songs / Artists /
@@ -3066,6 +3074,7 @@ private fun BitChordApp(
                                 onArtistClick = { id, name ->
                                     viewModel.openDetail(id, name, "Artist", null, BrowseType.ARTIST)
                                 },
+                                onCreatorClick = { viewModel.openCreatorProfile(page) },
                                 onAddSuggested = { song ->
                                     requestPlaylistAdd(
                                         listOf(UserPlaylist(
@@ -3347,6 +3356,7 @@ private fun BitChordApp(
                         )
                         else -> LibraryScreen(
                             signedIn = signedIn,
+                            createdPlaylistIds = createdPlaylistIds,
                             state = libraryState,
                             listState = libraryListState,
                             onShelfItemClick = onLibraryItemClick,
@@ -3377,7 +3387,7 @@ private fun BitChordApp(
                             pullState = libraryPull,
                             contentPadding = listPadding,
                             links = libraryLinks(),
-                            deviceItems = libraryDeviceItems(downloadedReleases) + localPlaylistItems,
+                            deviceItems = localPlaylistItems + libraryDeviceItems(downloadedReleases),
                         )
                     }
                 }
@@ -3415,7 +3425,6 @@ private fun BitChordApp(
                                         showAccountSelector = true
                                     },
                                     onSignOut = { viewModel.signOut() },
-                                    onOpenListenBrainzLogin = { showListenBrainzLogin = true },
                                     onOpenLastfmLogin = { showLastfmLogin = true },
                                     onOpenDiscord = { showDiscord = true },
                                     onOpenSpotify = { showSpotify = true },
@@ -3795,7 +3804,7 @@ private fun BitChordApp(
                             // list to reorder, and the device folders already
                             // carry this same control themselves (see
                             // `LocalSearchField`).
-                            if (detail != null && !isLocalDetail && detail.type != BrowseType.ARTIST) {
+                            if (detail != null && detail.creatorProfile == null && !isLocalDetail && detail.type != BrowseType.ARTIST) {
                                 // The menu itself is [FrostedSortMenu], composed
                                 // with the app's other frosted overlays further
                                 // down — in the main hierarchy, where the haze
@@ -5053,28 +5062,6 @@ private fun BitChordApp(
             )
         }
 
-        if (showTranslationLanguage) {
-            BackHandler { showTranslationLanguage = false }
-            TranslationLanguageDialog(
-                hazeState = hazeState,
-                onDismiss = { showTranslationLanguage = false },
-            )
-        }
-
-        if (showListenBrainzLogin) {
-            var tokenInput by remember { mutableStateOf(listenBrainzToken) }
-            ListenBrainzTokenAlert(
-                hazeState = hazeState,
-                tokenInput = tokenInput,
-                onTokenInputChange = { tokenInput = it },
-                onSave = {
-                    AppSettings.setListenBrainzToken(tokenInput.trim())
-                    showListenBrainzLogin = false
-                },
-                onDismiss = { showListenBrainzLogin = false },
-            )
-        }
-
         if (showLastfmLogin) {
             var usernameInput by remember { mutableStateOf("") }
             var passwordInput by remember { mutableStateOf("") }
@@ -5273,13 +5260,6 @@ private fun BitChordApp(
                     )
                 }
             }
-        }
-
-        if (showSpotifyCanvasAuth) {
-            BackHandler { showSpotifyCanvasAuth = false }
-            SpotifyCanvasAuthScreen(
-                onNavigateUp = { showSpotifyCanvasAuth = false }
-            )
         }
 
         discordDialog?.let { which ->

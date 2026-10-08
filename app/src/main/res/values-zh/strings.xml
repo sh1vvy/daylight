@@ -422,7 +422,7 @@
     <string name="scrobble_timing">Scrobble 时机</string>
     <string name="scrobble_tracks">Scrobble 曲目</string>
     <string name="scrobble_tracks_subtitle">将播放记录同步到你的 Last.fm 时间线</string>
-    <string name="scrobbling_footer">将你的收听记录 Scrobble 到 Last.fm 和 ListenBrainz。</string>
+    <string name="scrobbling_footer">将你的收听记录 Scrobble 到 Last.fm。</string>
     <string name="scrobbling_paused_footer">Last.fm 和 ListenBrainz 在此版本中已暂停，稍后会恢复。已有的连接仍会保留。</string>
     <string name="search_this_folder">搜索此文件夹</string>
     <string name="search_this_list">搜索此列表</string>
@@ -1271,7 +1271,7 @@
     <string name="lyric_language_buttons">歌词语言按钮</string>
     <string name="lyric_language_buttons_subtitle">在歌词播放器中显示罗马音和翻译按钮</string>
     <string name="credits">致谢</string>
-    <string name="credits_subtitle">BitChord 和应用图标致谢</string>
+    <string name="credits_subtitle">应用与美术致谢</string>
     <string name="credits_bitchord_heading">基于 BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh 及贡献者</string>
     <string name="credits_icon_heading">应用图标</string>
@@ -1283,4 +1283,13 @@
     <string name="playlist_create_failed">无法创建播放列表。请重试。</string>
     <string name="playlist_saved_on_device">已保存在此设备上</string>
     <string name="playlist_import_partial">已创建 %1$s，包含 %3$d 首歌曲中的 %2$d 首。请保留本地副本，以免丢失歌曲。</string>
+    <string name="settings_expand_category">Expand %1$s</string>
+    <string name="settings_collapse_category">Collapse %1$s</string>
+    <string name="settings_made_with_love">Made with ♥ for Gunnu</string>
+    <string name="settings_category_lyrics_accessibility">Lyrics &amp; accessibility</string>
+    <string name="settings_category_downloads_storage">Downloads &amp; storage</string>
+    <string name="playlist_creator">Playlist creator</string>
+    <string name="creator_public_playlists">Public playlists</string>
+    <string name="creator_on_device">On this device</string>
+    <string name="creator_you">You</string>
 </resources>

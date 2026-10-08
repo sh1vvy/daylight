@@ -9,6 +9,8 @@ import com.music.bitchord.data.model.ArtistRef
 import com.music.bitchord.data.model.completeArtistCredits
 import com.music.bitchord.data.model.BrowseItem
 import com.music.bitchord.data.model.BrowseType
+import com.music.bitchord.data.model.PlaylistCreator
+import com.music.bitchord.data.model.CreatorProfileData
 import com.music.bitchord.data.model.HomeShelf
 import com.music.bitchord.data.model.LibraryState
 import com.music.bitchord.data.model.LikeStatus
@@ -982,6 +984,82 @@ object InnertubeParser {
             // there — so the first image under the header is the cover.
             thumbnailUrl = collectRenderers(header, "musicThumbnailRenderer").firstOrNull()
                 .o("thumbnail").a("thumbnails").best(),
+        )
+    }
+
+    /** Only a playlist header can identify its creator; track credits are unrelated. */
+    fun parsePlaylistCreator(root: JsonElement): PlaylistCreator? {
+        val header = HEADER_RENDERERS.firstNotNullOfOrNull {
+            collectRenderers(root, it).firstOrNull()
+        } ?: return null
+        // Current community playlists put their author in a facepile view
+        // model, separate from subtitle text/runs and from the cover image.
+        val facepile = header.o("facepile").o("avatarStackViewModel")
+        val facepileName = facepile.o("text").s("content")?.trim()?.takeIf(String::isNotBlank)
+        val facepileId = facepile.o("rendererContext").o("commandContext").o("onTap")
+            .o("innertubeCommand").o("browseEndpoint").s("browseId")
+        if (facepileName != null) {
+            return PlaylistCreator(
+                name = facepileName,
+                browseId = facepileId?.takeIf { it.startsWith("UC") },
+                thumbnailUrl = facepile?.let { collectRenderers(it, "avatarViewModel") }
+                    ?.firstOrNull().o("image").a("sources").best(),
+            )
+        }
+        val lines = listOf("author", "straplineTextOne", "subtitle", "secondSubtitle")
+        val authorRun = lines.asSequence().flatMap { key ->
+            header.o(key).a("runs").orEmpty().asSequence()
+        }.firstOrNull {
+            it.o("navigationEndpoint").o("browseEndpoint").s("browseId")?.startsWith("UC") == true &&
+                !it.s("text").isNullOrBlank()
+        }
+        if (authorRun != null) {
+            return PlaylistCreator(
+                name = authorRun.s("text")!!.trim(),
+                browseId = authorRun.o("navigationEndpoint").o("browseEndpoint").s("browseId"),
+                // A facepile/strapline avatar is the creator's photo. The main
+                // header thumbnail is the playlist cover and is never reused.
+                thumbnailUrl = header.o("straplineThumbnail")?.let {
+                    collectRenderers(it, "musicThumbnailRenderer").firstOrNull()
+                        .o("thumbnail").a("thumbnails").best()
+                }
+                    ?: collectRenderers(header, "avatarViewModel").firstOrNull()
+                        .o("image").a("sources").best(),
+            )
+        }
+        // An explicit author can still be displayed as a minimal profile when
+        // the catalogue does not expose a browsable public channel.
+        val author = header.o("author").runs().trim().takeIf(String::isNotBlank) ?: return null
+        return PlaylistCreator(name = author)
+    }
+
+    /** Public channel header and playlist cards, without fetching an artist's discography. */
+    fun parseCreatorProfile(root: JsonObject): CreatorProfileData {
+        val headerRoot = root["header"]
+        val header = listOf("musicVisualHeaderRenderer", "musicImmersiveHeaderRenderer", "musicHeaderRenderer")
+            .firstNotNullOfOrNull { headerRoot.o(it) }
+        val metadata = root.o("metadata").o("channelMetadataRenderer")
+        val name = header.o("title").runs().takeIf(String::isNotBlank)
+            ?: metadata.s("title")?.takeIf(String::isNotBlank)
+        val picture = artistThumbnail(headerRoot)
+            ?: metadata.o("avatar").a("thumbnails").best()
+        val playlists = collectRenderers(root["contents"] ?: JsonObject(emptyMap()), "musicTwoRowItemRenderer")
+            .mapNotNull(::parseTwoRowItem)
+            .filter { it.browseId?.startsWith("VL") == true || it.browseId?.startsWith("PL") == true }
+            .map { item ->
+                BrowseItem(
+                    browseId = item.browseId!!.let { if (it.startsWith("PL")) "VL$it" else it },
+                    title = item.title,
+                    subtitle = item.subtitle,
+                    thumbnailUrl = item.thumbnailUrl,
+                    type = BrowseType.PLAYLIST,
+                )
+            }.distinctBy { it.browseId }
+        return CreatorProfileData(
+            name = name,
+            thumbnailUrl = picture,
+            playlists = playlists,
+            description = metadata.s("description")?.takeIf(String::isNotBlank),
         )
     }
 

@@ -401,7 +401,7 @@
     <string name="scrobble_timing">תזמון scrobble</string>
     <string name="scrobble_tracks">תיעוד רצועות</string>
     <string name="scrobble_tracks_subtitle">רשום הפעלות לציר הזמן של Last.fm שלך</string>
-    <string name="scrobbling_footer">תעד את ההאזנות שלך ל-Last.fm ו-ListenBrainz.</string>
+    <string name="scrobbling_footer">תעד את ההאזנות שלך ל-Last.fm.</string>
     <string name="scrobbling_paused_footer">Last.fm ו-ListenBrainz מושהים בגרסה זו ויחזרו מאוחר יותר. חיבורים קיימים נשארים שמורים.</string>
     <string name="search_this_folder">חפש בתיקייה זו</string>
     <string name="search_this_list">חפש ברשימה זו</string>
@@ -1299,7 +1299,7 @@
     <string name="lyric_language_buttons">כפתורי שפה למילים</string>
     <string name="lyric_language_buttons_subtitle">הצגת כפתורי תעתיק ותרגום בנגן המילים</string>
     <string name="credits">קרדיטים</string>
-    <string name="credits_subtitle">תודות ל-BitChord וליוצר סמל האפליקציה</string>
+    <string name="credits_subtitle">תודות על האפליקציה והאיורים</string>
     <string name="credits_bitchord_heading">מבוסס על BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh והתורמים</string>
     <string name="credits_icon_heading">סמל האפליקציה</string>
@@ -1311,4 +1311,13 @@
     <string name="playlist_create_failed">לא ניתן ליצור את הפלייליסט. נסו שוב.</string>
     <string name="playlist_saved_on_device">נשמר במכשיר הזה</string>
     <string name="playlist_import_partial">%1$s נוצר עם %2$d מתוך %3$d שירים. שמרו את העותק המקומי כדי לא לאבד שירים.</string>
+    <string name="settings_expand_category">Expand %1$s</string>
+    <string name="settings_collapse_category">Collapse %1$s</string>
+    <string name="settings_made_with_love">Made with ♥ for Gunnu</string>
+    <string name="settings_category_lyrics_accessibility">Lyrics &amp; accessibility</string>
+    <string name="settings_category_downloads_storage">Downloads &amp; storage</string>
+    <string name="playlist_creator">Playlist creator</string>
+    <string name="creator_public_playlists">Public playlists</string>
+    <string name="creator_on_device">On this device</string>
+    <string name="creator_you">You</string>
 </resources>

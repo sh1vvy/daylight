@@ -54,6 +54,28 @@ Set these in the ignored `local.properties` file or as build environment variabl
 
 Jam uses Daylight's Cloudflare service at [jam.sh1vvy.com](https://jam.sh1vvy.com). Shared HTTPS invitation pages open the app. See the [Cloudflare Jam guide](../cloudflare-jam/README.md) for configuration and free-tier limits. The Go backend in `backend/` is retained as an alternative deployment; its [guide](../backend/README.md) covers that setup.
 
+## Android library and settings
+
+Settings opens with six collapsed categories. Search reveals matching controls
+without changing the listener's saved expansion choices. Account & integrations
+and Jam remain directly accessible; Credits is at the bottom of Account & integrations.
+Replay opens from the Library, including when there is no listening history yet.
+
+New playlist creations are recorded locally and displayed newest first, including
+after a server refresh or restart. Renaming and adding songs do not change creation
+order. Older playlists retain their existing ordering. The same policy applies to
+the Library preview and Show all; local playlists lead the On device shelf.
+
+Playlist credits open a small creator profile using the playlist header's owner,
+with available avatar, description and public playlists. Local playlists use a
+device profile; unknown owners remain plain text. Album artist links keep opening
+artist pages.
+
+Android retains Spotify playlists but no longer fetches Spotify Canvas or submits
+listens to ListenBrainz. Last.fm and other motion artwork remain available. Lyrics
+translation always follows the app language; retired settings are removed on
+startup and backup restore.
+
 ## More context
 
 - [Performance changes and validation](PERFORMANCE.md)

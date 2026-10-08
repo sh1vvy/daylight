@@ -32,7 +32,6 @@ fun CreditsScreen(
             textDecoration = TextDecoration.Underline,
         ),
     )
-    val authors = stringResource(R.string.credits_bitchord_authors)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -50,10 +49,6 @@ fun CreditsScreen(
         ) {
             Text(
                 text = buildAnnotatedString {
-                    withLink(LinkAnnotation.Url("https://github.com/kushagrasinghx/BitChord", linkStyles)) {
-                        append("BitChord")
-                    }
-                    append("\n$authors\n")
                     withLink(LinkAnnotation.Url("https://github.com/sh1vvy/daylight/blob/main/LICENSE", linkStyles)) {
                         append("GNU General Public License v3.0")
                     }

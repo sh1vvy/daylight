@@ -9,7 +9,7 @@ import android.net.NetworkCapabilities
 import androidx.media3.common.Player
 import com.music.bitchord.BuildConfig
 import com.music.bitchord.auth.AuthStore
-import com.music.bitchord.data.canvas.SpotifyToken
+import com.music.bitchord.data.spotify.SpotifySessionTokens
 import com.music.bitchord.data.lyrics.LyricsSource
 import com.music.bitchord.data.sources.SourceKind
 import com.music.bitchord.playback.EqLayout
@@ -409,19 +409,8 @@ object AppSettings {
     val lyricsOffsetMs = MutableStateFlow(0)
 
     /**
-     * Which language the lyrics translate button translates *into*.
-     *
-     * Blank — the default — means "whatever the app is set to", and is stored
-     * as blank rather than resolved once: someone who has never touched this
-     * has expressed no preference, and switching the app to Spanish should
-     * carry their lyrics with it rather than leaving them on the English they
-     * happened to be reading the day the setting was written.
-     */
-    val translationLanguage = MutableStateFlow("")
-
-    /**
      * Plays a looping video behind the cover art on the player when one is
-     * published for the track — Spotify's Canvas, Apple's motion artwork.
+     * published for the track — Apple Music, Tidal and community motion artwork.
      *
      * Costs a video stream on top of the audio one and reaches three
      * services that have nothing to do with playback, so it stays a switch —
@@ -445,12 +434,6 @@ object AppSettings {
      * here and stays up regardless of this setting.
      */
     val canvasOverCellular = MutableStateFlow(false)
-
-    /** Automatically collapses the lower controls after Spotify Canvas settles. */
-    val spotifyCanvasAutoHide = MutableStateFlow(true)
-
-    /** Tries Spotify before Apple Music and the other animated-art providers. */
-    val prioritizeSpotifyCanvas = MutableStateFlow(false)
 
     /**
      * Blows the player's cover art out to a full-bleed banner running off the
@@ -616,9 +599,6 @@ object AppSettings {
 
     // ── Scrobbling ──────────────────────────────────────────────────────
 
-    /** One release gate shared by the settings UI and the playback service. */
-    val scrobblingAvailable = true
-
     val lastfmEnabled = MutableStateFlow(false)
     val lastfmUsername = MutableStateFlow("")
     val lastfmSessionKey = MutableStateFlow("")
@@ -631,9 +611,6 @@ object AppSettings {
     val scrobbleMinDuration = MutableStateFlow(30)
     val scrobbleDelayPercent = MutableStateFlow(0.5f)
     val scrobbleDelaySeconds = MutableStateFlow(180)
-    val listenBrainzEnabled = MutableStateFlow(false)
-    val listenBrainzToken = MutableStateFlow("")
-    val listenBrainzPrimaryArtistOnly = MutableStateFlow(false)
     val spotifySpdcToken = MutableStateFlow("")
 
     // ── Discord Rich Presence ───────────────────────────────────────────
@@ -781,6 +758,7 @@ object AppSettings {
     }
 
     private fun readAll() {
+        removeRetiredAndroidPreferences(prefs)
         migrateSingleQuality()
         audioQualityWifi.value = readQuality(KEY_QUALITY_WIFI)
         audioQualityCellular.value = readQuality(KEY_QUALITY_CELLULAR)
@@ -845,15 +823,12 @@ object AppSettings {
         showLyricsLanguageButtons.value = prefs.getBoolean(KEY_SHOW_LYRICS_LANGUAGE_BUTTONS, false)
         lyricsOffsetMs.value = prefs.getInt(KEY_LYRICS_OFFSET_MS, 0)
             .coerceIn(MIN_LYRICS_OFFSET_MS, MAX_LYRICS_OFFSET_MS)
-        translationLanguage.value = prefs.getString(KEY_TRANSLATION_LANGUAGE, "").orEmpty()
         if (highPerformanceMode.value) {
             reduceAnimation.value = false
             reduceDynamicBlur.value = false
         }
         animatedCanvas.value = prefs.getBoolean(KEY_ANIMATED_CANVAS, true)
         canvasOverCellular.value = prefs.getBoolean(KEY_CANVAS_OVER_CELLULAR, false)
-        spotifyCanvasAutoHide.value = prefs.getBoolean(KEY_SPOTIFY_CANVAS_AUTO_HIDE, true)
-        prioritizeSpotifyCanvas.value = prefs.getBoolean(KEY_PRIORITIZE_SPOTIFY_CANVAS, false)
         fullBleedArtwork.value = prefs.getBoolean(KEY_FULL_BLEED_ARTWORK, true)
         legacyMeshGradient.value = prefs.getBoolean(KEY_LEGACY_MESH_GRADIENT, false)
         lastPlayerScreen.value = runCatching {
@@ -881,9 +856,6 @@ object AppSettings {
         scrobbleMinDuration.value = prefs.getInt(KEY_SCROBBLE_MIN_DURATION, 30)
         scrobbleDelayPercent.value = prefs.getFloat(KEY_SCROBBLE_DELAY_PERCENT, 0.5f)
         scrobbleDelaySeconds.value = prefs.getInt(KEY_SCROBBLE_DELAY_SECONDS, 180)
-        listenBrainzEnabled.value = prefs.getBoolean(KEY_LISTENBRAINZ_ENABLED, false)
-        listenBrainzToken.value = prefs.getString(KEY_LISTENBRAINZ_TOKEN, "").orEmpty()
-        listenBrainzPrimaryArtistOnly.value = prefs.getBoolean(KEY_LISTENBRAINZ_PRIMARY_ARTIST_ONLY, false)
         spotifySpdcToken.value = prefs.getString(KEY_SPOTIFY_SPDC_TOKEN, "").orEmpty()
         replayGenres.value = prefs.getBoolean(KEY_REPLAY_GENRES, true)
         filterNonMusicAudio.value = prefs.getBoolean(KEY_FILTER_NON_MUSIC_AUDIO, true)
@@ -1278,12 +1250,6 @@ object AppSettings {
         prefs.edit().putInt(KEY_LYRICS_OFFSET_MS, normalized).apply()
     }
 
-    /** Blank restores "follow the app language"; see [translationLanguage]. */
-    fun setTranslationLanguage(value: String) {
-        translationLanguage.value = value
-        prefs.edit().putString(KEY_TRANSLATION_LANGUAGE, value).apply()
-    }
-
     fun setSyncedLyrics(value: Boolean) {
         syncedLyrics.value = value
         prefs.edit().putBoolean(KEY_SYNCED_LYRICS, value).apply()
@@ -1397,16 +1363,6 @@ object AppSettings {
         prefs.edit().putBoolean(KEY_CANVAS_OVER_CELLULAR, value).apply()
     }
 
-    fun setSpotifyCanvasAutoHide(value: Boolean) {
-        spotifyCanvasAutoHide.value = value
-        prefs.edit().putBoolean(KEY_SPOTIFY_CANVAS_AUTO_HIDE, value).apply()
-    }
-
-    fun setPrioritizeSpotifyCanvas(value: Boolean) {
-        prioritizeSpotifyCanvas.value = value
-        prefs.edit().putBoolean(KEY_PRIORITIZE_SPOTIFY_CANVAS, value).apply()
-    }
-
     fun setFullBleedArtwork(value: Boolean) {
         fullBleedArtwork.value = value
         prefs.edit().putBoolean(KEY_FULL_BLEED_ARTWORK, value).apply()
@@ -1475,7 +1431,7 @@ object AppSettings {
     fun setSpotifySpdcToken(value: String) {
         spotifySpdcToken.value = value
         prefs.edit().putString(KEY_SPOTIFY_SPDC_TOKEN, value).apply()
-        SpotifyToken.invalidate()
+        SpotifySessionTokens.invalidate()
     }
 
     fun setLastfmScrobbleEnabled(value: Boolean) {
@@ -1536,21 +1492,6 @@ object AppSettings {
     fun setScrobbleDelaySeconds(value: Int) {
         scrobbleDelaySeconds.value = value
         prefs.edit().putInt(KEY_SCROBBLE_DELAY_SECONDS, value).apply()
-    }
-
-    fun setListenBrainzEnabled(value: Boolean) {
-        listenBrainzEnabled.value = value
-        prefs.edit().putBoolean(KEY_LISTENBRAINZ_ENABLED, value).apply()
-    }
-
-    fun setListenBrainzToken(value: String) {
-        listenBrainzToken.value = value
-        prefs.edit().putString(KEY_LISTENBRAINZ_TOKEN, value).apply()
-    }
-
-    fun setListenBrainzPrimaryArtistOnly(value: Boolean) {
-        listenBrainzPrimaryArtistOnly.value = value
-        prefs.edit().putBoolean(KEY_LISTENBRAINZ_PRIMARY_ARTIST_ONLY, value).apply()
     }
 
     /** Writes through to the encrypted store; pass "" to disconnect. */
@@ -1976,11 +1917,8 @@ object AppSettings {
     private const val KEY_LYRICS_BLUR = "lyrics_blur"
     private const val KEY_SHOW_LYRICS_LANGUAGE_BUTTONS = "show_lyrics_language_buttons"
     private const val KEY_LYRICS_OFFSET_MS = "lyrics_offset_ms"
-    private const val KEY_TRANSLATION_LANGUAGE = "translation_language"
     private const val KEY_ANIMATED_CANVAS = "animated_canvas"
     private const val KEY_CANVAS_OVER_CELLULAR = "canvas_over_cellular"
-    private const val KEY_SPOTIFY_CANVAS_AUTO_HIDE = "spotify_canvas_auto_hide"
-    private const val KEY_PRIORITIZE_SPOTIFY_CANVAS = "prioritize_spotify_canvas"
     private const val KEY_FULL_BLEED_ARTWORK = "full_bleed_artwork"
     private const val KEY_LEGACY_MESH_GRADIENT = "legacy_mesh_gradient"
     private const val KEY_LAST_PLAYER_SCREEN = "last_player_screen"
@@ -2021,9 +1959,7 @@ object AppSettings {
     private const val KEY_SCROBBLE_MIN_DURATION = "scrobble_min_duration"
     private const val KEY_SCROBBLE_DELAY_PERCENT = "scrobble_delay_percent"
     private const val KEY_SCROBBLE_DELAY_SECONDS = "scrobble_delay_seconds"
-    private const val KEY_LISTENBRAINZ_ENABLED = "listenbrainz_enabled"
     private const val KEY_LISTENBRAINZ_TOKEN = "listenbrainz_token"
-    private const val KEY_LISTENBRAINZ_PRIMARY_ARTIST_ONLY = "listenbrainz_primary_artist_only"
     private const val KEY_SPOTIFY_SPDC_TOKEN = "spotify_spdc_token"
 
     private const val KEY_DISCORD_USERNAME = "discord_username"
@@ -2043,4 +1979,3 @@ object AppSettings {
     private const val KEY_DISCORD_INFO_DISMISSED = "discord_info_dismissed"
     private const val KEY_LAST_VERSION_CODE = "last_version_code"
 }
-

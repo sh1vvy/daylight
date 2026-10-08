@@ -2,6 +2,7 @@ package com.music.bitchord.data.spotify
 
 import android.content.Context
 import android.util.Log
+import com.music.bitchord.data.library.LibraryPlaylistOrderStore
 import com.music.bitchord.data.model.Song
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -58,7 +59,9 @@ object LocalPlaylistStore {
         }
     }
 
-    fun savePlaylist(title: String, songs: List<Song>): LocalPlaylist = collection.savePlaylist(title, songs)
+    @Synchronized
+    fun savePlaylist(title: String, songs: List<Song>): LocalPlaylist =
+        collection.savePlaylist(title, songs).also { LibraryPlaylistOrderStore.recordCreated(it.browseId) }
     fun deletePlaylist(id: String) = collection.deletePlaylist(id)
     fun renamePlaylist(id: String, newTitle: String) = collection.renamePlaylist(id, newTitle)
     fun getPlaylist(id: String): LocalPlaylist? = collection.getPlaylist(id)

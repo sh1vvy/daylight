@@ -1,8 +1,8 @@
 package com.music.bitchord.data.spotify
 
 import com.music.bitchord.data.Http
-import com.music.bitchord.data.canvas.CANVAS_UA
-import com.music.bitchord.data.canvas.SpotifyToken
+import com.music.bitchord.data.model.CreatorProvider
+import com.music.bitchord.data.model.PlaylistCreator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -41,6 +41,8 @@ data class SpotifyTrack(
     val durationMs: Int,
     val imageUrl: String?,
 )
+
+data class SpotifyPlaylistMetadata(val coverUrl: String?, val creator: PlaylistCreator?)
 
 object SpotifyLibrary {
     private const val GQL = "https://api-partner.spotify.com/pathfinder/v2/query"
@@ -136,8 +138,11 @@ object SpotifyLibrary {
      * thumbnail, which looks soft once it fills a playlist page's header, so
      * the page asks for the real image after it opens.
      */
-    suspend fun cover(playlistId: String): String? = withContext(Dispatchers.IO) {
-        if (playlistId == LIKED_ID) return@withContext LIKED_COVER
+    suspend fun cover(playlistId: String): String? = metadata(playlistId).coverUrl
+
+    /** Reads the full cover and author together, reusing the existing single header request. */
+    suspend fun metadata(playlistId: String): SpotifyPlaylistMetadata = withContext(Dispatchers.IO) {
+        if (playlistId == LIKED_ID) return@withContext SpotifyPlaylistMetadata(LIKED_COVER, null)
         val variables = buildJsonObject {
             put("uri", "spotify:playlist:$playlistId")
             put("offset", 0)
@@ -145,7 +150,7 @@ object SpotifyLibrary {
             put("enableWatchFeedEntrypoint", false)
         }
         val root = gql("fetchPlaylist", PLAYLIST, variables, authHeaders())
-        largestSource(root.obj("data")?.obj("playlistV2")?.obj("images"))
+        parseSpotifyPlaylistMetadata(root)
     }
 
     private fun likedPage(headers: Map<String, String>, offset: Int): Triple<List<SpotifyTrack>, Int, Int> {
@@ -157,7 +162,7 @@ object SpotifyLibrary {
     }
 
     private suspend fun authHeaders(): Map<String, String> {
-        val token = SpotifyToken.accessToken()
+        val token = SpotifySessionTokens.accessToken()
             ?: throw IllegalStateException("Spotify sign-in expired")
         return buildMap {
             put("Authorization", "Bearer $token")
@@ -165,8 +170,8 @@ object SpotifyLibrary {
             put("app-platform", "WebPlayer")
             put("Origin", "https://open.spotify.com")
             put("Referer", "https://open.spotify.com/")
-            put("User-Agent", CANVAS_UA)
-            SpotifyToken.clientToken()?.let { put("Client-Token", it) }
+            put("User-Agent", SpotifySessionTokens.USER_AGENT)
+            SpotifySessionTokens.clientToken()?.let { put("Client-Token", it) }
         }
     }
 
@@ -198,6 +203,28 @@ object SpotifyLibrary {
         if (!error.isNullOrBlank()) throw IllegalStateException(error)
         return root
     }
+}
+
+internal fun parseSpotifyPlaylistMetadata(root: JsonObject): SpotifyPlaylistMetadata {
+    val playlist = root.obj("data")?.obj("playlistV2")
+        ?: return SpotifyPlaylistMetadata(null, null)
+    val owner = playlist.obj("ownerV2")?.obj("data")
+    val name = owner?.str("name")?.takeIf(String::isNotBlank)
+    val avatar = owner?.obj("avatar")?.arr("sources")
+        ?.mapNotNull { source ->
+            source.jsonObject.str("url")?.let { it to (source.jsonObject.int("width") ?: 0) }
+        }?.maxByOrNull { it.second }?.first
+    return SpotifyPlaylistMetadata(
+        coverUrl = largestSource(playlist.obj("images")),
+        creator = name?.let {
+            PlaylistCreator(
+                name = it,
+                browseId = owner?.str("uri") ?: owner?.str("_uri"),
+                thumbnailUrl = avatar,
+                provider = CreatorProvider.SPOTIFY,
+            )
+        },
+    )
 }
 
 /** The playlists kept, the library's total, and how many entries the page held before filtering. */

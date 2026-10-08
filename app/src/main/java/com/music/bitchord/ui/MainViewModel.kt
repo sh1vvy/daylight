@@ -35,6 +35,10 @@ import com.music.bitchord.auth.WebSessionMode
 import com.music.bitchord.data.model.Account
 import com.music.bitchord.data.model.AccountChannel
 import com.music.bitchord.data.model.BrowseType
+import com.music.bitchord.data.model.BrowseItem
+import com.music.bitchord.data.model.CreatorProvider
+import com.music.bitchord.data.model.CreatorProfilePage
+import com.music.bitchord.data.model.PlaylistCreator
 import com.music.bitchord.data.model.DetailPage
 import com.music.bitchord.data.model.HomeShelf
 import com.music.bitchord.data.model.withoutRepeatsOf
@@ -1027,6 +1031,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                             subtitle = if (song != null) "1 song" else "",
                             thumbnailUrl = song?.thumbnailUrl,
                         )
+                        com.music.bitchord.data.library.LibraryPlaylistOrderStore.recordCreated(created.browseId)
                         _playlists.value = listOf(created) + _playlists.value.filterNot { it.playlistId == created.playlistId }
                         editPlaylistShelf { items ->
                             listOf(ShelfItem(
@@ -1071,6 +1076,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                             subtitle = "${result.addedCount} songs",
                             thumbnailUrl = songs.firstOrNull()?.thumbnailUrl,
                         )
+                        com.music.bitchord.data.library.LibraryPlaylistOrderStore.recordCreated(created.browseId)
                         _playlists.value = listOf(created) +
                             _playlists.value.filterNot { it.playlistId == created.playlistId }
                         editPlaylistShelf { items ->
@@ -2354,6 +2360,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
         fun browseTypeOf(browseId: String, fallback: BrowseType = BrowseType.OTHER): BrowseType = when {
             browseId.startsWith(Downloads.PLAYLIST_PREFIX) -> BrowseType.PLAYLIST
+            browseId.startsWith("local:playlist:") -> BrowseType.PLAYLIST
             browseId.startsWith("UC") -> BrowseType.ARTIST
             browseId.startsWith("MPREb") || browseId.startsWith("VLOLAK") || browseId.startsWith("OLAK") -> BrowseType.ALBUM
             browseId.startsWith("VL") || browseId.startsWith("PL") -> BrowseType.PLAYLIST
@@ -2463,6 +2470,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             var monthlyListenerCount: String? = null
             /** Whether this artist is subscribed to — see [DetailPage.subscription]. */
             var subscription: SubscriptionState? = null
+            var creator: PlaylistCreator? = null
             val localPlaylist = com.music.bitchord.data.spotify.LocalPlaylistStore.getPlaylist(browseId)
             val remote = remoteLibrary(browseId)
             // A release downloaded whole and opened by its YouTube id — the
@@ -2487,6 +2495,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val state = when {
                 localPlaylist != null -> {
                     name = localPlaylist.title
+                    creator = PlaylistCreator(text(R.string.creator_you), provider = CreatorProvider.LOCAL)
                     credit = getApplication<Application>().getString(R.string.local_playlist_subtitle, localPlaylist.songs.size)
                     artwork = localPlaylist.songs.firstOrNull { !it.thumbnailUrl.isNullOrBlank() }?.thumbnailUrl
                     if (localPlaylist.songs.isEmpty()) UiState.Error(text(R.string.spotify_import_empty_playlist))
@@ -2544,6 +2553,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                             // so its own menu never has to go and ask. Recorded
                             // even when the listing came back empty.
                             page.owned?.let { setPlaylistOwned(browseId, it) }
+                            creator = page.creator.takeIf { resolved == BrowseType.PLAYLIST }
                             // Only for the caller that had nothing: a card's own
                             // title is what the user just tapped, and must not
                             // be swapped for the header's wording underneath them.
@@ -2600,6 +2610,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         subscriberCountText = subscriberCountText,
                         monthlyListenerCount = monthlyListenerCount,
                         subscription = subscription,
+                        creator = creator,
                     )
                 } else {
                     it
@@ -2629,6 +2640,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             songs = UiState.Loading,
             type = BrowseType.PLAYLIST,
             instanceId = instanceId,
+            creator = subtitle.trim().takeIf {
+                it.isNotBlank() && it != text(R.string.spotify) && browseId != SPOTIFY_PAGE_PREFIX + SpotifyLibrary.LIKED_ID
+            }?.let {
+                PlaylistCreator(it, provider = CreatorProvider.SPOTIFY)
+            },
         )
         val identity = listenerKey()
         val requestScope = Innertube.responseCacheScope
@@ -2645,10 +2661,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // The list only had a thumbnail; the full-size cover replaces it
             // once this page has asked for it.
             launch {
-                val cover = runCatching { SpotifyLibrary.cover(playlistId) }.getOrNull() ?: return@launch
+                val metadata = runCatching { SpotifyLibrary.metadata(playlistId) }.getOrNull() ?: return@launch
                 if (!open()) return@launch
                 _detailStack.value = _detailStack.value.map {
-                    if (it.instanceId == instanceId) it.copy(thumbnailUrl = cover) else it
+                    if (it.instanceId == instanceId) it.copy(
+                        thumbnailUrl = metadata.coverUrl ?: it.thumbnailUrl,
+                        creator = metadata.creator ?: it.creator,
+                    ) else it
                 }
             }
             val tracks = runCatching {
@@ -2906,6 +2925,95 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 else -> YtMusicRepository.allSongs(browseId)
             }
             onResult(result.map { it.withArtwork(artworkFallback) })
+        }
+    }
+
+    /** Opens the account credited by a playlist, keeping normal detail Back/scroll behavior. */
+    fun openCreatorProfile(source: DetailPage) {
+        if (source.type != BrowseType.PLAYLIST) return
+        val creator = source.creator ?: return
+        if (_detailStack.value.lastOrNull()?.creatorProfile?.let {
+                it.creator == creator && it.currentPlaylist.browseId == source.browseId
+            } == true
+        ) return
+        val instanceId = detailInstanceIds.incrementAndGet()
+        val profile = CreatorProfilePage(
+            creator = creator,
+            currentPlaylist = BrowseItem(
+                source.browseId, source.title, creator.name, source.thumbnailUrl, BrowseType.PLAYLIST,
+            ),
+            playlists = UiState.Loading,
+        )
+        _detailStack.value += DetailPage(
+            browseId = "creator:${creator.provider}:${creator.browseId ?: source.browseId}",
+            title = creator.name,
+            subtitle = "",
+            thumbnailUrl = creator.thumbnailUrl,
+            songs = UiState.Success(emptyList()),
+            instanceId = instanceId,
+            creatorProfile = profile,
+        )
+        loadCreatorProfile(instanceId)
+    }
+
+    fun retryCreatorProfile(instanceId: Long) = loadCreatorProfile(instanceId)
+
+    private fun loadCreatorProfile(instanceId: Long) {
+        val profile = _detailStack.value.firstOrNull { it.instanceId == instanceId }?.creatorProfile ?: return
+        detailJobs.remove(instanceId)?.cancel()
+        _detailStack.value = _detailStack.value.map { page ->
+            if (page.instanceId == instanceId) page.copy(creatorProfile = profile.copy(playlists = UiState.Loading))
+            else page
+        }
+        val identity = listenerKey()
+        val requestScope = Innertube.responseCacheScope
+        detailJobs[instanceId] = viewModelScope.launch {
+            fun current() = isActive && identity == listenerKey() && requestScope == Innertube.responseCacheScope &&
+                _detailStack.value.any { it.instanceId == instanceId }
+            var loadedCreator = profile.creator
+            var description: String? = null
+            val creatorBrowseId = profile.creator.browseId
+            val collections: UiState<List<BrowseItem>> = when {
+                profile.creator.provider == CreatorProvider.LOCAL -> UiState.Success(
+                    LocalPlaylistStore.playlists.value.map { playlist ->
+                        BrowseItem(
+                            browseId = playlist.browseId,
+                            title = playlist.title,
+                            subtitle = text(R.string.creator_on_device),
+                            thumbnailUrl = playlist.songs.firstOrNull { !it.thumbnailUrl.isNullOrBlank() }?.thumbnailUrl,
+                            type = BrowseType.PLAYLIST,
+                        )
+                    },
+                )
+                profile.creator.provider == CreatorProvider.YOUTUBE_MUSIC && creatorBrowseId != null ->
+                    YtMusicRepository.creatorProfile(creatorBrowseId).fold(
+                        onSuccess = { data ->
+                            loadedCreator = profile.creator.copy(
+                                name = data.name ?: profile.creator.name,
+                                thumbnailUrl = data.thumbnailUrl ?: profile.creator.thumbnailUrl,
+                            )
+                            description = data.description
+                            UiState.Success(data.playlists)
+                        },
+                        onFailure = { UiState.Error(it.friendly()) },
+                    )
+                // Spotify can identify the playlist author without exposing a
+                // browsable public-playlists API in this integration. Keep its
+                // actual profile and originating collection available.
+                else -> UiState.Success(emptyList())
+            }
+            if (!current()) return@launch
+            _detailStack.value = _detailStack.value.map { page ->
+                if (page.instanceId == instanceId) page.copy(
+                    title = loadedCreator.name,
+                    thumbnailUrl = loadedCreator.thumbnailUrl,
+                    creatorProfile = profile.copy(
+                        creator = loadedCreator,
+                        playlists = collections,
+                        description = description,
+                    ),
+                ) else page
+            }
         }
     }
 

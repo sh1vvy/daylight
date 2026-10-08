@@ -21,7 +21,7 @@ import com.music.bitchord.data.smb.SmbCoverFetcher
 import com.music.bitchord.data.remote.ImageCacheKeys
 import com.music.bitchord.data.remote.CoalescingImageRequests
 import com.music.bitchord.data.webdav.WebDavCoilAuth
-import com.music.bitchord.data.canvas.SpotifyToken
+import com.music.bitchord.data.spotify.SpotifySessionTokens
 import com.music.bitchord.playback.AudioCache
 import com.music.bitchord.playback.LastPlayed
 import com.music.bitchord.playback.OriginalVersion
@@ -108,6 +108,7 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory {
                 ?.let { Innertube.selectChannel(it.pageId, it.dataSyncId, it.authUser) }
             CoroutineScope(Dispatchers.IO).launch { Innertube.ensureSessionScope() }
         }
+        com.music.bitchord.data.library.LibraryPlaylistOrderStore.init(this)
         AppSettings.init(this, authStore)
         // Before anything resolves a track: an addon with `checkValidLossless`
         // is gated on this, and the gate reads "no" until it has looked.
@@ -136,11 +137,9 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory {
         // One cache directory can only be opened once per process, and
         // PlaybackService shares this one — so it's opened here, not there.
         AudioCache.init(this)
-        // The offscreen WebView that mints a Spotify access token from the
-        // listener's own session cookie needs a Context, and nothing in the
-        // suspend call chain that reaches it (a track's canvas lookup) has
-        // one to hand — see SpotifyToken's doc for why.
-        SpotifyToken.init(this)
+        // Stores the context for explicit Spotify library requests. This does
+        // not start a WebView or acquire tokens during app launch or playback.
+        SpotifySessionTokens.init(this)
         // Ordinary updates keep valid audio and cover bytes warm. AudioCache
         // migrates its matching schema explicitly; image keys partition private
         // server credentials. Neither cache's format depends on versionCode.

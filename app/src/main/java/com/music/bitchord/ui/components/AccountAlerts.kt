@@ -51,55 +51,6 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
-/**
- * Same UIAlertController shape as [UpdateAvailableDialog] — frosted card,
- * hairline rules, full-width stacked actions — but with a text field for the
- * one bit of input this alert needs.
- */
-@OptIn(ExperimentalHazeMaterialsApi::class)
-@Composable
-fun ListenBrainzTokenAlert(
-    hazeState: HazeState,
-    tokenInput: String,
-    onTokenInputChange: (String) -> Unit,
-    onSave: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 19.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = stringResource(R.string.listenbrainz_token),
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.W600),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = stringResource(R.string.listenbrainz_token_description),
-                modifier = Modifier.padding(top = 4.dp, bottom = 14.dp),
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 17.sp),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-            )
-            PillTextField(
-                value = tokenInput,
-                onValueChange = onTokenInputChange,
-                placeholder = stringResource(R.string.api_token),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { onSave() }),
-            )
-        }
-        AlertRule()
-        AlertAction(label = stringResource(R.string.save), emphasised = true, onClick = onSave)
-        AlertRule()
-        AlertAction(label = stringResource(R.string.cancel), emphasised = false, onClick = onDismiss)
-    }
-}
-
 @OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun LastfmLoginAlert(

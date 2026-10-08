@@ -7,6 +7,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
@@ -17,6 +18,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.R
+import com.music.bitchord.ui.player.LocalLyricsFontFamily
 
 // Daylight’s warm sunrise accent; the name is retained for shared callers.
 val AccentRed = Color(0xFFB94F10)
@@ -58,6 +60,13 @@ val SFProDisplay = FontFamily(
     Font(R.font.sf_pro_display_heavy, FontWeight.W800),
 )
 
+/** Inter Display 4.1, bundled under the SIL Open Font License in docs/licenses. */
+val DaylightLyricsFont = FontFamily(
+    Font(R.font.inter_display_regular, FontWeight.Normal),
+    Font(R.font.inter_display_semibold, FontWeight.SemiBold),
+    Font(R.font.inter_display_bold, FontWeight.Bold),
+)
+
 // Heavy, tight typography — the backbone of the Apple Music look.
 private val BitChordTypography = Typography(
     displayLarge = TextStyle(fontWeight = FontWeight.W800, fontSize = 34.sp, letterSpacing = (-0.8).sp),
@@ -95,11 +104,13 @@ fun BitChordTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) DarkColors else LightColors,
-        typography = BitChordTypography,
-        content = content,
-    )
+    CompositionLocalProvider(LocalLyricsFontFamily provides DaylightLyricsFont) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) DarkColors else LightColors,
+            typography = BitChordTypography,
+            content = content,
+        )
+    }
 }
 
 /**
@@ -124,4 +135,3 @@ fun SystemBarIcons(dark: Boolean) {
         }
     }
 }
-

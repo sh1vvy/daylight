@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import com.music.bitchord.R
 import com.music.bitchord.ui.replay.Fonts
 import com.music.bitchord.ui.replay.drawArtwork
 import com.music.bitchord.ui.replay.drawBackdrop
@@ -55,7 +56,12 @@ internal suspend fun renderLyricsShareCard(
     /** Pad out to the full 1080×1920 frame, the passage centred in the room. */
     story: Boolean = false,
 ): Bitmap = withContext(Dispatchers.Default) {
-    val type = Fonts(context)
+    val type = Fonts(
+        context,
+        headingFont = R.font.inter_display_bold,
+        semiboldFont = R.font.inter_display_semibold,
+        regularFont = R.font.inter_display_regular,
+    )
     val cover = card.artworkUrl?.let { loadBitmap(context, it) }
 
     // ── Sizing ──────────────────────────────────────────────────────────────

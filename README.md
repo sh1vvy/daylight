@@ -33,7 +33,7 @@ Development APKs are in `app/build/outputs/apk/dev/debug/`. Production APKs use 
 
 - Production app ID: `com.sh1vvy.daylight`
 - Development app ID: `com.sh1vvy.daylight.dev`
-- Daylight version: `0.1.1`
+- Daylight version: `0.1.2`
 
 Daylight installs alongside BitChord and maintains separate application data. Internal Kotlin namespaces and native entry points are preserved for engine compatibility; see [UPSTREAM.md](UPSTREAM.md).
 
@@ -58,5 +58,7 @@ Daylight does not report installations to BitChord’s live usage counter. Jam r
 ## Attribution and license
 
 BitChord was created by **Kushagra Singh and its contributors**. Daylight retains their Git history, copyright notices, and the **GNU General Public License v3.0**. See [LICENSE](LICENSE), [UPSTREAM.md](UPSTREAM.md), and [original contributor credits](docs/UPSTREAM_MAINTAINERS.md).
+
+Lyrics use [Inter Display 4.1](https://rsms.me/inter/) by Rasmus Andersson, distributed under the [SIL Open Font License](docs/licenses/Inter-OFL.txt).
 
 Daylight is independent of BitChord’s maintainers and is not affiliated with YouTube, Google, Spotify, Discord, or other service providers. Provider names identify integrations. If you distribute this derivative, provide its corresponding source under GPLv3.

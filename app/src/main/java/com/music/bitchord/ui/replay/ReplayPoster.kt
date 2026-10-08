@@ -727,10 +727,15 @@ internal fun ellipsised(text: String, paint: Paint, width: Float): String {
  * missing font resource a slightly plainer picture rather than a crash on the
  * share button.
  */
-internal class Fonts(context: Context) {
-    private val heavy = font(context, R.font.sf_pro_display_heavy) ?: Typeface.DEFAULT_BOLD
-    private val semibold = font(context, R.font.sf_pro_display_semibold) ?: Typeface.DEFAULT_BOLD
-    private val regular = font(context, R.font.sf_pro_display_regular) ?: Typeface.DEFAULT
+internal class Fonts(
+    context: Context,
+    headingFont: Int = R.font.sf_pro_display_heavy,
+    semiboldFont: Int = R.font.sf_pro_display_semibold,
+    regularFont: Int = R.font.sf_pro_display_regular,
+) {
+    private val heavy = font(context, headingFont) ?: Typeface.DEFAULT_BOLD
+    private val semibold = font(context, semiboldFont) ?: Typeface.DEFAULT_BOLD
+    private val regular = font(context, regularFont) ?: Typeface.DEFAULT
 
     fun heading(size: Float, color: Int) = paint(heavy, size, color)
 

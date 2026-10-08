@@ -182,10 +182,10 @@ fun GlassNavBar(
         colors = FloatingTabBarDefaults.colors(
             backgroundColor = Color.Transparent,
             accessoryBackgroundColor = Color.Transparent,
-            indicatorColor = glassIndicatorColor().copy(alpha = 0.5f),
+            indicatorColor = glassIndicatorColor(),
         ),
         // Flat, because the glass is not. Every surface here already draws its
-        // own [Shadow.Default] as part of the backdrop pass, and the library's
+        // own shadow as part of the backdrop pass, and the library's
         // Modifier.shadow on top of that is a second offscreen layer and a
         // second shadow render for each of them — three at rest, six mid-fold,
         // paying twice for a shadow you can only see once.

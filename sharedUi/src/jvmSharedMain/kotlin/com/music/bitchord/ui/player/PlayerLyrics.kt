@@ -1955,16 +1955,20 @@ internal fun LyricsPanel(
                 val alignEnd = duet && line.alignment == LyricAlignment.End
                 val style = if (isSynced) {
                     MaterialTheme.typography.headlineLarge.copy(
+                        fontFamily = LocalLyricsFontFamily.current,
                         fontSize = 34.sp,
-                        lineHeight = 41.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        lineHeight = 42.sp,
+                        letterSpacing = (-0.55).sp,
+                        fontWeight = FontWeight.Bold,
                         textAlign = if (alignEnd) TextAlign.End else TextAlign.Start,
                     )
                 } else {
                     MaterialTheme.typography.headlineMedium.copy(
+                        fontFamily = LocalLyricsFontFamily.current,
                         fontSize = 30.sp,
                         lineHeight = 38.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.45).sp,
+                        fontWeight = FontWeight.Bold,
                         textAlign = if (alignEnd) TextAlign.End else TextAlign.Start,
                     )
                 }
@@ -2104,7 +2108,8 @@ internal fun LyricsPanel(
                 val subStyle = style.copy(
                     fontSize = SUB_LYRIC_FONT_SIZE,
                     lineHeight = SUB_LYRIC_LINE_HEIGHT,
-                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.15).sp,
+                    fontWeight = FontWeight.SemiBold,
                 )
                 // The answering voice is only on screen while it is being sung,
                 // the way Apple Music keeps it: it opens on its own clock, just
@@ -2206,6 +2211,7 @@ internal fun LyricsPanel(
                                 style = style.copy(
                                     fontSize = BACKING_FONT_SIZE,
                                     lineHeight = BACKING_LINE_HEIGHT,
+                                    fontWeight = FontWeight.SemiBold,
                                 ),
                                 isActive = isActive,
                                 sung = sung,
@@ -2609,7 +2615,7 @@ private fun CurrentLyricLine(
                 SweptLyricLine(
                     line = swept,
                     clock = clock,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.copy(fontFamily = LocalLyricsFontFamily.current),
                     dimAlpha = UNSUNG_ALPHA_STRIP,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -2618,7 +2624,7 @@ private fun CurrentLyricLine(
             } else {
                 Text(
                     text = lineText,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.copy(fontFamily = LocalLyricsFontFamily.current),
                     color = if (itemInstrumental) Color.White.copy(alpha = 0.5f) else Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

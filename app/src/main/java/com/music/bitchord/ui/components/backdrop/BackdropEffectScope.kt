@@ -48,7 +48,8 @@ internal abstract class BackdropEffectScopeImpl : BackdropEffectScope, RuntimeSh
     // on when the backdrop layer is recorded at a reduced resolution, so shader
     // geometry (e.g. the lens size uniform) matches the layer's pixel grid.
     fun update(scope: DrawScope, contentScale: Float = 1f): Boolean {
-        val newDensity = scope.density
+        // Dp corner radii must use the same pixel grid as the sampled layer.
+        val newDensity = scope.density * contentScale
         val newFontScale = scope.fontScale
         val newSize = if (contentScale != 1f) scope.size * contentScale else scope.size
         val newLayoutDirection = scope.layoutDirection

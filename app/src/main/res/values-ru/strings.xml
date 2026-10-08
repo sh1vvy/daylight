@@ -1258,6 +1258,7 @@
         <item quantity="other">Добавлено в %1$d плейлиста</item>
     </plurals>
     <string name="party_queue_full">Очередь заполнена (максимум %d песен на вечеринке)</string>
+    <string name="party_playlist_queue_limited">В Jam можно добавить 25 следующих треков. Остальная часть этого плейлиста не добавлена.</string>
 
     <string name="paxsenix_api_key">PaxSenix API key</string>
 

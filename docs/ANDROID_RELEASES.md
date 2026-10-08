@@ -14,6 +14,20 @@ Both assets are universal APKs, supporting arm64, ARMv7 and x86_64. The public
 APK uses the release build’s R8 optimizations. The development APK retains its
 existing package and signer so an in-place update preserves library and settings.
 
+## Interim APK updates
+
+For the next few updates, provide signed APKs for manual installation. Do not
+create a GitHub release or tag, upload APKs to a release, or change the live Jam page’s public
+download/version badge for these builds. Source changes can still be pushed.
+Increase the Android version code for each delivered APK and keep the existing
+package and signing key so installation updates the app without losing data.
+
+The current interim build is **0.2.1**, version code **12**; the latest public
+release remains **0.2.0**. Public releases are intended roughly every seven days,
+when Shivvy explicitly asks to publish. This cadence does not authorize automatic
+publishing. Run the checks below for manual APKs too, then deliver both package
+variants with checksums. Install the variant matching the app already installed.
+
 ## Signing
 
 The production key is `daylight-release.jks`, referenced by the private
@@ -32,6 +46,8 @@ its optional signing secrets are configured. Public releases must use verified,
 signed output from the holder of the production key.
 
 ## Publishing
+
+Follow these steps only when a public release is explicitly requested.
 
 1. Increase `versionName` and `versionCode` in `app/build.gradle.kts`, leaving
    `betaSuffix` empty for a normal release. Update the version on the Jam badge.

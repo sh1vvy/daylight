@@ -551,6 +551,7 @@
         <item quantity="other">Added to %1$d playlists</item>
     </plurals>
     <string name="party_queue_full">Queue is full (maximum %d songs in party)</string>
+    <string name="party_playlist_queue_limited">Jam has room for 25 upcoming songs. The rest of this playlist wasn\'t added.</string>
     <plurals name="log_copied_line_count">
         <item quantity="one">Log copied · %1$d line</item>
         <item quantity="other">Log copied · %1$d lines</item>

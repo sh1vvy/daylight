@@ -1094,6 +1094,7 @@
 
 
     <string name="party_queue_full">Queue is full (maximum %d songs in party)</string>
+    <string name="party_playlist_queue_limited">Jam có chỗ cho 25 bài hát tiếp theo. Phần còn lại của danh sách phát này chưa được thêm.</string>
     <string name="listen_together_profile">Your party profile</string>
     <string name="listen_together_nickname_hint">Nickname for this party</string>
     <string name="listen_together_party_size">Party size</string>

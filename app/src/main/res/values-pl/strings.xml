@@ -1266,6 +1266,7 @@
         <item quantity="other">Dodano do %1$d playlist</item>
     </plurals>
     <string name="party_queue_full">Kolejka jest pełna (maksymalnie %d utworów na imprezie)</string>
+    <string name="party_playlist_queue_limited">W Jam jest miejsce na 25 kolejnych utworów. Reszta tej playlisty nie została dodana.</string>
 
     <string name="paxsenix_api_key">PaxSenix API key</string>
 

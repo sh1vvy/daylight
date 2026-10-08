@@ -1029,6 +1029,7 @@
         <item quantity="other">เพิ่มลงใน %1$d เพลย์ลิสต์แล้ว</item>
     </plurals>
     <string name="party_queue_full">คิวเต็มแล้ว (ปาร์ตี้มีได้สูงสุด %d เพลง)</string>
+    <string name="party_playlist_queue_limited">Jam มีที่ว่างสำหรับเพลงถัดไป 25 เพลง ส่วนที่เหลือของเพลย์ลิสต์นี้ไม่ได้ถูกเพิ่ม</string>
 
     <string name="paxsenix_api_key">PaxSenix API key</string>
 

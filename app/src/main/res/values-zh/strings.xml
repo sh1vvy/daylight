@@ -1203,6 +1203,7 @@
         <item quantity="other">已添加到 %1$d 个播放列表</item>
     </plurals>
     <string name="party_queue_full">队列已满（派对最多 %d 首歌曲）</string>
+    <string name="party_playlist_queue_limited">Jam最多容纳25首待播放歌曲。此播放列表的其余歌曲未添加。</string>
 
     <string name="paxsenix_api_key">PaxSenix API key</string>
 

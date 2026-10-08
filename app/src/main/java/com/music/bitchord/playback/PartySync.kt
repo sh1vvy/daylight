@@ -756,22 +756,16 @@ class PartySync(
         // the full list is not — it parses a metadata bundle per track — and
         // this runs on every pause and every seek, on a queue that can be
         // hundreds long.
-        val rawLocalItems = (0 until exo.mediaItemCount)
-            .map { exo.getMediaItemAt(it) }
-            .filterNot { it.mediaId.startsWith("content://") || it.mediaId.startsWith("file://") }
-
-        val rawTrackIndex = rawLocalItems.indexOfFirst { it.mediaId == track.videoId }
-        val localItems = if (rawTrackIndex >= 0) {
-            val pastAndCurrent = rawLocalItems.subList(0, rawTrackIndex + 1)
-            val upcoming = rawLocalItems.subList(rawTrackIndex + 1, rawLocalItems.size)
-                .filter { it.queueTier != QueueTier.CONTEXT }
-            pastAndCurrent + upcoming
-        } else {
-            rawLocalItems.filter { it.queueTier != QueueTier.CONTEXT }
-        }
+        val localIndices = partyPublishQueueIndices(
+            mediaIds = (0 until exo.mediaItemCount).map { exo.getMediaItemAt(it).mediaId },
+            currentIndex = exo.currentMediaItemIndex,
+            tierAt = { exo.getMediaItemAt(it).queueTier },
+        )
+        val localItems = localIndices.map { exo.getMediaItemAt(it) }
 
         val localIds = localItems.map { it.mediaId }
-        val trackIndex = localIds.indexOf(track.videoId)
+        // The playing occurrence matters when a playlist contains the same song twice.
+        val trackIndex = localIndices.indexOf(exo.currentMediaItemIndex)
         val clampedIds = if (trackIndex >= 0) {
             val upcomingEnd = (trackIndex + 1 + MAX_PARTY_UPCOMING_QUEUE).coerceAtMost(localIds.size)
             localIds.subList(0, upcomingEnd)
@@ -1100,6 +1094,17 @@ class PartySync(
  */
 private fun Song.isDeviceFile(): Boolean =
     videoId.startsWith("content://") || videoId.startsWith("file://")
+
+/** Shared queue entries, retaining the actual playhead even when track IDs repeat. */
+internal fun partyPublishQueueIndices(
+    mediaIds: List<String>,
+    currentIndex: Int,
+    tierAt: (Int) -> QueueTier,
+): List<Int> = mediaIds.indices.filter { index ->
+    val id = mediaIds[index]
+    !id.startsWith("content://") && !id.startsWith("file://") &&
+        ((currentIndex in mediaIds.indices && index <= currentIndex) || tierAt(index) != QueueTier.CONTEXT)
+}
 
 internal fun Song.toPartyTrack(playerDurationMs: Long): PartyTrack = PartyTrack(
     videoId = videoId,

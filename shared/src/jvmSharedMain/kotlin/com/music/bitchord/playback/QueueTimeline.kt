@@ -4,6 +4,7 @@ import com.music.bitchord.data.model.PlaybackSourceType
 import com.music.bitchord.data.model.QueueTier
 import com.music.bitchord.data.model.Song
 import java.util.UUID
+import kotlin.random.Random
 
 /**
  * Information about where a queue or track was started from in the UI.
@@ -21,6 +22,11 @@ data class QueueSource(
 data class ContextQueueResult(
     val timeline: List<Song>,
     val startIndex: Int,
+)
+
+data class PartyCollectionQueueResult(
+    val timeline: List<Song>,
+    val omittedSongs: Int,
 )
 
 /**
@@ -121,6 +127,48 @@ object QueueTimeline {
             upcomingPartySongs
                 .filterNot { it.fromAutoplay }
                 .map { it.asQueueEntry(QueueTier.USER_QUEUE) }
+
+    /**
+     * Explicit Play/Shuffle on a collection shares its following songs with the party.
+     * Existing manual requests keep their order ahead of the collection; old AutoPlay
+     * suggestions are discarded. Collection entries are USER_QUEUE so PartySync publishes
+     * them. Shuffle happens before that promotion, including songs before the selected row.
+     * Device-only files cannot be resolved by another listener and are not shared.
+     */
+    fun buildPartyCollectionQueue(
+        collectionSongs: List<Song>,
+        selectedIndex: Int,
+        source: QueueSource,
+        upcomingPartySongs: List<Song>,
+        shuffle: Boolean = false,
+        maxUpcoming: Int = 25,
+        random: Random = Random.Default,
+    ): PartyCollectionQueueResult {
+        if (collectionSongs.isEmpty()) return PartyCollectionQueueResult(emptyList(), 0)
+        val at = selectedIndex.coerceIn(collectionSongs.indices)
+        val selected = collectionSongs[at]
+        fun Song.isShareable(): Boolean =
+            !videoId.startsWith("content://") && !videoId.startsWith("file://")
+        if (!selected.isShareable()) return PartyCollectionQueueResult(emptyList(), 0)
+
+        val manual = upcomingPartySongs.filter { !it.fromAutoplay && it.isShareable() }
+            .take(maxUpcoming.coerceAtLeast(0))
+            .map { it.asQueueEntry(QueueTier.USER_QUEUE) }
+        val following = if (shuffle) {
+            collectionSongs.filterIndexed { index, song -> index != at && song.isShareable() }
+                .shuffled(random)
+        } else {
+            collectionSongs.drop(at + 1).filter { it.isShareable() }
+        }
+        val slotsLeft = (maxUpcoming - manual.size).coerceAtLeast(0)
+        val added = following.take(slotsLeft).map {
+            it.from(source).asQueueEntry(QueueTier.USER_QUEUE)
+        }
+        return PartyCollectionQueueResult(
+            timeline = listOf(selected.from(source).asQueueEntry(QueueTier.CONTEXT)) + manual + added,
+            omittedSongs = following.size - added.size,
+        )
+    }
 
     /**
      * Finds the insertion index for user-queued tracks.

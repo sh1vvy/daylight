@@ -1165,6 +1165,7 @@
         <item quantity="other">Aggiunto a %1$d playlist</item>
     </plurals>
     <string name="party_queue_full">La coda è piena (massimo %d brani nel party)</string>
+    <string name="party_playlist_queue_limited">Jam può contenere 25 brani in coda. Il resto di questa playlist non è stato aggiunto.</string>
 
     <string name="paxsenix_api_key">PaxSenix API key</string>
 

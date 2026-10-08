@@ -1278,12 +1278,18 @@ private fun BitChordApp(
         }
     }
 
-    val playFrom: (List<Song>, Int, QueueSource) -> Unit = playFrom@{ allSongs, allIndex, source ->
+    fun playFrom(
+        allSongs: List<Song>,
+        allIndex: Int,
+        source: QueueSource,
+        startCollection: Boolean = false,
+    ) {
         // A Spotify page lists songs it has not found on YouTube Music yet (or
         // never will); those can't be queued, so play the rest in their order.
-        if (allSongs.getOrNull(allIndex)?.isUnresolvedSpotify == true) return@playFrom
+        if (allSongs.getOrNull(allIndex)?.isUnresolvedSpotify == true) return
         val songs = allSongs.filterNot { it.isUnresolvedSpotify }
-        val index = songs.indexOf(allSongs.getOrNull(allIndex)).coerceAtLeast(0)
+        // Count eligible rows rather than finding an equal Song: playlists can repeat a track.
+        val index = allSongs.take(allIndex.coerceAtLeast(0)).count { !it.isUnresolvedSpotify }
         playRequestGeneration++
         activeRadioSeed = null
         scope.launch {
@@ -1303,12 +1309,27 @@ private fun BitChordApp(
                 } else {
                     emptyList()
                 }
-                val timeline = QueueCoordinator.buildPartyPlaybackQueue(
-                    tappedSong = selectedSong,
-                    source = source,
-                    upcomingPartyTracks = upcomingPartyTracks,
-                )
+                val collection = if (startCollection) {
+                    QueueCoordinator.buildPartyCollectionQueue(
+                        collectionSongs = songs,
+                        selectedIndex = index,
+                        source = source,
+                        upcomingPartyTracks = upcomingPartyTracks,
+                        shuffle = QueueShuffle.enabled.value,
+                    )
+                } else {
+                    null
+                }
+                val timeline = collection?.timeline?.takeIf { it.isNotEmpty() }
+                    ?: QueueCoordinator.buildPartyPlaybackQueue(
+                        tappedSong = selectedSong,
+                        source = source,
+                        upcomingPartyTracks = upcomingPartyTracks,
+                    )
                 c.playSongs(timeline, 0)
+                if (collection != null && collection.omittedSongs > 0) {
+                    showQueueNotice(context.getString(R.string.party_playlist_queue_limited))
+                }
             } else {
                 val result = QueueCoordinator.buildContextQueue(
                     currentTimeline = currentTimeline,
@@ -1322,6 +1343,12 @@ private fun BitChordApp(
             // Start playback in the mini-player; the user opens the full view by tapping it.
         }
     }
+    fun playCollectionFrom(songs: List<Song>, source: QueueSource, shuffle: Boolean = false) {
+        val playable = songs.filterNot { it.isUnresolvedSpotify }
+        if (playable.isEmpty() || refusedByHost()) return
+        if (shuffle) QueueShuffle.enableForNextQueue()
+        playFrom(playable, if (shuffle) playable.indices.random() else 0, source, startCollection = true)
+    }
     // Kept for entry points whose rows already carry their origin (notably a
     // collection action fetched before this callback). The explicit wrappers
     // below are preferred because a track's album is not necessarily where it
@@ -1334,6 +1361,18 @@ private fun BitChordApp(
             id = first?.playbackSourceId,
         )
         playFrom(songs, index, source)
+    }
+    fun playCollection(songs: List<Song>, shuffle: Boolean = false) {
+        val first = songs.firstOrNull()
+        playCollectionFrom(
+            songs,
+            QueueSource(
+                title = first?.playbackSource ?: first?.albumName ?: queueLabel,
+                type = first?.playbackSourceType ?: PlaybackSourceType.QUEUE,
+                id = first?.playbackSourceId,
+            ),
+            shuffle,
+        )
     }
     LaunchedEffect(player.song?.videoId) {
         if (optimisticVersionSong?.videoId == player.song?.videoId ||
@@ -1656,7 +1695,7 @@ private fun BitChordApp(
                     // player can only mean start here — and adding without
                     // preparing would leave the list sitting in a player that
                     // never gets round to it.
-                    play(songs, 0)
+                    playCollection(songs)
                 } else {
                     val toAdd = if (ListenTogether.state.value.inParty) {
                         val upcoming = (c.mediaItemCount - (c.currentMediaItemIndex + 1)).coerceAtLeast(0)
@@ -2862,11 +2901,10 @@ private fun BitChordApp(
                                 onSongLongPress = openSongMenu,
                                 onSongSwipe = onSongSwipe,
                                 onShuffle = { songs ->
-                                    QueueShuffle.enableForNextQueue()
-                                    playFrom(
+                                    playCollectionFrom(
                                         songs,
-                                        songs.indices.random(),
                                         QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId),
+                                        shuffle = true,
                                     )
                                 },
                                 emptyMessage = (localState as? com.music.bitchord.data.model.UiState.Error)
@@ -2929,15 +2967,17 @@ private fun BitChordApp(
                                 },
                                 onSongLongPress = { openSongMenu(withAlbum(it)) },
                                 onSongSwipe = onSongSwipe,
-                                onShuffle = { songs ->
-                                    // Shuffle goes on first so the queue is built shuffled
-                                    // as it is set — the random pick here only decides
-                                    // which track leads it.
-                                    QueueShuffle.enableForNextQueue()
-                                    playFrom(
+                                onPlay = { songs ->
+                                    playCollectionFrom(
                                         songs,
-                                        songs.indices.random(),
                                         QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId),
+                                    )
+                                },
+                                onShuffle = { songs ->
+                                    playCollectionFrom(
+                                        songs,
+                                        QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId),
+                                        shuffle = true,
                                     )
                                 },
                                 onSectionItemClick = { item ->
@@ -4517,13 +4557,9 @@ private fun BitChordApp(
                 startRenaming = browseRenameInSheet,
                 onPlayNext = act(playSongsNext),
                 onAddToQueue = act(addSongsToQueue),
-                onPlay = act { songs -> play(songs, 0) }.takeIf { target.fromCard },
+                onPlay = act { songs -> playCollection(songs) }.takeIf { target.fromCard },
                 onShuffle = act { songs ->
-                    // As on a release page: shuffle goes on before the queue
-                    // is built, so it is built shuffled rather than played
-                    // out of order.
-                    QueueShuffle.enableForNextQueue()
-                    play(songs, songs.indices.random())
+                    playCollection(songs, shuffle = true)
                 }.takeIf { target.fromCard },
                 onOpen = target.browseId
                     ?.takeIf { target.fromCard }

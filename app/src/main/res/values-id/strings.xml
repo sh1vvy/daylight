@@ -1203,6 +1203,7 @@
         <item quantity="other">Ditambahkan ke %1$d playlist</item>
     </plurals>
     <string name="party_queue_full">Antrean penuh (maksimal %d lagu di pesta)</string>
+    <string name="party_playlist_queue_limited">Jam memiliki ruang untuk 25 lagu berikutnya. Sisa playlist ini tidak ditambahkan.</string>
 
     <string name="paxsenix_api_key">PaxSenix API key</string>
 

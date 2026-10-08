@@ -55,6 +55,21 @@ object QueueCoordinator {
         upcomingPartyTracks.map { it.toSong() },
     )
 
+    /** @see QueueTimeline.buildPartyCollectionQueue */
+    fun buildPartyCollectionQueue(
+        collectionSongs: List<Song>,
+        selectedIndex: Int,
+        source: QueueSource,
+        upcomingPartyTracks: List<PartyTrack>,
+        shuffle: Boolean,
+    ): PartyCollectionQueueResult = QueueTimeline.buildPartyCollectionQueue(
+        collectionSongs = collectionSongs,
+        selectedIndex = selectedIndex,
+        source = source,
+        upcomingPartySongs = upcomingPartyTracks.map { it.toSong() },
+        shuffle = shuffle,
+    )
+
     /** @see QueueTimeline.findUserQueueInsertionIndex */
     fun findUserQueueInsertionIndex(
         timeline: List<Song>,

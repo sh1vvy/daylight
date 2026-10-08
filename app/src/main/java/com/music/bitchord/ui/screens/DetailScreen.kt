@@ -249,6 +249,7 @@ fun DetailScreen(
     onSongClick: (List<Song>, Int) -> Unit,
     onSongLongPress: (Song) -> Unit,
     onSongSwipe: (Song) -> Unit,
+    onPlay: (List<Song>) -> Unit,
     onShuffle: (List<Song>) -> Unit,
     onSectionItemClick: (ShelfItem) -> Unit,
     onArtistClick: (String, String) -> Unit,
@@ -469,7 +470,7 @@ fun DetailScreen(
                         artHeight = artHeight,
                         trackCount = songs.size,
                         songs = songs,
-                        onPlay = { onSongClick(songs, 0) },
+                        onPlay = { onPlay(songs) },
                         onShuffle = { onShuffle(songs) },
                         searching = searching,
                         onSearch = {
@@ -507,7 +508,7 @@ fun DetailScreen(
                 item(key = "actions", contentType = "actions") {
                     ActionRow(
                         palette = palette,
-                        onPlay = { onSongClick(songs, 0) },
+                        onPlay = { onPlay(songs) },
                         onShuffle = { onShuffle(songs) },
                         subscription = page.subscription?.takeIf { onToggleSubscription != null },
                         onToggleSubscription = onToggleSubscription,

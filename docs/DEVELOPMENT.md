@@ -83,6 +83,21 @@ listens to ListenBrainz. Last.fm and other motion artwork remain available. Lyri
 translation always follows the app language; retired settings are removed on
 startup and backup restore.
 
+Home refresh commits the recommendation feed and Recents together, retaining the
+visible Recents shelf if history fails. Old initial-load and pagination responses
+cannot overwrite a newer refresh. A pending history request reserves its leading
+space without displaying a second placeholder once Recents is already present.
+
+Swiping the task out of Android Recents stops playback by default, including both
+crossfade players and the notification. Pressing Home or locking the device still
+allows background listening. An explicitly disabled Stop music on close preference
+is preserved. The profile photo on Home has no thumbnail ring or surrounding glass
+surface. Manage accounts opens Account & integrations, where sign-out remains.
+
+Bottom-tab navigation dismisses Spotify and Discord as well as the other pushed
+pages. Spotify playlist details stay above their account/settings entry point;
+Back returns to Spotify and tab taps immediately return to their destination.
+
 ## More context
 
 - [Performance changes and validation](PERFORMANCE.md)

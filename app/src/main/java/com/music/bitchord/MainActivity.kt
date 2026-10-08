@@ -2528,6 +2528,20 @@ private fun BitChordApp(
         )
     }
 
+    fun openProfileSettings(accounts: Boolean = false) {
+        showAccountSelector = false
+        showSpotify = false
+        showDiscord = false
+        showHistory = false
+        showListenTogether = false
+        showEqualizer = false
+        showReplay = false
+        libraryShowAll = null
+        showAccountScrobbling = accounts
+        settingsSubScreen = if (accounts) "account_scrobbling" else null
+        showSettings = true
+    }
+
     Box(
         Modifier
             .fillMaxSize()
@@ -2551,8 +2565,8 @@ private fun BitChordApp(
             }
         }
         BackHandler(
-            enabled = detail != null && !showSettings && !showAccountScrobbling && !showListenTogether &&
-                !showEqualizer && !showReplay,
+            enabled = detail != null && (showSpotify || (!showSettings && !showAccountScrobbling && !showListenTogether &&
+                !showEqualizer && !showReplay)),
         ) { viewModel.closeDetail() }
         BackHandler(enabled = selectedMoodGenre != null && detail == null && !showSettings && !showReplay) {
             viewModel.closeMoodGenre()
@@ -2614,7 +2628,7 @@ private fun BitChordApp(
         Row(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 val pageKey = when {
-                    showSpotify && detail == null -> "spotify"
+                    showSpotify -> detail?.detailRouteKey() ?: "spotify"
                     showDiscord -> "discord"
                     showHistory -> "history"
                     // `&& detail == null`: a card opened from the grid
@@ -2826,7 +2840,11 @@ private fun BitChordApp(
                             onSignOut = { viewModel.signOut() },
                             onOpenLastfmLogin = { showLastfmLogin = true },
                             onOpenDiscord = { showDiscord = true },
-                            onOpenSpotify = { showSpotify = true },
+                            onOpenSpotify = {
+                                viewModel.clearDetail()
+                                viewModel.closeMoodGenre()
+                                showSpotify = true
+                            },
                             onCredits = { settingsSubScreen = "credits" },
                             contentPadding = listPadding,
                         )
@@ -3413,7 +3431,11 @@ private fun BitChordApp(
                                     onSignOut = { viewModel.signOut() },
                                     onOpenLastfmLogin = { showLastfmLogin = true },
                                     onOpenDiscord = { showDiscord = true },
-                                    onOpenSpotify = { showSpotify = true },
+                                    onOpenSpotify = {
+                                        viewModel.clearDetail()
+                                        viewModel.closeMoodGenre()
+                                        showSpotify = true
+                                    },
                                     onCredits = { settingsSubScreen = "credits" },
                                     contentPadding = listPadding,
                                 )
@@ -3503,8 +3525,7 @@ private fun BitChordApp(
                     (detail.type == BrowseType.ALBUM ||
                         detail.type == BrowseType.PLAYLIST ||
                         detail.type == BrowseType.ARTIST) &&
-                    !isLocalDetail && !showDiscord && !showHistory && !showSettings &&
-                    !showAccountScrobbling && !showListenTogether && !showEqualizer && !showReplay
+                    !isLocalDetail && pageKey == detail.detailRouteKey()
                 val chromePageColor = when {
                     isDetailVisible -> detailPalette.background
                     pageKey == "$TAB_KEY$TAB_HOME" -> daylightHomeBackground(MaterialTheme.colorScheme.background, LocalPinkCloud.current)
@@ -3541,6 +3562,7 @@ private fun BitChordApp(
                 )
 
                 FrostedTopBar(
+                    profileOnly = pageKey == "$TAB_KEY$TAB_HOME",
                     title = when {
                         settingsSubScreen == "credits" -> stringResource(R.string.credits)
                         showSpotify && detail == null -> stringResource(R.string.spotify)
@@ -3586,7 +3608,10 @@ private fun BitChordApp(
                         settingsSubScreen == "credits" -> ({
                             settingsSubScreen = if (showSettings) "account_scrobbling" else null
                         })
-                        showSpotify && detail == null -> ({ showSpotify = false })
+                        showSpotify -> ({
+                            if (detail != null) viewModel.closeDetail() else showSpotify = false
+                            Unit
+                        })
                         showDiscord -> ({ showDiscord = false })
                         showHistory -> ({ showHistory = false })
                         libraryShowAll != null && detail == null -> ({ libraryShowAll = null })
@@ -3607,7 +3632,7 @@ private fun BitChordApp(
                         selectedTab == TAB_SEARCH && detail == null && selectedMoodGenre == null &&
                         libraryShowAll == null && !showSettings && !showAccountScrobbling &&
                         !showListenTogether && !showEqualizer && !showDiscord &&
-                        !showHistory && !showReplay
+                        !showSpotify && !showHistory && !showReplay
                     ) {
                         {
                             // The search field lives up here in the bar, beside the
@@ -3823,7 +3848,7 @@ private fun BitChordApp(
                                     if (signedIn) {
                                         viewModel.loadChannels()
                                         showAccountSelector = true
-                                    } else showSettings = true
+                                    } else openProfileSettings()
                                 },
                                 onSwipeProfile = { forward -> viewModel.stepProfile(forward) },
                             )
@@ -3855,12 +3880,15 @@ private fun BitChordApp(
                     viewModel.closeMoodGenre()
                     showSettings = false
                     showAccountScrobbling = false
+                    showSpotify = false
+                    showDiscord = false
                     showListenTogether = false
                     showEqualizer = false
                     showReplay = false
                     settingsSubScreen = null
                     showHistory = false
                     libraryShowAll = null
+                    detailActiveShelf = null
                     selectedTab = index
 
                     // Every search tab tap resets the field, focuses it, and opens
@@ -5011,14 +5039,8 @@ private fun BitChordApp(
                     showAccountSelector = false
                     webSession = WebSessionMode.SIGN_IN
                 },
-                onRemoveAccount = { selected ->
-                    viewModel.removeAccount(selected.accountId)
-                    showAccountSelector = false
-                },
-                onOpenSettings = {
-                    showAccountSelector = false
-                    showSettings = true
-                },
+                onManageAccounts = { openProfileSettings(accounts = true) },
+                onOpenSettings = { openProfileSettings() },
                 onDismiss = { showAccountSelector = false },
             )
         }

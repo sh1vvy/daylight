@@ -55,22 +55,9 @@ require(discordApplicationId.isEmpty() || discordApplicationId.all(Char::isDigit
     "DISCORD_APPLICATION_ID must be a numeric Discord application ID"
 }
 
-/*
- * Bump this by hand before cutting each sideloaded test build ("beta2",
- * "beta3", ...) and blank it out before cutting the real release. Marks the
- * versionName below as a pre-release: AppRelease.isNewer() treats any
- * "-suffix" as older than a clean release of the same number, so testers
- * still get the update prompt once the matching tag is actually published.
- *
- * Applied to release builds as well as debug ones, and that is the whole
- * point of it. A sideloaded beta is a *release* build — signed with the real
- * key, installed over the real package — so leaving the marker off it is
- * exactly the case that strands a tester: their build calls itself 1.6.1,
- * the published 1.6.1 then matches it, isNewer() says no, and no prompt ever
- * comes. Blanking this line is the one step that turns a beta into a release,
- * so it is the one place to get right.
- */
-val betaSuffix = ""
+// Advance only the development channel until a stable release is requested.
+val developmentVersionName = "0.2.2-dev.1"
+val developmentVersionCode = 13
 
 android {
     namespace = "com.music.bitchord"
@@ -124,6 +111,8 @@ android {
         create("dev") {
             dimension = "env"
             applicationId = "com.sh1vvy.daylight.dev"
+            versionName = developmentVersionName
+            versionCode = developmentVersionCode
             resValue("string", "app_name", "Daylight Dev")
         }
         create("prod") {
@@ -152,13 +141,8 @@ android {
     }
 
     buildTypes {
-        debug {
-            if (betaSuffix.isNotEmpty()) versionNameSuffix = "-$betaSuffix"
-        }
+        debug { }
         release {
-            // Carried here too — see [betaSuffix]. A sideloaded beta is a
-            // release build, and it is the one that most needs the marker.
-            if (betaSuffix.isNotEmpty()) versionNameSuffix = "-$betaSuffix"
             /*
              * On for what it does to speed, not size. Compose is written to be
              * run through R8 — without it every composable keeps the debug-era

@@ -1643,8 +1643,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     YtMusicRepository.homeRecentlyPlayed()
                         .onSuccess { shelf ->
                             if (isCurrentHomeLoad(identity, generation)) {
-                                _homeRecentlyPlayedLoading.value = false
                                 shelf?.let { publishHomeShelves(listOf(it), prepend = true) }
+                                _homeRecentlyPlayedLoading.value = false
                             }
                         }
                         .onFailure {
@@ -1696,19 +1696,27 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Refreshes the core feed without blanking the current Play page first. */
-    private suspend fun refreshHome(identity: String?) = coroutineScope {
-        val recent = if (_signedIn.value) async { YtMusicRepository.homeRecentlyPlayed() } else null
-        YtMusicRepository.home().onSuccess { feed ->
-            if (identity != listenerKey()) return@onSuccess
+    private suspend fun refreshHome(identity: String?) {
+        if (identity != listenerKey()) return
+        val generation = homeLoadGeneration.incrementAndGet()
+        val previous = (_home.value as? UiState.Success)?.data.orEmpty()
+        _homePendingShelves.value = 0
+        _homeLoadingMore.value = false
+        // If refresh interrupts first load, keep its reserved Recents slot
+        // until this generation settles too.
+        val refreshed = refreshedHomeFeed(
+            previous = previous,
+            loadFeed = { YtMusicRepository.home() },
+            loadRecents = if (_signedIn.value) ({ YtMusicRepository.homeRecentlyPlayed() }) else null,
+        )
+        if (!isCurrentHomeLoad(identity, generation)) return
+        refreshed.onSuccess { feed ->
             homeContinuation = feed.continuation
             homeSeenTitles.clear()
-            val shelves = feed.shelves.withoutRepeatsOf(emptyList())
-                .filter { homeSeenTitles.add(it.title.lowercase(Locale.ROOT)) }
-            if (shelves.isNotEmpty()) _home.value = UiState.Success(shelves)
+            homeSeenTitles.addAll(feed.shelves.map { it.title.lowercase(Locale.ROOT) })
+            if (feed.shelves.isNotEmpty()) _home.value = UiState.Success(feed.shelves)
         }
-        recent?.await()?.onSuccess { shelf ->
-            if (identity == listenerKey()) shelf?.let { publishHomeShelves(listOf(it), prepend = true) }
-        }
+        _homeRecentlyPlayedLoading.value = false
     }
 
     /**
@@ -1717,13 +1725,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * loaded — [homeContinuation] covers all three by construction.
      */
     fun loadMoreHome() {
+        if (Feed.HOME in _refreshing.value) return
         val token = homeContinuation ?: return
         if (_homeLoadingMore.value) return
         val identity = listenerKey()
+        val generation = homeLoadGeneration.get()
         _homeLoadingMore.value = true
         viewModelScope.launch {
             YtMusicRepository.moreHome(token).onSuccess { feed ->
-                if (identity == listenerKey()) {
+                if (isCurrentHomeLoad(identity, generation)) {
                     val existing = (_home.value as? UiState.Success)?.data ?: emptyList()
                     val added = feed.shelves.withoutRepeatsOf(existing)
                         .filter { homeSeenTitles.add(it.title.lowercase(Locale.ROOT)) }
@@ -1734,7 +1744,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     if (added.isNotEmpty()) _home.value = UiState.Success(existing + added)
                 }
             }
-            if (identity == listenerKey()) _homeLoadingMore.value = false
+            if (isCurrentHomeLoad(identity, generation)) _homeLoadingMore.value = false
         }
     }
 

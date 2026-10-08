@@ -24,9 +24,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,12 +54,11 @@ fun AccountProfileSelector(
     hazeState: HazeState,
     onSelect: (GoogleAccountSession, YouTubeProfile) -> Unit,
     onAddAccount: () -> Unit,
-    onRemoveAccount: (GoogleAccountSession) -> Unit,
+    onManageAccounts: () -> Unit,
     onOpenSettings: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var managing by remember { mutableStateOf(false) }
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val shape = MaterialTheme.shapes.extraLarge
     Column(
@@ -104,21 +100,20 @@ fun AccountProfileSelector(
                 items(account.profiles.size) { index ->
                     val profile = account.profiles[index]
                     ProfileRow(profile, account.accountId == activeAccountId && profile.profileId == activeProfileId,
-                        managing, { onSelect(account, profile); onDismiss() }, { onRemoveAccount(account) })
+                        onClick = { onSelect(account, profile); onDismiss() })
                 }
                 }
                 item { SelectorAction(Icons.Rounded.Add, stringResource(R.string.add_account), onAddAccount) }
-                item { SelectorAction(Icons.Rounded.ManageAccounts, stringResource(R.string.manage_accounts)) { managing = !managing } }
+                item { SelectorAction(Icons.Rounded.ManageAccounts, stringResource(R.string.manage_accounts), onManageAccounts) }
                 item { SelectorAction(Icons.Rounded.Settings, stringResource(R.string.settings), onOpenSettings) }
             }
         }
     }
 }
 
-@Composable private fun ProfileRow(profile: YouTubeProfile, selected: Boolean, managing: Boolean,
-    onClick: () -> Unit, onRemove: () -> Unit) {
+@Composable private fun ProfileRow(profile: YouTubeProfile, selected: Boolean, onClick: () -> Unit) {
     val description = stringResource(if (selected) R.string.selected_account else R.string.switch_account)
-    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(role = Role.RadioButton, onClick = if (managing) onRemove else onClick)
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(role = Role.RadioButton, onClick = onClick)
         .semantics { contentDescription = description }
         .padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         if (profile.avatar != null) AsyncImage(profile.avatar, null, Modifier.size(38.dp).clip(MaterialTheme.shapes.extraLarge))
@@ -128,8 +123,7 @@ fun AccountProfileSelector(
             Text(profile.handle.ifBlank { stringResource(if (profile.isBrandAccount) R.string.brand_account else R.string.personal) },
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        if (selected && !managing) Icon(Icons.Rounded.Check, stringResource(R.string.selected_account), tint = MaterialTheme.colorScheme.primary)
-        if (managing) Text(stringResource(R.string.sign_out), color = MaterialTheme.colorScheme.error)
+        if (selected) Icon(Icons.Rounded.Check, stringResource(R.string.selected_account), tint = MaterialTheme.colorScheme.primary)
     }
 }
 

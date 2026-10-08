@@ -151,6 +151,7 @@ fun HomeScreen(
     val recentsViewType by AppUi.host.homeRecentsViewType.collectAsStateWithLifecycle()
     val shelves = (state as? UiState.Success)?.data.orEmpty()
     val shelfKeys = remember(shelves) { homeShelfKeys(shelves) }
+    val recentsPending = recentlyPlayedLoading && shelves.none { it.title.equals(RECENTS_TITLE, ignoreCase = true) }
 
     MaterialTheme(colorScheme = daylightHomeColorScheme(MaterialTheme.colorScheme, LocalPinkCloud.current)) {
         Box(modifier = modifier.fillMaxSize()) {
@@ -185,7 +186,7 @@ fun HomeScreen(
                     }
                     when (state) {
                         is UiState.Loading -> {
-                            if (recentlyPlayedLoading) {
+                            if (recentsPending) {
                                 recentlyPlayedSkeleton(listLayout = recentsViewType == LibraryViewType.LIST)
                                 // Recents owns the leading layout while its request is
                                 // pending, so the feed behind it starts with ordinary
@@ -199,7 +200,7 @@ fun HomeScreen(
                             MessageState(state.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
                         }
                         is UiState.Success -> {
-                            if (recentlyPlayedLoading) {
+                            if (recentsPending) {
                                 recentlyPlayedSkeleton(listLayout = recentsViewType == LibraryViewType.LIST)
                             }
                             // The loading skeleton already owns the hero slot. Until
@@ -212,7 +213,7 @@ fun HomeScreen(
                                 onItemLongPress = onItemLongPress,
                                 currentSong = currentSong,
                                 isPlaying = isPlaying,
-                                firstIsHero = leadHero && !recentlyPlayedLoading,
+                                firstIsHero = leadHero && !recentsPending,
                                 recentsViewType = recentsViewType,
                                 onRecentsViewTypeToggle = {
                                     AppUi.host.setHomeRecentsViewType(

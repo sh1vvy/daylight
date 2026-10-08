@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Request
@@ -21,8 +20,9 @@ import java.io.File
 /**
  * Daylight ships as a sideloaded APK off GitHub Releases rather than through
  * a store, so there's nothing to push an update notice on its own — this
- * polls the repo's "latest release" once per launch and compares its tag
- * against the running build.
+ * checks the package's release channel once per launch and compares its tag
+ * against the running build. Stable sees published stable releases only;
+ * Daylight Dev also sees development prereleases.
  *
  * The update itself is also handled here: the release's `.apk` asset is
  * downloaded into the app's cache and handed to the system package installer,
@@ -40,9 +40,6 @@ object AppUpdateChecker {
     )
 
     private const val CACHE_SUBDIR = "updates"
-
-    private const val LATEST_RELEASE_URL =
-        "https://api.github.com/repos/sh1vvy/daylight/releases/latest"
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -66,11 +63,12 @@ object AppUpdateChecker {
 
     suspend fun check() = withContext(Dispatchers.IO) {
         runCatching {
-            val request = Request.Builder().url(LATEST_RELEASE_URL).build()
+            val request = Request.Builder().url(AppRelease.releasesUrl(BuildConfig.APPLICATION_ID)).build()
             val body = Http.client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) null else response.body?.string()
             } ?: return@runCatching
-            val release = json.parseToJsonElement(body) as? JsonObject ?: return@runCatching
+            val release = AppRelease.selectUpdate(json.parseToJsonElement(body), BuildConfig.APPLICATION_ID, BuildConfig.VERSION_NAME)
+                ?: return@runCatching
             val tag = release["tag_name"]?.jsonPrimitive?.contentOrNull ?: return@runCatching
             val url = release["html_url"]?.jsonPrimitive?.contentOrNull ?: return@runCatching
             val notes = release["body"]?.jsonPrimitive?.contentOrNull

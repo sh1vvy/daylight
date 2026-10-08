@@ -170,6 +170,8 @@ fun FrostedTopBar(
      * Root tabs have no back button there for it to collide with.
      */
     accessory: (@Composable () -> Unit)? = null,
+    /** A lone profile photo needs no enclosing glass ring. */
+    profileOnly: Boolean = false,
     actions: @Composable () -> Unit = {},
 ) {
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
@@ -321,7 +323,7 @@ fun FrostedTopBar(
                     Box(Modifier.weight(1f)) { accessory() }
                     Spacer(Modifier.width(ACCESSORY_GAP))
                 }
-                if (useFloatingChrome) {
+                if (useFloatingChrome && !profileOnly) {
                     ArtworkPageActions(hazeState = backButtonHazeState, content = actions)
                 } else {
                     actions()
@@ -452,8 +454,7 @@ private fun artworkPageSurface(
  * out, or before the account menu has come back, it falls back to a person
  * glyph on a filled circle so the tap target never disappears.
  *
- * The hairline ring is what keeps a photo with light edges from dissolving into
- * the bar's glass; it is the same one thumbnails elsewhere carry.
+ * The photo keeps its circular crop without an outline.
  */
 @Composable
 fun TopBarAccountButton(
@@ -493,16 +494,14 @@ fun TopBarAccountButton(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(AVATAR_SIZE)
-                    .clip(CircleShape)
-                    .thumbnailBorder(CircleShape),
+                    .clip(CircleShape),
             )
         } else {
             Box(
                 modifier = Modifier
                     .size(AVATAR_SIZE)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .thumbnailBorder(CircleShape),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(

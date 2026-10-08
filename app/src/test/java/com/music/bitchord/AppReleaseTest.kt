@@ -105,4 +105,66 @@ class AppReleaseTest {
         assertFalse(AppRelease.isNewer("0.2.0-beta1", "0.2.0"))
         assertFalse(AppRelease.isNewer("0.2.0-beta1", "0.2.0-beta1"))
     }
+
+    @Test
+    fun `development sequence advances numerically and stable outranks its prereleases`() {
+        assertTrue(AppRelease.isNewer("0.2.2-dev.2", "0.2.2-dev.1"))
+        assertTrue(AppRelease.isNewer("0.2.2-dev.10", "0.2.2-dev.9"))
+        assertFalse(AppRelease.isNewer("0.2.2-dev.2", "0.2.2-dev.10"))
+        assertFalse(AppRelease.isNewer("0.2.2-dev.1", "0.2.2-dev.1"))
+        assertTrue(AppRelease.isNewer("0.2.2", "0.2.2-dev.10"))
+        assertFalse(AppRelease.isNewer("0.2.2-dev.10", "0.2.2"))
+        assertTrue(AppRelease.isNewer("0.2.2-dev.1", "0.2.1"))
+        assertFalse(AppRelease.isNewer("not-a-version", "0.2.1"))
+    }
+
+    private fun channelRelease(tag: String, dev: Boolean = false, prerelease: Boolean = false, draft: Boolean = false) =
+        buildJsonObject {
+            put("tag_name", "v$tag")
+            put("html_url", "https://github.com/sh1vvy/daylight/releases/tag/v$tag")
+            put("prerelease", prerelease)
+            put("draft", draft)
+            put("assets", JsonArray(listOf(asset(if (dev) "daylight-dev.apk" else "daylight.apk"))))
+        }
+
+    @Test
+    fun `stable never offers a development prerelease even with a production asset`() {
+        val dev = channelRelease("0.2.2-dev.1", prerelease = true)
+        val stable = channelRelease("0.2.1")
+        assertNull(AppRelease.selectUpdate(JsonArray(listOf(dev, stable)), prodId, "0.2.1"))
+        assertEquals(stable, AppRelease.selectUpdate(JsonArray(listOf(dev, stable)), prodId, "0.2.0"))
+        assertTrue(AppRelease.releasesUrl(prodId).endsWith("/latest"))
+        assertTrue(AppRelease.releasesUrl(devId).contains("?per_page="))
+    }
+
+    @Test
+    fun `dev selects the newest compatible release independent of API ordering`() {
+        val one = channelRelease("0.2.2-dev.1", dev = true, prerelease = true)
+        val ten = channelRelease("0.2.2-dev.10", dev = true, prerelease = true)
+        val two = channelRelease("0.2.2-dev.2", dev = true, prerelease = true)
+        assertEquals(ten, AppRelease.selectUpdate(JsonArray(listOf(two, ten, one)), devId, "0.2.1"))
+        assertNull(AppRelease.selectUpdate(JsonArray(listOf(one, two, ten)), devId, "0.2.2-dev.10"))
+    }
+
+    @Test
+    fun `drafts other packages unrelated betas and malformed releases cannot update Dev`() {
+        val invalid = JsonArray(listOf(
+            channelRelease("0.2.2-dev.2", dev = true, prerelease = true, draft = true),
+            channelRelease("0.2.2-dev.3", prerelease = true),
+            channelRelease("0.9.0-beta1", dev = true, prerelease = true),
+            channelRelease("0.9.0-dev.1", dev = true),
+            channelRelease("oops", dev = true, prerelease = true),
+            JsonPrimitive("unexpected"),
+        ))
+        assertNull(AppRelease.selectUpdate(invalid, devId, "0.2.2-dev.1"))
+        assertNull(AppRelease.selectUpdate(invalid, "$devId.benchmark", "0.2.1"))
+    }
+
+    @Test
+    fun `Dev can move from a prerelease to a newer stable release of its own package`() {
+        val stable = channelRelease("0.2.2", dev = true)
+        val dev = channelRelease("0.2.2-dev.10", dev = true, prerelease = true)
+        assertEquals(stable, AppRelease.selectUpdate(JsonArray(listOf(dev, stable)), devId, "0.2.2-dev.9"))
+        assertNull(AppRelease.selectUpdate(stable, devId, "0.2.2"))
+    }
 }

@@ -6397,23 +6397,30 @@ class PlaybackService : MediaLibraryService() {
      * Called by Android when the user swipes this app's task away from the
      * recent apps screen.
      *
-     * When [AppSettings.stopOnTaskRemoved] is on we stop the player and let the
-     * service die naturally; otherwise we leave it running in the background so
-     * music continues past the swipe, which is the default Android behaviour for
-     * a foreground-service-backed media session.
+     * Stop both players and remove the notification by default. An explicit
+     * opt-out in Playback settings still permits music after a task dismissal;
+     * pressing Home or locking the phone never counts as dismissing the task.
      */
     override fun onTaskRemoved(rootIntent: Intent?) {
-        super.onTaskRemoved(rootIntent)
         if (AppSettings.stopOnTaskRemoved.value) {
+            player?.let(::savePlaybackState)
+            // Cancel the blend's ticker before it can restart either decoder.
+            crossfade?.release()
+            crossfade = null
+            autoplayLoadJob?.cancel()
+            partySync?.stop()
+            partySync = null
             // A receiver left playing with nothing on the phone to drive it
             // would run out its few queued tracks and stop on its own anyway;
             // better to say so now than leave the TV on a casting screen.
             if (castPlayback.active) CastController.disconnect(resumeHere = false)
             // Both, or a swipe-away mid-crossfade leaves the outgoing track
             // playing on its own out of a service that is on its way out.
-            eachPlayer { it.stop() }
+            eachPlayer { it.pause(); it.stop() }
+            stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
+        super.onTaskRemoved(rootIntent)
     }
 
 

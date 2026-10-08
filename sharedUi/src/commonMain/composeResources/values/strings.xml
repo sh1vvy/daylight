@@ -201,4 +201,5 @@
     <string name="member_since">Member since</string>
     <string name="import_spotify">Import Spotify</string>
     <string name="import_spotify_subtitle">From a playlist link</string>
+    <string name="home_tagline">Your music. A little brighter.</string>
 </resources>

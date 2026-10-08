@@ -35,7 +35,7 @@ The normal test suite uses local fixtures. The Genius live-provider smoke test i
 
 - Production app ID: `com.sh1vvy.daylight`
 - Development app ID: `com.sh1vvy.daylight.dev`
-- Daylight version: `0.1.7`
+- Daylight version: `0.1.8`
 
 Daylight installs alongside BitChord and maintains separate application data. Internal Kotlin namespaces and native entry points are preserved for engine compatibility; see [UPSTREAM.md](UPSTREAM.md).
 

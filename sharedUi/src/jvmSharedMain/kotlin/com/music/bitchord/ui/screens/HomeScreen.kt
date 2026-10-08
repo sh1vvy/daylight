@@ -10,6 +10,7 @@ import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import com.music.bitchord.ui.components.longPressMenuClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,12 +49,16 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.music.bitchord.ui.theme.HomeAtmosphere
+import com.music.bitchord.ui.theme.daylightHomeColorScheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cached
 import androidx.compose.material.icons.rounded.Folder
@@ -141,75 +146,80 @@ fun HomeScreen(
 ) {
     val recentsViewType by AppUi.host.homeRecentsViewType.collectAsStateWithLifecycle()
 
-    PullToRefresh(
-        refreshing = refreshing,
-        onRefresh = onRefresh,
-        state = pullState,
-        modifier = modifier,
-    ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            // The heading sits higher than the other tabs' first row: pull the
-            // whole feed up by [HOME_TITLE_LIFT] with it.
-            contentPadding = if (title != null) {
-                PaddingValues(
-                    top = (contentPadding.calculateTopPadding() - HOME_TITLE_LIFT).coerceAtLeast(0.dp),
-                    bottom = contentPadding.calculateBottomPadding(),
-                )
-            } else {
-                contentPadding
-            },
-        ) {
-            if (title != null) {
-                item { HomeTitle(title) }
-            }
-            if (!signedIn && onSignIn != null) {
-                item {
-                    SignInBanner(onSignIn = onSignIn, modifier = Modifier.padding(bottom = 8.dp))
-                }
-            }
-            when (state) {
-                is UiState.Loading -> {
-                    if (recentlyPlayedLoading) {
-                        recentlyPlayedSkeleton(listLayout = recentsViewType == LibraryViewType.LIST)
-                        // Recents owns the leading layout while its request is
-                        // pending, so the feed behind it starts with ordinary
-                        // shelf placeholders rather than another hero card.
-                        feedSkeleton(firstIsHero = false)
+    MaterialTheme(colorScheme = daylightHomeColorScheme(MaterialTheme.colorScheme)) {
+        Box(modifier = modifier.fillMaxSize()) {
+            HomeAtmosphere(Modifier.matchParentSize())
+            PullToRefresh(
+                refreshing = refreshing,
+                onRefresh = onRefresh,
+                state = pullState,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    // The heading sits higher than the other tabs' first row: pull the
+                    // whole feed up by [HOME_TITLE_LIFT] with it.
+                    contentPadding = if (title != null) {
+                        PaddingValues(
+                            top = (contentPadding.calculateTopPadding() - HOME_TITLE_LIFT).coerceAtLeast(0.dp),
+                            bottom = contentPadding.calculateBottomPadding(),
+                        )
                     } else {
-                        feedSkeleton(firstIsHero = leadHero)
+                        contentPadding
+                    },
+                ) {
+                    if (title != null) {
+                        item { HomeTitle(title) }
                     }
-                }
-                is UiState.Error -> item {
-                    MessageState(state.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
-                }
-                is UiState.Success -> {
-                    if (recentlyPlayedLoading) {
-                        recentlyPlayedSkeleton(listLayout = recentsViewType == LibraryViewType.LIST)
+                    if (!signedIn && onSignIn != null) {
+                        item {
+                            SignInBanner(onSignIn = onSignIn, modifier = Modifier.padding(bottom = 8.dp))
+                        }
                     }
-                    // The loading skeleton already owns the hero slot. Until
-                    // Recently Played lands, every real shelf must retain its
-                    // compact-card layout instead of briefly becoming a hero.
-                    itemsIndexedShelves(
-                        shelves = state.data,
-                        onItemClick = onItemClick,
-                        onItemLongPress = onItemLongPress,
-                        currentSong = currentSong,
-                        isPlaying = isPlaying,
-                        firstIsHero = leadHero && !recentlyPlayedLoading,
-                        recentsViewType = recentsViewType,
-                        onRecentsViewTypeToggle = {
-                            AppUi.host.setHomeRecentsViewType(
-                                if (recentsViewType == LibraryViewType.LIST) {
-                                    LibraryViewType.GRID
-                                } else {
-                                    LibraryViewType.LIST
+                    when (state) {
+                        is UiState.Loading -> {
+                            if (recentlyPlayedLoading) {
+                                recentlyPlayedSkeleton(listLayout = recentsViewType == LibraryViewType.LIST)
+                                // Recents owns the leading layout while its request is
+                                // pending, so the feed behind it starts with ordinary
+                                // shelf placeholders rather than another hero card.
+                                feedSkeleton(firstIsHero = false)
+                            } else {
+                                feedSkeleton(firstIsHero = leadHero)
+                            }
+                        }
+                        is UiState.Error -> item {
+                            MessageState(state.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
+                        }
+                        is UiState.Success -> {
+                            if (recentlyPlayedLoading) {
+                                recentlyPlayedSkeleton(listLayout = recentsViewType == LibraryViewType.LIST)
+                            }
+                            // The loading skeleton already owns the hero slot. Until
+                            // Recently Played lands, every real shelf must retain its
+                            // compact-card layout instead of briefly becoming a hero.
+                            itemsIndexedShelves(
+                                shelves = state.data,
+                                onItemClick = onItemClick,
+                                onItemLongPress = onItemLongPress,
+                                currentSong = currentSong,
+                                isPlaying = isPlaying,
+                                firstIsHero = leadHero && !recentlyPlayedLoading,
+                                recentsViewType = recentsViewType,
+                                onRecentsViewTypeToggle = {
+                                    AppUi.host.setHomeRecentsViewType(
+                                        if (recentsViewType == LibraryViewType.LIST) {
+                                            LibraryViewType.GRID
+                                        } else {
+                                            LibraryViewType.LIST
+                                        },
+                                    )
                                 },
                             )
-                        },
-                    )
-                    if (loadingMore) feedMoreSkeleton()
+                            if (loadingMore) feedMoreSkeleton()
+                        }
+                    }
                 }
             }
         }
@@ -277,6 +287,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
                     onItemLongPress = onItemLongPress,
                     currentSong = currentSong,
                     isPlaying = isPlaying,
+                    softCards = true,
                 )
             }
         }
@@ -483,38 +494,43 @@ fun CompactTrackRow(
     }
 }
 
-/**
- * Listen now's large heading, with the wordmark stacked above it.
- *
- * Only the home tab carries it — the top bar no longer shows the logo, so this
- * is where the app's mark lives. Its height is taken from the heading's own
- * font size rather than a fixed dp, so the two keep their proportion under the
- * system font scale.
- */
+/** Daylight's flat butterfly and wordmark lead the warm home surface. */
 @Composable
 private fun HomeTitle(title: String, modifier: Modifier = Modifier) {
-    val style = MaterialTheme.typography.displayLarge
-    val logoHeight = with(LocalDensity.current) { (style.fontSize * LOGO_TO_FONT).toDp() }
+    val brandStyle = MaterialTheme.typography.titleMedium
+    val logoHeight = with(LocalDensity.current) { (brandStyle.fontSize * 1.5f).toDp() }
     Column(modifier = modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp)) {
-        Icon(
-            painter = painterResource(Res.drawable.ic_logo),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier
-                .padding(bottom = 14.dp)
-                .height(logoHeight)
-                .aspectRatio(LOGO_ASPECT),
-        )
+        Row(
+            modifier = Modifier.padding(bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_logo),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.height(logoHeight).aspectRatio(LOGO_ASPECT),
+            )
+            Text(
+                text = "Daylight",
+                style = brandStyle,
+                letterSpacing = 0.8.sp,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
         Text(
             text = title,
-            style = style,
+            style = MaterialTheme.typography.displayLarge,
             color = MaterialTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = stringResource(Res.string.home_tagline),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
         )
     }
 }
-
-/** The wordmark's height against the heading's font size. */
-private const val LOGO_TO_FONT = 0.9f
 
 /** Daylight butterfly mark viewport, 100 x 72. */
 private const val LOGO_ASPECT = 100f / 72f
@@ -786,8 +802,9 @@ private fun HeroCard(
     Box(
         modifier = modifier
             .aspectRatio(HERO_CARD_RATIO)
-            .clip(RoundedCornerShape(18.dp))
-            .thumbnailBorder(RoundedCornerShape(18.dp))
+            .shadow(4.dp, RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(24.dp))
+            .border(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f), RoundedCornerShape(24.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
             .contextClick(onLongPress),
@@ -847,6 +864,7 @@ internal fun Shelf(
     leadingCard: (@Composable () -> Unit)? = null,
     currentSong: Song? = null,
     isPlaying: Boolean = false,
+    softCards: Boolean = false,
 ) {
     Column(Modifier.padding(bottom = 26.dp)) {
         SectionHeader(shelf.title, shelf.subtitle)
@@ -862,6 +880,7 @@ internal fun Shelf(
                     onLongPress = onItemLongPress?.let { { it(item) } },
                     isCurrent = item.matchesCurrentlyPlaying(currentSong),
                     isPlaying = item.matchesCurrentlyPlaying(currentSong) && isPlaying,
+                    softCard = softCards,
                 )
             }
         }
@@ -971,11 +990,25 @@ internal fun ShelfCard(
     isPinned: Boolean = false,
     isCurrent: Boolean = false,
     isPlaying: Boolean = false,
+    softCard: Boolean = false,
 ) {
+    val cardShape = RoundedCornerShape(20.dp)
+    val artworkShape = RoundedCornerShape(if (softCard) 14.dp else 12.dp)
     Column(
         modifier = modifier
+            .then(
+                if (softCard) {
+                    Modifier
+                        .clip(cardShape)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
+                        .border(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f), cardShape)
+                } else {
+                    Modifier
+                },
+            )
             .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
-            .contextClick(onLongPress),
+            .contextClick(onLongPress)
+            .then(if (softCard) Modifier.padding(8.dp) else Modifier),
     ) {
         when (item.browseId) {
             "local:downloads" -> {
@@ -1026,8 +1059,14 @@ internal fun ShelfCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .thumbnailBorder(RoundedCornerShape(12.dp))
+                        .clip(artworkShape)
+                        .then(
+                            if (softCard) {
+                                Modifier.border(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f), artworkShape)
+                            } else {
+                                Modifier.thumbnailBorder(artworkShape)
+                            },
+                        )
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                 ) {
                     AsyncImage(

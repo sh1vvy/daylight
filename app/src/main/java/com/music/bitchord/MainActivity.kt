@@ -289,6 +289,7 @@ import com.music.bitchord.ui.screens.DetailScreen
 import com.music.bitchord.ui.screens.ExploreScreen
 import com.music.bitchord.ui.screens.LocalMusicScreen
 import com.music.bitchord.ui.screens.HomeScreen
+import com.music.bitchord.ui.theme.daylightHomeBackground
 import com.music.bitchord.ui.screens.LibraryGridPage
 import com.music.bitchord.ui.screens.LibraryScreen
 import com.music.bitchord.ui.screens.MoodGenrePlaylistsScreen
@@ -2516,35 +2517,36 @@ private fun BitChordApp(
         // one child it always had and changes nothing.
         Row(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f).fillMaxHeight()) {
+                val pageKey = when {
+                    showSpotify && detail == null -> "spotify"
+                    showDiscord -> "discord"
+                    showHistory -> "history"
+                    // `&& detail == null`: a card opened from the grid
+                    // stacks a detail page over it exactly as one opened
+                    // from the Library tab does — see
+                    // [onLibraryItemClick] — so with both set this must
+                    // give way to the `detail != null` branch below it
+                    // rather than keep showing the grid underneath.
+                    libraryShowAll != null && detail == null -> "library_show_all"
+                    // When a sub-screen overlay is active, keep SettingsSheet
+                    // mounted so its scroll position survives.  The overlay is
+                    // rendered below the AnimatedContent block.
+                    settingsSubScreen != null -> "settings"
+                    showAccountScrobbling -> "account_scrobbling"
+                    showSources -> "sources"
+                    showListenTogether -> "listen_together"
+                    showEqualizer -> "equalizer"
+                    // Above Replay, not below it. The top bar's account
+                    // button sets `showSettings` from every page including
+                    // this one, so with Replay winning the tie the button
+                    // was live, hit, and changed nothing on screen.
+                    showSettings -> "settings"
+                    showReplay -> "replay"
+                    detail != null -> detail.browseId
+                    else -> "$TAB_KEY$selectedTab"
+                }
                 AnimatedContent(
-                    targetState = when {
-                        showSpotify && detail == null -> "spotify"
-                        showDiscord -> "discord"
-                        showHistory -> "history"
-                        // `&& detail == null`: a card opened from the grid
-                        // stacks a detail page over it exactly as one opened
-                        // from the Library tab does — see
-                        // [onLibraryItemClick] — so with both set this must
-                        // give way to the `detail != null` branch below it
-                        // rather than keep showing the grid underneath.
-                        libraryShowAll != null && detail == null -> "library_show_all"
-                        // When a sub-screen overlay is active, keep SettingsSheet
-                        // mounted so its scroll position survives.  The overlay is
-                        // rendered below the AnimatedContent block.
-                        settingsSubScreen != null -> "settings"
-                        showAccountScrobbling -> "account_scrobbling"
-                        showSources -> "sources"
-                        showListenTogether -> "listen_together"
-                        showEqualizer -> "equalizer"
-                        // Above Replay, not below it. The top bar's account
-                        // button sets `showSettings` from every page including
-                        // this one, so with Replay winning the tie the button
-                        // was live, hit, and changed nothing on screen.
-                        showSettings -> "settings"
-                        showReplay -> "replay"
-                        detail != null -> detail.browseId
-                        else -> "$TAB_KEY$selectedTab"
-                    },
+                    targetState = pageKey,
                     // Tabs swap outright; everything else crossfades.
                     //
                     // A tab is not a place you travel to — the bar is the whole
@@ -3396,10 +3398,10 @@ private fun BitChordApp(
                         detail.type == BrowseType.ARTIST) &&
                     !isLocalDetail && !showDiscord && !showHistory && !showSettings &&
                     !showAccountScrobbling && !showSources && !showListenTogether && !showEqualizer && !showReplay
-                val chromePageColor = if (isDetailVisible) {
-                    detailPalette.background
-                } else {
-                    MaterialTheme.colorScheme.background
+                val chromePageColor = when {
+                    isDetailVisible -> detailPalette.background
+                    pageKey == "$TAB_KEY$TAB_HOME" -> daylightHomeBackground(MaterialTheme.colorScheme.background)
+                    else -> MaterialTheme.colorScheme.background
                 }
                 // This is the bottom floor itself turned upside down, not a
                 // separately maintained approximation. Both edges therefore

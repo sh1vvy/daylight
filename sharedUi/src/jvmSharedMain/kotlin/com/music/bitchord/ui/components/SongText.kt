@@ -1,7 +1,6 @@
 package com.music.bitchord.ui.components
 
 import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
@@ -23,7 +22,7 @@ import com.music.bitchord.data.model.Song
 fun Modifier.thumbnailBorder(shape: Shape): Modifier = composed {
     this.border(
         width = 1.dp,
-        color = if (isSystemInDarkTheme()) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.15f),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
         shape = shape
     )
 }

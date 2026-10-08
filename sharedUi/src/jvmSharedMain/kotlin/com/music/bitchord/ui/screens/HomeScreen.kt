@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.ui.theme.HomeAtmosphere
 import com.music.bitchord.ui.theme.daylightHomeColorScheme
+import com.music.bitchord.ui.theme.LocalPinkCloud
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cached
 import androidx.compose.material.icons.rounded.Folder
@@ -151,7 +152,7 @@ fun HomeScreen(
     val shelves = (state as? UiState.Success)?.data.orEmpty()
     val shelfKeys = remember(shelves) { homeShelfKeys(shelves) }
 
-    MaterialTheme(colorScheme = daylightHomeColorScheme(MaterialTheme.colorScheme)) {
+    MaterialTheme(colorScheme = daylightHomeColorScheme(MaterialTheme.colorScheme, LocalPinkCloud.current)) {
         Box(modifier = modifier.fillMaxSize()) {
             HomeAtmosphere(Modifier.matchParentSize())
             PullToRefresh(
@@ -861,7 +862,9 @@ private fun HeroCard(
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.titleLarge,
-                color = if (isCurrent) PlayingAccent else Color.White,
+                color = if (isCurrent) {
+                    if (LocalPinkCloud.current) Color(0xFFFFA9CA) else PlayingAccent
+                } else Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

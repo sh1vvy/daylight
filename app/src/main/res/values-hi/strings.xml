@@ -236,6 +236,7 @@
     <string name="system">सिस्टम</string>
     <string name="light">लाइट</string>
     <string name="dark">डार्क</string>
+    <string name="pink_cloud">गुलाबी बादल</string>
     <string name="full_screen_cover_art_subtitle">चौकोर स्लीव के बजाय कवर को प्लेयर के किनारों तक ले जाता है</string>
     <string name="animated_cover_art_subtitle">स्थिर स्लीव के बजाय कुछ रिलीज़ में मौजूद लूपिंग वीडियो चलाता है</string>
     <string name="dont_repeat_songs_subtitle">ऑटोप्ले इस सेशन में पहले से चलाया या सुझाया गया गाना दोबारा सुझाव नहीं देगा</string>
@@ -1297,4 +1298,12 @@
     <string name="credits_bitchord_heading">BitChord पर आधारित</string>
     <string name="credits_bitchord_authors">Kushagra Singh और योगदानकर्ता</string>
     <string name="credits_icon_heading">ऐप आइकन</string>
+    <string name="spotify_login_load_error">Spotify साइन-इन लोड नहीं हो सका। कृपया फिर से कोशिश करें।</string>
+    <string name="playlist_duplicate_title">पहले से प्लेलिस्ट में है</string>
+    <string name="playlist_duplicate_message">%1$s पहले से %2$s में है। एक और कॉपी जोड़ें?</string>
+    <string name="playlist_add_anyway">फिर भी जोड़ें</string>
+    <string name="playlist_check_failed">इस प्लेलिस्ट की जाँच नहीं हो सकी। फिर से कोशिश करें।</string>
+    <string name="playlist_create_failed">प्लेलिस्ट नहीं बनाई जा सकी। फिर से कोशिश करें।</string>
+    <string name="playlist_saved_on_device">इस डिवाइस पर सहेजी गई</string>
+    <string name="playlist_import_partial">%1$s में %3$d में से %2$d गाने जोड़े गए। गाने खोने से बचाने के लिए स्थानीय कॉपी रखें।</string>
 </resources>

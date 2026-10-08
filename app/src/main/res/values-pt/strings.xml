@@ -238,6 +238,7 @@
     <string name="system">Sistema</string>
     <string name="light">Claro</string>
     <string name="dark">Escuro</string>
+    <string name="pink_cloud">Nuvem rosa</string>
     <string name="full_screen_cover_art_subtitle">Estende a capa até as bordas do player em vez de um quadrado</string>
     <string name="animated_cover_art_subtitle">Reproduz o vídeo em loop que alguns lançamentos trazem em vez de uma capa estática</string>
     <string name="dont_repeat_songs_subtitle">A reprodução automática não sugerirá uma música já tocada ou sugerida nesta sessão</string>
@@ -1302,4 +1303,12 @@
     <string name="credits_bitchord_heading">Baseado no BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh e colaboradores</string>
     <string name="credits_icon_heading">Ícone do app</string>
+    <string name="spotify_login_load_error">Não foi possível carregar o login do Spotify. Tente novamente.</string>
+    <string name="playlist_duplicate_title">Já está na playlist</string>
+    <string name="playlist_duplicate_message">%1$s já está em %2$s. Adicionar outra cópia?</string>
+    <string name="playlist_add_anyway">Adicionar mesmo assim</string>
+    <string name="playlist_check_failed">Não foi possível verificar esta playlist. Tente novamente.</string>
+    <string name="playlist_create_failed">Não foi possível criar a playlist. Tente novamente.</string>
+    <string name="playlist_saved_on_device">Salva neste dispositivo</string>
+    <string name="playlist_import_partial">%1$s criada com %2$d de %3$d músicas. Mantenha a cópia local para não perder músicas.</string>
 </resources>

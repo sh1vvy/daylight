@@ -348,6 +348,7 @@
     <string name="system">System</string>
     <string name="light">Light</string>
     <string name="dark">Dark</string>
+    <string name="pink_cloud">Pink Cloud</string>
     <string name="full_screen_cover_art_subtitle">Runs the cover to the edges of the player instead of a square sleeve</string>
     <string name="animated_cover_art_subtitle">Plays the looping video some releases ship instead of a still sleeve</string>
     <string name="dont_repeat_songs_subtitle">AutoPlay won’t suggest a song already played or suggested this session</string>
@@ -1134,4 +1135,12 @@
     <string name="credits_bitchord_heading">Based on BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh and contributors</string>
     <string name="credits_icon_heading">App icon</string>
+    <string name="spotify_login_load_error">Spotify sign-in could not load. Please try again.</string>
+    <string name="playlist_duplicate_title">Already in playlist</string>
+    <string name="playlist_duplicate_message">%1$s is already in %2$s. Add another copy?</string>
+    <string name="playlist_add_anyway">Add anyway</string>
+    <string name="playlist_check_failed">Couldn’t check this playlist. Try again.</string>
+    <string name="playlist_create_failed">Couldn’t create the playlist. Try again.</string>
+    <string name="playlist_saved_on_device">Saved on this device</string>
+    <string name="playlist_import_partial">Created %1$s with %2$d of %3$d songs. Keep the local copy to avoid losing tracks.</string>
 </resources>

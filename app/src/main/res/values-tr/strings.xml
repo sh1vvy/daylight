@@ -261,6 +261,7 @@
     <string name="system">Sistem</string>
     <string name="light">Açık</string>
     <string name="dark">Koyu</string>
+    <string name="pink_cloud">Pembe bulut</string>
     <string name="full_screen_cover_art_subtitle">Kapağı kare bir kılıf yerine oynatıcının kenarlarına kadar uzatır</string>
     <string name="animated_cover_art_subtitle">Bazı sürümlerin geldiği döngülü videoyu sabit bir kılıf yerine oynatır</string>
     <string name="dont_repeat_songs_subtitle">AutoPlay bu oturumda zaten çalınmış veya önerilmiş bir şarkıyı önermez</string>
@@ -1254,4 +1255,12 @@
     <string name="credits_bitchord_heading">BitChord temel alınmıştır</string>
     <string name="credits_bitchord_authors">Kushagra Singh ve katkıda bulunanlar</string>
     <string name="credits_icon_heading">Uygulama simgesi</string>
+    <string name="spotify_login_load_error">Spotify oturum açma sayfası yüklenemedi. Lütfen tekrar deneyin.</string>
+    <string name="playlist_duplicate_title">Zaten çalma listesinde</string>
+    <string name="playlist_duplicate_message">%1$s zaten %2$s içinde. Bir kopya daha eklensin mi?</string>
+    <string name="playlist_add_anyway">Yine de ekle</string>
+    <string name="playlist_check_failed">Bu çalma listesi kontrol edilemedi. Tekrar deneyin.</string>
+    <string name="playlist_create_failed">Çalma listesi oluşturulamadı. Tekrar deneyin.</string>
+    <string name="playlist_saved_on_device">Bu cihazda kaydedildi</string>
+    <string name="playlist_import_partial">%1$s, %3$d şarkının %2$d tanesiyle oluşturuldu. Şarkıları kaybetmemek için yerel kopyayı saklayın.</string>
 </resources>

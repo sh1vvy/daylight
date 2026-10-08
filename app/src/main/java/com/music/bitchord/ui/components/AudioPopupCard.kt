@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.music.bitchord.ui.theme.LocalPinkCloud
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -65,6 +66,7 @@ internal fun AudioPopupCard(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
+    val popupColor = if (LocalPinkCloud.current) Color(0xFF331C2B) else Color(0xFF121212)
 
     Box(
         modifier = modifier
@@ -84,14 +86,14 @@ internal fun AudioPopupCard(
                 .clip(POPUP_CARD_SHAPE)
                 .then(
                     if (reduceDynamicBlur) {
-                        Modifier.background(Color(0xFF121212))
+                        Modifier.background(popupColor)
                     } else {
                         Modifier
                             .optimizedHazeEffect(
                                 state = hazeState,
-                                style = HazeMaterials.regular(Color(0xFF141414)),
+                                style = HazeMaterials.regular(popupColor),
                             )
-                            .background(Color(0xFF121212).copy(alpha = 0.9f))
+                            .background(popupColor.copy(alpha = 0.9f))
                     }
                 )
                 // Swallows the tap before it reaches the scrim behind, so

@@ -237,6 +237,7 @@
     <string name="system">מערכת</string>
     <string name="light">בהיר</string>
     <string name="dark">כהה</string>
+    <string name="pink_cloud">ענן ורוד</string>
     <string name="full_screen_cover_art_subtitle">מותח את העטיפה עד לקצוות הנגן במקום עטיפה מרובעת</string>
     <string name="animated_cover_art_subtitle">מנגן את סרטון הלופ שמגיע עם חלק מההוצאות במקום עטיפה סטטית</string>
     <string name="dont_repeat_songs_subtitle">ההשמעה האוטומטית לא תציע שיר שכבר הושמע או הוצע בהפעלה הנוכחית</string>
@@ -1302,4 +1303,12 @@
     <string name="credits_bitchord_heading">מבוסס על BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh והתורמים</string>
     <string name="credits_icon_heading">סמל האפליקציה</string>
+    <string name="spotify_login_load_error">לא ניתן לטעון את ההתחברות ל־Spotify. נסו שוב.</string>
+    <string name="playlist_duplicate_title">כבר בפלייליסט</string>
+    <string name="playlist_duplicate_message">%1$s כבר נמצא ב־%2$s. להוסיף עותק נוסף?</string>
+    <string name="playlist_add_anyway">להוסיף בכל זאת</string>
+    <string name="playlist_check_failed">לא ניתן לבדוק את הפלייליסט. נסו שוב.</string>
+    <string name="playlist_create_failed">לא ניתן ליצור את הפלייליסט. נסו שוב.</string>
+    <string name="playlist_saved_on_device">נשמר במכשיר הזה</string>
+    <string name="playlist_import_partial">%1$s נוצר עם %2$d מתוך %3$d שירים. שמרו את העותק המקומי כדי לא לאבד שירים.</string>
 </resources>

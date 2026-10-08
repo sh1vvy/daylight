@@ -231,6 +231,7 @@
     <string name="system">Sistem</string>
     <string name="light">Terang</string>
     <string name="dark">Gelap</string>
+    <string name="pink_cloud">Awan merah muda</string>
     <string name="full_screen_cover_art_subtitle">Membuat sampul memenuhi tepi pemutar alih-alih berbentuk persegi</string>
     <string name="animated_cover_art_subtitle">Memutar video berulang yang disertakan beberapa rilisan alih-alih sampul diam</string>
     <string name="dont_repeat_songs_subtitle">Putar Otomatis tidak akan menyarankan lagu yang sudah diputar atau disarankan dalam sesi ini</string>
@@ -1274,4 +1275,12 @@
     <string name="credits_bitchord_heading">Berbasis BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh dan para kontributor</string>
     <string name="credits_icon_heading">Ikon aplikasi</string>
+    <string name="spotify_login_load_error">Login Spotify tidak dapat dimuat. Silakan coba lagi.</string>
+    <string name="playlist_duplicate_title">Sudah ada di playlist</string>
+    <string name="playlist_duplicate_message">%1$s sudah ada di %2$s. Tambahkan salinan lain?</string>
+    <string name="playlist_add_anyway">Tetap tambahkan</string>
+    <string name="playlist_check_failed">Playlist ini tidak dapat diperiksa. Coba lagi.</string>
+    <string name="playlist_create_failed">Playlist tidak dapat dibuat. Coba lagi.</string>
+    <string name="playlist_saved_on_device">Disimpan di perangkat ini</string>
+    <string name="playlist_import_partial">%1$s dibuat dengan %2$d dari %3$d lagu. Simpan salinan lokal agar tidak kehilangan lagu.</string>
 </resources>

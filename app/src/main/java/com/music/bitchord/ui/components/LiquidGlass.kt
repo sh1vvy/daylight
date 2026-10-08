@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.music.bitchord.ui.theme.LocalPinkCloud
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpOffset
@@ -126,7 +127,8 @@ internal val GLASS_EDGE_COLOR = Color.White.copy(alpha = 0.10f)
  */
 @Composable
 fun glassContentColor(): Color =
-    if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color.Black else Color.White
+    if (LocalPinkCloud.current) MaterialTheme.colorScheme.onSurface
+    else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color.Black else Color.White
 
 /**
  * A translucent illuminated selection above the navigation bar's glass.
@@ -153,11 +155,8 @@ fun Modifier.lightweightLiquidGlass(
     val useGlass = LocalLiquidGlassEnabled.current && isGlassSupported() && !reduceDynamicBlur
     val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
     val surfaceOpacity = if (light) LIGHT_SURFACE_OPACITY else DARK_SURFACE_OPACITY
-    val glassTint = if (light) {
-        Color(0xFFFAFAFA)
-    } else {
-        Color(0xFF121212)
-    }
+    val glassTint = if (LocalPinkCloud.current) MaterialTheme.colorScheme.surface
+        else if (light) Color(0xFFFAFAFA) else Color(0xFF121212)
     val shapeProvider = ShapeProvider { shape }
 
     return clip(shape)
@@ -214,11 +213,8 @@ fun Modifier.liquidGlass(shape: CornerBasedShape): Modifier {
     val lensAmountPx = with(density) { LENS_AMOUNT_DP.dp.toPx() } * GLASS_RESOLUTION_SCALE
     val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
     val sheen = remember(light) { glassSheen(light) }
-    val surfaceTintColor = if (light) {
-        Color(0xFFFAFAFA)
-    } else {
-        Color(0xFF121212)
-    }
+    val surfaceTintColor = if (LocalPinkCloud.current) MaterialTheme.colorScheme.surface
+        else if (light) Color(0xFFFAFAFA) else Color(0xFF121212)
 
     return drawBackdrop(
         backdrop = backdrop,

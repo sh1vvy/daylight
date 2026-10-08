@@ -59,6 +59,7 @@ import com.music.bitchord.ui.utils.containSheetGestures
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
+import com.music.bitchord.ui.theme.LocalPinkCloud
 import kotlin.math.roundToInt
 
 internal val DRAWER_SHAPE = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
@@ -109,6 +110,10 @@ fun PlayerDrawer(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val reduceDynamicBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
+    val pinkCloud = LocalPinkCloud.current
+    val drawerColor = if (pinkCloud) PinkCloudPlayerStyle.drawer else Color(0xFF121212)
+    val hazeColor = if (pinkCloud) PinkCloudPlayerStyle.drawer else Color(0xFF141414)
+    val drawerScrim = if (pinkCloud) PinkCloudPlayerStyle.scrim.copy(alpha = 0.5f) else SCRIM_COLOR
 
     // How far the drawer has been dragged down, in pixels. Released, it either
     // springs back or goes — see [DISMISS_DRAG_FRACTION].
@@ -182,7 +187,7 @@ fun PlayerDrawer(
         modifier = modifier
             .fillMaxSize()
             .containSheetGestures()
-            .background(SCRIM_COLOR.copy(alpha = SCRIM_COLOR.alpha * scrimAlpha))
+            .background(drawerScrim.copy(alpha = drawerScrim.alpha * scrimAlpha))
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
@@ -210,14 +215,14 @@ fun PlayerDrawer(
                 .clip(DRAWER_SHAPE)
                 .then(
                     if (reduceDynamicBlur) {
-                        Modifier.background(Color(0xFF121212))
+                        Modifier.background(drawerColor)
                     } else {
                         Modifier
                             .optimizedHazeEffect(
                                 state = hazeState,
-                                style = HazeMaterials.regular(Color(0xFF141414)),
+                                style = HazeMaterials.regular(hazeColor),
                             )
-                            .background(Color(0xFF121212).copy(alpha = 0.9f))
+                            .background(drawerColor.copy(alpha = 0.9f))
                     }
                 )
                 .clickable(

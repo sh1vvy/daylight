@@ -237,6 +237,7 @@
     <string name="system">Système</string>
     <string name="light">Clair</string>
     <string name="dark">Sombre</string>
+    <string name="pink_cloud">Nuage rose</string>
     <string name="full_screen_cover_art_subtitle">Étend la pochette jusqu\'aux bords du lecteur au lieu d\'un carré</string>
     <string name="animated_cover_art_subtitle">Lit la vidéo en boucle que proposent certaines sorties au lieu d\'une pochette fixe</string>
     <string name="dont_repeat_songs_subtitle">La lecture automatique ne proposera pas une chanson déjà jouée ou suggérée pendant cette session</string>
@@ -1298,4 +1299,12 @@
     <string name="credits_bitchord_heading">Basé sur BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh et les contributeurs</string>
     <string name="credits_icon_heading">Icône de l’application</string>
+    <string name="spotify_login_load_error">La connexion à Spotify n’a pas pu se charger. Réessayez.</string>
+    <string name="playlist_duplicate_title">Déjà dans la playlist</string>
+    <string name="playlist_duplicate_message">%1$s est déjà dans %2$s. Ajouter une autre copie ?</string>
+    <string name="playlist_add_anyway">Ajouter quand même</string>
+    <string name="playlist_check_failed">Impossible de vérifier cette playlist. Réessayez.</string>
+    <string name="playlist_create_failed">Impossible de créer la playlist. Réessayez.</string>
+    <string name="playlist_saved_on_device">Enregistrée sur cet appareil</string>
+    <string name="playlist_import_partial">%1$s a été créée avec %2$d chansons sur %3$d. Gardez la copie locale pour ne perdre aucune chanson.</string>
 </resources>

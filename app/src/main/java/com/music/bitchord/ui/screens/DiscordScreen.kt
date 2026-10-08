@@ -63,6 +63,7 @@ import com.music.bitchord.data.model.CARD_ART_PX
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.artworkAt
 import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.ui.theme.LocalPinkCloud
 import com.music.bitchord.ui.components.ChoiceAlert
 import com.music.bitchord.ui.components.DiscordTokenAlert
 import com.music.bitchord.ui.components.TextValueAlert
@@ -462,7 +463,7 @@ private fun DiscordAccountCard(
                     modifier = Modifier
                         .size(52.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.outline),
+                        .background(if (LocalPinkCloud.current) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.outline),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -683,11 +684,12 @@ private fun RichPresencePreview(
 /** Discord's flat, full-width secondary button. */
 @Composable
 private fun PresenceButton(label: String, enabled: Boolean, onClick: () -> Unit) {
+    val fill = if (LocalPinkCloud.current) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.outline
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.outline.copy(alpha = if (enabled) 0.9f else 0.4f))
+            .background(fill.copy(alpha = if (enabled) 0.9f else 0.4f))
             .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 9.dp),
         contentAlignment = Alignment.Center,

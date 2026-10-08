@@ -13,10 +13,12 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 
 /** Also used by the floating navigation fades so Home has one continuous surface. */
-fun daylightHomeBackground(themeBackground: Color): Color =
-    if (themeBackground.luminance() < 0.5f) Color(0xFF19151D) else Color(0xFFFFF8F4)
+fun daylightHomeBackground(themeBackground: Color, pinkCloud: Boolean = false): Color =
+    if (pinkCloud) themeBackground
+    else if (themeBackground.luminance() < 0.5f) Color(0xFF19151D) else Color(0xFFFFF8F4)
 
-internal fun daylightHomeColorScheme(base: ColorScheme): ColorScheme {
+internal fun daylightHomeColorScheme(base: ColorScheme, pinkCloud: Boolean = false): ColorScheme {
+    if (pinkCloud) return base
     val dark = base.background.luminance() < 0.5f
     return base.copy(
         primary = if (dark) Color(0xFFFFB5A3) else Color(0xFF983A45),
@@ -36,8 +38,9 @@ internal fun daylightHomeColorScheme(base: ColorScheme): ColorScheme {
 internal fun HomeAtmosphere(modifier: Modifier = Modifier) {
     val background = MaterialTheme.colorScheme.background
     val dark = background.luminance() < 0.5f
-    val peach = if (dark) Color(0xFF784432) else Color(0xFFFFD3AE)
-    val lilac = if (dark) Color(0xFF52406C) else Color(0xFFDED0FA)
+    val pinkCloud = LocalPinkCloud.current
+    val peach = if (pinkCloud) Color(0xFFF6BED5) else if (dark) Color(0xFF784432) else Color(0xFFFFD3AE)
+    val lilac = if (pinkCloud) Color(0xFFE7CBEF) else if (dark) Color(0xFF52406C) else Color(0xFFDED0FA)
     Box(
         modifier.drawWithCache {
             val warmWash = Brush.radialGradient(

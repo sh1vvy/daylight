@@ -146,6 +146,7 @@ import com.music.bitchord.data.sources.DeviceCodecs
 import com.music.bitchord.data.settings.AudioQuality
 import com.music.bitchord.data.settings.DownloadQuality
 import com.music.bitchord.data.settings.ThemeMode
+import com.music.bitchord.ui.theme.LocalPinkCloud
 import com.music.bitchord.data.stats.Backup
 import com.music.bitchord.playback.AudioCache
 import com.music.bitchord.ui.player.fullBleedArtworkAvailable
@@ -743,13 +744,14 @@ fun SettingsScreen(
 
         SearchableSettingsGroup(search, header = stringResource(R.string.appearance)) {
             val themeTitle = stringResource(R.string.theme)
-            row(themeTitle, "dark mode", "light mode") {
+            row(themeTitle, "dark mode", "light mode", "pink cloud", "colours", "colors") {
                 SettingsRow(icon = Icons.Rounded.Brightness4, title = themeTitle)
                 SegmentedControl(
                     options = ThemeMode.entries.map { it.localizedLabel() },
                     selectedIndex = ThemeMode.entries.indexOf(theme),
                     onSelect = { AppSettings.setThemeMode(ThemeMode.entries[it]) },
                     modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
+                    maxLabelLines = 2,
                 )
             }
             val reduceAnimationTitle = stringResource(R.string.reduce_animation)
@@ -1754,6 +1756,7 @@ private fun ThemeMode.localizedLabel(): String = stringResource(
         ThemeMode.SYSTEM -> R.string.system
         ThemeMode.LIGHT -> R.string.light
         ThemeMode.DARK -> R.string.dark
+        ThemeMode.PINK_CLOUD -> R.string.pink_cloud
     },
 )
 
@@ -1844,7 +1847,10 @@ internal fun AccountCard(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.outline),
+                    .background(
+                        if (LocalPinkCloud.current) MaterialTheme.colorScheme.surfaceVariant
+                        else MaterialTheme.colorScheme.outline,
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -2536,7 +2542,7 @@ internal fun DestructiveRow(
     }
 }
 
-/** Sliding pill selector, for the handful of settings with two or three states. */
+/** Sliding pill selector; longer theme labels may wrap at larger text sizes. */
 @Composable
 internal fun SegmentedControl(
     options: List<String>,
@@ -2544,13 +2550,17 @@ internal fun SegmentedControl(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    maxLabelLines: Int = 1,
 ) {
     val haptics = LocalHapticFeedback.current
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.outline)
+            .background(
+                if (LocalPinkCloud.current) MaterialTheme.colorScheme.surfaceVariant
+                else MaterialTheme.colorScheme.outline,
+            )
             // Enough of a margin for the track to read as a track. At 2dp the
             // selected pill sat all but flush against the container's own edge,
             // so the two rounded rectangles merged into one shape and the
@@ -2596,7 +2606,8 @@ internal fun SegmentedControl(
                     text = label,
                     style = MaterialTheme.typography.labelMedium,
                     color = labelColor,
-                    maxLines = 1,
+                    maxLines = maxLabelLines,
+                    textAlign = TextAlign.Center,
                 )
             }
         }

@@ -96,7 +96,13 @@ enum class DownloadQuality(
 }
 
 enum class ThemeMode(val label: String) {
-    SYSTEM("System"), LIGHT("Light"), DARK("Dark")
+    SYSTEM("System"), LIGHT("Light"), DARK("Dark"), PINK_CLOUD("Pink Cloud");
+
+    companion object {
+        /** Existing installs and unknown future theme names retain the dark default. */
+        fun fromPersistedName(name: String?): ThemeMode =
+            entries.firstOrNull { it.name == name } ?: DARK
+    }
 }
 
 /**
@@ -816,9 +822,7 @@ object AppSettings {
         equalizerBands.value = readEqualizerBands()
         equalizerPreset.value = EqualizerPreset.matching(equalizerBands.value)
         playbackSpeed.value = prefs.getFloat(KEY_SPEED, 1.0f)
-        themeMode.value = runCatching {
-            ThemeMode.valueOf(prefs.getString(KEY_THEME, null) ?: "DARK")
-        }.getOrDefault(ThemeMode.DARK)
+        themeMode.value = ThemeMode.fromPersistedName(prefs.getString(KEY_THEME, null))
         autoplay.value = prefs.getBoolean(KEY_AUTOPLAY, true)
         shuffleEnabled.value = prefs.getBoolean(KEY_SHUFFLE_ENABLED, false)
         repeatMode.value = prefs.getInt(KEY_REPEAT_MODE, Player.REPEAT_MODE_OFF)
@@ -2039,5 +2043,4 @@ object AppSettings {
     private const val KEY_DISCORD_INFO_DISMISSED = "discord_info_dismissed"
     private const val KEY_LAST_VERSION_CODE = "last_version_code"
 }
-
 

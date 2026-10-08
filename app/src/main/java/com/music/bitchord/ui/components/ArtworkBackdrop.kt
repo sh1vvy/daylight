@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -81,7 +82,7 @@ fun ArtworkBackdrop(
                     .blur(72.dp, BlurredEdgeTreatment.Unbounded),
             )
         }
-        val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+        val isDark = palette.background.luminance() < 0.5f
         val alpha0 = if (isDark) 0.40f else 0.08f
         val alpha1 = if (isDark) 0.55f else 0.25f
         val alpha2 = if (isDark) 0.85f else 0.72f

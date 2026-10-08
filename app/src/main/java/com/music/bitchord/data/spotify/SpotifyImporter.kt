@@ -8,11 +8,6 @@ import com.music.bitchord.data.model.SearchResult
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.sources.TrackMatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -22,7 +17,6 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
-import java.util.concurrent.atomic.AtomicInteger
 
 /** Single track metadata extracted from a Spotify playlist. */
 data class SpotifyImportTrack(
@@ -239,35 +233,16 @@ object SpotifyImporter {
     suspend fun resolveToSongs(
         tracks: List<SpotifyImportTrack>,
         onProgress: (completed: Int, total: Int) -> Unit,
-    ): Pair<List<Song>, List<SpotifyImportTrack>> = coroutineScope {
-        val total = tracks.size
-        val completedCount = AtomicInteger(0)
-        val semaphore = Semaphore(4) // Bounded concurrency for search queries
-
-        val deferredResults = tracks.map { track ->
-            async(Dispatchers.IO) {
-                semaphore.withPermit {
-                    val query = "${track.title} ${track.artist}".trim()
-                    val searchResult = YtMusicRepository.search(query, SearchFilter.SONGS).getOrNull()
-                    val matchedSong = searchResult?.filterIsInstance<SearchResult.Track>()
-                        ?.firstOrNull()?.song
-
-                    val done = completedCount.incrementAndGet()
-                    onProgress(done, total)
-
-                    if (matchedSong != null) {
-                        Pair(matchedSong, null)
-                    } else {
-                        Pair(null, track)
-                    }
-                }
-            }
-        }
-
-        val results = deferredResults.awaitAll()
-        val songs = results.mapNotNull { it.first }
-        val unmatched = results.mapNotNull { it.second }
-
-        Pair(songs, unmatched)
-    }
+    ): Pair<List<Song>, List<SpotifyImportTrack>> = resolveSpotifyImportTracks(
+        tracks = tracks,
+        onProgress = { done, total ->
+            // Progress updates Compose state in the import dialog.
+            withContext(Dispatchers.Main) { onProgress(done, total) }
+        },
+        resolve = { track ->
+            val query = "${track.title} ${track.artist}".trim()
+            YtMusicRepository.search(query, SearchFilter.SONGS).getOrNull()
+                ?.filterIsInstance<SearchResult.Track>()?.firstOrNull()?.song
+        },
+    )
 }

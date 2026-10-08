@@ -781,7 +781,10 @@ object YtMusicRepository {
         var page = 1
         val seenTokens = HashSet<String>()
         while (true) {
-            current.songs.forEach { out[it.videoId] = it }
+            current.songs.forEach {
+                val key = if (browseId.startsWith("VL")) it.setVideoId ?: it.videoId else it.videoId
+                out[key] = it
+            }
             val token = current.continuation
             if (token == null || page++ >= MAX_PAGES || !seenTokens.add(token)) break
             current = try {
@@ -913,6 +916,21 @@ object YtMusicRepository {
     suspend fun userPlaylists(): Result<List<UserPlaylist>> = call("playlists") {
         InnertubeParser.parseUserPlaylists(libraryItemsPaged(LIBRARY_PLAYLISTS))
     }
+
+    /** A fresh, short-circuiting check; failed continuation pages never mean "not present". */
+    suspend fun playlistContainsSong(browseId: String, videoId: String): Result<Boolean> =
+        call("playlist:contains:$browseId") {
+            fun membership(response: JsonObject): PlaylistMembershipPage {
+                val shelf = InnertubeParser.parsePlaylistShelf(response)
+                    ?: error("Unable to read playlist contents")
+                return PlaylistMembershipPage(shelf.songs.map { it.videoId }, shelf.continuation)
+            }
+            scanPlaylistMembership(
+                videoId,
+                first = { membership(Innertube.browse(browseId)) },
+                next = { membership(Innertube.browseContinuation(it)) },
+            )
+        }
 
     /**
      * All playlists in user library (including Liked Music and saved playlists).

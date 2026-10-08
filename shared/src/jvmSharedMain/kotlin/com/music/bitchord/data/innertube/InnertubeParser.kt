@@ -537,7 +537,7 @@ object InnertubeParser {
         val songs = playlistScope?.let { playlist ->
             collectRenderers(playlist, "musicResponsiveListItemRenderer")
                 .mapNotNull { parseResponsiveListItem(it, pageCredit) }
-                .distinctBy { it.videoId }
+                .distinctBy { it.setVideoId ?: it.videoId }
         }.orEmpty()
         val knownSongs = songs.mapTo(HashSet()) { it.videoId }
         val suggested = suggestionShelves

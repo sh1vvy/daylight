@@ -20,6 +20,7 @@ import com.music.bitchord.data.model.SPOTIFY_PENDING_PREFIX
 import com.music.bitchord.data.spotify.SPOTIFY_PAGE_PREFIX
 import com.music.bitchord.data.spotify.SpotifyImporter
 import com.music.bitchord.data.spotify.SpotifyLibrary
+import com.music.bitchord.data.spotify.LocalPlaylistStore
 import com.music.bitchord.data.spotify.SpotifyTrack
 import com.music.bitchord.data.lyrics.EmbeddedLyrics
 import com.music.bitchord.data.lyrics.LyricLine
@@ -59,6 +60,7 @@ import android.util.LruCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -80,6 +82,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import com.music.bitchord.data.sources.SourceKind
 import com.music.bitchord.data.sources.SourceRegistry
@@ -923,118 +927,121 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /**
-     * Adds [song] to every playlist in [playlists] — the picker's ticked rows —
-     * and reports how each went, once, when they all have.
-     *
-     * Not optimistic, unlike a rating: the picker closes on the tap and there is
-     * nothing left of it to update, and a playlist that shows a track it turned
-     * out not to have taken is worse than one that shows it a moment late. The
-     * playlist's own page is the exception — see [addOne].
-     *
-     * YouTube itself has no objection to a duplicate row, so whether the track
-     * is already there is checked here, against the playlist's open page or a
-     * fresh fetch of it, and a real duplicate is never sent.
-     *
-     * One at a time rather than all at once: each check reads the playlist it
-     * is about, and a burst of parallel edits is exactly what YouTube answers
-     * with a rate limit. The duplicate check is per playlist, so a track
-     * already in one of them is skipped there and still added to the rest.
-     */
-    fun addToPlaylists(
+    // Keep writes from the picker, suggestions and creation in one serial lane.
+    private val playlistMutationGate = Mutex()
+
+    /** Checks every destination before any write, so Cancel changes none of a batch. */
+    fun preparePlaylistAdd(
         playlists: List<UserPlaylist>,
         song: Song,
-        onResult: (added: Int, alreadyThere: Int, failed: Int) -> Unit = { _, _, _ -> },
+        onResult: (Result<PlaylistAddPlan>) -> Unit,
     ) {
-        if (!requireSignIn() || playlists.isEmpty()) return
+        val identity = listenerKey()
         viewModelScope.launch {
-            val outcomes = playlists.map { addOne(it, song) }
-            onResult(
-                outcomes.count { it == AddOutcome.ADDED },
-                outcomes.count { it == AddOutcome.ALREADY_THERE },
-                outcomes.count { it == AddOutcome.FAILED },
-            )
+            val result = try {
+                Result.success(planPlaylistAdd(playlists, song, identity) { playlist, track ->
+                    if (playlist.playlistId.startsWith("local:playlist:")) {
+                        val local = LocalPlaylistStore.getPlaylist(playlist.playlistId)
+                            ?: error("Playlist no longer exists")
+                        local.songs.any { it.videoId == track.videoId }
+                    } else {
+                        check(requireSignIn() && identity == listenerKey()) { "Account changed" }
+                        YtMusicRepository.playlistContainsSong(playlist.browseId, track.videoId).getOrThrow()
+                    }
+                })
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Result.failure(error)
+            }
+            onResult(result)
         }
     }
 
-    private enum class AddOutcome { ADDED, ALREADY_THERE, FAILED }
-
-    private suspend fun addOne(playlist: UserPlaylist, song: Song): AddOutcome {
-        val openSongs = (_detailStack.value.firstOrNull { it.browseId == playlist.browseId }
-            ?.songs as? UiState.Success)?.data
-        val known = openSongs
-            ?: run {
-                // A write's duplicate check must see a fresh server listing,
-                // including edits made in another app during the cache window.
-                YtMusicRepository.clearBrowseCache()
-                YtMusicRepository.allSongs(playlist.browseId).getOrNull()
+    /** A duplicate is written only after the caller explicitly accepts it. */
+    fun commitPlaylistAdd(
+        plan: PlaylistAddPlan,
+        allowDuplicates: Boolean = false,
+        onResult: (PlaylistAddResult) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val result = playlistMutationGate.withLock {
+                executePlaylistAdd(plan, allowDuplicates) { playlist, song ->
+                    if (playlist.playlistId.startsWith("local:playlist:")) {
+                        val local = LocalPlaylistStore.getPlaylist(playlist.playlistId)
+                            ?: return@executePlaylistAdd false
+                        val saved = LocalPlaylistStore.addSong(local.id, song)
+                        if (saved) appendToOpenPlaylist(local.browseId, song, null)
+                        saved
+                    } else {
+                        if (!requireSignIn() || plan.accountKey != listenerKey()) return@executePlaylistAdd false
+                        YtMusicRepository.addToPlaylist(playlist.playlistId, listOf(song.videoId)).fold(
+                            onSuccess = { added ->
+                                libraryStale = true
+                                appendToOpenPlaylist(playlist.browseId, song, added[song.videoId])
+                                _detailStack.value = _detailStack.value.map { page ->
+                                    if (page.browseId == playlist.browseId) page.copy(
+                                        suggestedSongs = page.suggestedSongs.filterNot { it.videoId == song.videoId },
+                                    ) else page
+                                }
+                                true
+                            },
+                            onFailure = { false },
+                        )
+                    }
+                }
             }
-        if (known?.any { it.videoId == song.videoId } == true) return AddOutcome.ALREADY_THERE
-        return YtMusicRepository.addToPlaylist(playlist.playlistId, listOf(song.videoId)).fold(
-            onSuccess = { added ->
-                libraryStale = true
-                // The playlist's page may be open behind the picker — it is
-                // reachable from a row's own menu on it — so the track goes
-                // into it for the same reason [addSuggestedSong] does.
-                appendToOpenPlaylist(playlist.browseId, song, added[song.videoId])
-                AddOutcome.ADDED
-            },
-            onFailure = { AddOutcome.FAILED },
-        )
+            onResult(result)
+        }
     }
 
-    /**
-     * Creates a playlist, seeded with [song] when the flow started from a
-     * track's menu — one request, so it can't half-succeed into an empty
-     * playlist the user has to add to again.
-     */
-    fun createPlaylist(title: String, privacy: PlaylistPrivacy, song: Song? = null) {
-        if (!requireSignIn()) return
+    /** Seeds creation in one request and reports completion before the form closes. */
+    fun createPlaylist(
+        title: String,
+        privacy: PlaylistPrivacy,
+        song: Song? = null,
+        onResult: (Result<UserPlaylist>) -> Unit,
+    ) {
         val name = title.trim().ifBlank { text(R.string.new_playlist) }
+        val identity = listenerKey()
         viewModelScope.launch {
-            YtMusicRepository.createPlaylist(
-                title = name,
-                privacy = privacy,
-                videoIds = listOfNotNull(song?.videoId),
-            ).fold(
-                onSuccess = { playlistId ->
-                    // Nothing to look up for a playlist this account has just
-                    // made: it is the owner by construction, so its card is
-                    // editable the moment it appears rather than one request
-                    // after someone holds it.
-                    setPlaylistOwned("VL$playlistId", true)
-                    libraryStale = true
-                    val created = UserPlaylist(
-                        playlistId = playlistId,
-                        title = name,
-                        // Only what this request itself establishes. Both
-                        // surfaces that draw it leave a blank one out, so an
-                        // unseeded playlist gets a card of just its name rather
-                        // than a guess at what the feed will call it.
-                        subtitle = if (song != null) "1 song" else "",
+            val result = playlistMutationGate.withLock {
+                val deviceOnly = song?.videoId?.let { it.startsWith("content:") || it.startsWith("file:") } == true
+                if (!authStore.isSignedIn || deviceOnly) {
+                    val local = LocalPlaylistStore.savePlaylist(name, listOfNotNull(song?.copy(setVideoId = null)))
+                    Result.success(UserPlaylist(
+                        playlistId = local.browseId,
+                        title = local.title,
+                        subtitle = getApplication<Application>().getString(R.string.local_playlist_subtitle, local.songs.size),
                         thumbnailUrl = song?.thumbnailUrl,
-                    )
-                    // Drawn from what was just sent rather than waited for: the
-                    // library feed does not have this playlist yet, and the
-                    // fetch that used to run here answered without it — see
-                    // [editPlaylistShelf]. Leads the shelf because it is the
-                    // newest, which is the order the feed itself comes in.
-                    _playlists.value = listOf(created) +
-                        _playlists.value.filterNot { it.playlistId == created.playlistId }
-                    editPlaylistShelf { items ->
-                        listOf(
-                            ShelfItem(
+                    ))
+                } else if (identity != listenerKey()) {
+                    Result.failure(IllegalStateException("Account changed"))
+                } else {
+                    YtMusicRepository.createPlaylist(name, privacy, listOfNotNull(song?.videoId)).map { playlistId ->
+                        setPlaylistOwned("VL$playlistId", true)
+                        libraryStale = true
+                        val created = UserPlaylist(
+                            playlistId = playlistId,
+                            title = name,
+                            subtitle = if (song != null) "1 song" else "",
+                            thumbnailUrl = song?.thumbnailUrl,
+                        )
+                        _playlists.value = listOf(created) + _playlists.value.filterNot { it.playlistId == created.playlistId }
+                        editPlaylistShelf { items ->
+                            listOf(ShelfItem(
                                 title = created.title,
                                 subtitle = created.subtitle,
                                 thumbnailUrl = created.thumbnailUrl,
                                 videoId = null,
                                 browseId = created.browseId,
-                            ),
-                        ) + items.filterNot { it.browseId == created.browseId }
+                            )) + items.filterNot { it.browseId == created.browseId }
+                        }
+                        created
                     }
-                },
-                onFailure = {},
-            )
+                }
+            }
+            onResult(result)
         }
     }
 
@@ -1044,30 +1051,25 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         videoIds: List<String>,
         songs: List<Song> = emptyList(),
         /** [savedLocally] is true when the playlist went to this device, not YouTube Music. */
-        onResult: ((browseId: String?, title: String, savedLocally: Boolean) -> Unit)? = null,
+        onResult: ((browseId: String?, title: String, savedLocally: Boolean, remoteAddedCount: Int?) -> Unit)? = null,
     ) {
         val name = title.trim().ifBlank { text(R.string.new_playlist) }
         viewModelScope.launch {
             if (authStore.isSignedIn) {
-                val initialBatch = videoIds.take(50)
-                YtMusicRepository.createPlaylist(
-                    title = name,
-                    privacy = privacy,
-                    videoIds = initialBatch,
+                com.music.bitchord.data.spotify.createPlaylistInBatches(
+                    videoIds = videoIds,
+                    create = { initial -> YtMusicRepository.createPlaylist(name, privacy, initial) },
+                    append = { id, chunk -> YtMusicRepository.addToPlaylist(id, chunk).map { Unit } },
                 ).fold(
-                    onSuccess = { playlistId ->
-                        if (videoIds.size > 50) {
-                            videoIds.drop(50).chunked(50).forEach { chunk ->
-                                YtMusicRepository.addToPlaylist(playlistId, chunk)
-                            }
-                        }
+                    onSuccess = { result ->
+                        val playlistId = result.playlistId
                         setPlaylistOwned("VL$playlistId", true)
                         libraryStale = true
                         val created = UserPlaylist(
                             playlistId = playlistId,
                             title = name,
-                            subtitle = "${videoIds.size} songs",
-                            thumbnailUrl = null,
+                            subtitle = "${result.addedCount} songs",
+                            thumbnailUrl = songs.firstOrNull()?.thumbnailUrl,
                         )
                         _playlists.value = listOf(created) +
                             _playlists.value.filterNot { it.playlistId == created.playlistId }
@@ -1082,16 +1084,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                                 ),
                             ) + items.filterNot { it.browseId == created.browseId }
                         }
-                        onResult?.invoke(created.browseId, created.title, false)
+                        if (result.complete) {
+                            onResult?.invoke(created.browseId, created.title, false, null)
+                        } else {
+                            // Keep every resolved track available even if a later server edit failed.
+                            val local = com.music.bitchord.data.spotify.LocalPlaylistStore.savePlaylist(name, songs)
+                            onResult?.invoke(local.browseId, local.title, true, result.addedCount)
+                        }
                     },
                     onFailure = {
                         val local = com.music.bitchord.data.spotify.LocalPlaylistStore.savePlaylist(name, songs)
-                        onResult?.invoke(local.browseId, local.title, true)
+                        onResult?.invoke(local.browseId, local.title, true, null)
                     },
                 )
             } else {
                 val local = com.music.bitchord.data.spotify.LocalPlaylistStore.savePlaylist(name, songs)
-                onResult?.invoke(local.browseId, local.title, true)
+                onResult?.invoke(local.browseId, local.title, true, null)
             }
         }
     }
@@ -1130,47 +1138,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Adds one of [DetailPage.suggestedSongs] to the playlist it was suggested
-     * for: out of that section, and into the track list above it.
-     *
-     * Both halves, because either alone is a worse answer than doing nothing.
-     * Only removing it — which is what this used to do — reads as the track
-     * having been discarded rather than added: it leaves the Suggested list and
-     * turns up nowhere, and the playlist it was added to looks unchanged until
-     * the page is closed and reopened. Only adding it would leave YouTube still
-     * suggesting a track that is now in the playlist.
-     *
-     * The row goes in complete, per-entry id included, because
-     * [YtMusicRepository.addToPlaylist] reports the one it was just filed
-     * under — so "Remove from this playlist" works on it immediately rather
-     * than after a re-fetch. A response that named no id still adds the row;
-     * it just can't offer to take it back out yet.
-     */
-    fun addSuggestedSong(browseId: String, song: Song) {
-        if (!requireSignIn()) return
-        val playlistId = browseId.removePrefix("VL")
-        viewModelScope.launch {
-            YtMusicRepository.addToPlaylist(playlistId, listOf(song.videoId)).fold(
-                onSuccess = { added ->
-                    libraryStale = true
-                    _detailStack.value = _detailStack.value.map { page ->
-                        if (page.browseId != browseId) {
-                            page
-                        } else {
-                            page.copy(
-                                suggestedSongs = page.suggestedSongs
-                                    .filterNot { it.videoId == song.videoId },
-                            )
-                        }
-                    }
-                    appendToOpenPlaylist(browseId, song, added[song.videoId])
-                },
-                onFailure = {},
-            )
-        }
-    }
-
-    /**
      * Puts [song] at the end of the playlist page at [browseId], if that page
      * is open — where YouTube itself puts it, so the order survives the next
      * fetch.
@@ -1189,13 +1156,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (page.browseId != browseId) return@map page
             val songs = when (val state = page.songs) {
                 is UiState.Success -> state.data
-                is UiState.Error -> if (state.message == text(R.string.no_tracks_here)) emptyList() else return@map page
+                is UiState.Error -> if (state.message == text(R.string.no_tracks_here) ||
+                    state.message == text(R.string.spotify_import_empty_playlist)
+                ) emptyList() else return@map page
                 UiState.Loading -> return@map page
             }
-            // Already there — a track added twice is two real entries on
-            // YouTube's side, but a duplicate row from a double tap is not
-            // something the user asked for.
-            if (songs.any { it.videoId == song.videoId }) return@map page
+            // Only the same server entry can be redundant after an in-flight fetch.
+            // A confirmed duplicate has a different setVideoId and remains a real row.
+            if (setVideoId != null && songs.any { it.setVideoId == setVideoId }) return@map page
             page.copy(
                 songs = UiState.Success(
                     songs + added.copy(
@@ -2843,14 +2811,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (index < 0 || scope != Innertube.responseCacheScope) return
             val current = stack[index]
             val existing = (current.songs as? UiState.Success)?.data ?: return
-            val known = existing.mapTo(HashSet()) { it.videoId }
+            val knownEntries = existing.mapTo(HashSet()) { it.setVideoId ?: it.videoId }
             val added = fetched.songs
-                .filter { known.add(it.videoId) }
+                .filter { knownEntries.add(it.setVideoId ?: it.videoId) }
                 .withArtwork(artworkFallback)
             // Suggestions can arrive on a later page than the real
             // tracks, once the playlist's own continuation runs dry —
             // see parsePlaylistShelf — so they're tracked separately
             // rather than folded into [known].
+            val known = (existing + added).mapTo(HashSet()) { it.videoId }
             val knownSuggested = current.suggestedSongs.mapTo(HashSet()) { it.videoId }
             val addedSuggested = fetched.suggested
                 .filter { it.videoId !in known && knownSuggested.add(it.videoId) }

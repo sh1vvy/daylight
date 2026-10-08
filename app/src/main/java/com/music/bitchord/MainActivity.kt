@@ -82,6 +82,7 @@ import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -223,6 +224,7 @@ import com.music.bitchord.playback.rememberMediaController
 import com.music.bitchord.playback.rememberPlayerState
 import com.music.bitchord.playback.setQueueDragActive
 import com.music.bitchord.ui.MainViewModel
+import com.music.bitchord.ui.PlaylistAddPlan
 import com.music.bitchord.ui.detailRouteKey
 import com.music.bitchord.ui.SearchSource
 import com.music.bitchord.ui.components.BottomFadeScrim
@@ -293,6 +295,7 @@ import com.music.bitchord.ui.screens.ExploreScreen
 import com.music.bitchord.ui.screens.LocalMusicScreen
 import com.music.bitchord.ui.screens.HomeScreen
 import com.music.bitchord.ui.theme.daylightHomeBackground
+import com.music.bitchord.ui.theme.LocalPinkCloud
 import com.music.bitchord.ui.screens.LibraryGridPage
 import com.music.bitchord.ui.screens.LibraryScreen
 import com.music.bitchord.ui.screens.MoodGenrePlaylistsScreen
@@ -358,10 +361,10 @@ class MainActivity : AppCompatActivity() {
             }
             val darkTheme = when (theme) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
-                ThemeMode.LIGHT -> false
+                ThemeMode.LIGHT, ThemeMode.PINK_CLOUD -> false
                 ThemeMode.DARK -> true
             }
-            BitChordTheme(darkTheme = darkTheme) {
+            BitChordTheme(darkTheme = darkTheme, pinkCloud = theme == ThemeMode.PINK_CLOUD) {
                 // The glass surfaces sample this layer, and a layer records only
                 // what is drawn into it — which, for BitChord, is a page that
                 // paints no background of its own. Everywhere a page is not
@@ -635,6 +638,10 @@ private fun BitChordApp(
     // The picker opened from the Library tab, where there is no track and
     // creating the playlist is the whole errand.
     var creatingPlaylist by remember { mutableStateOf(false) }
+    var playlistActionBusy by remember { mutableStateOf(false) }
+    var playlistOperationError by remember { mutableStateOf<String?>(null) }
+    var pendingPlaylistAdd by remember { mutableStateOf<PlaylistAddPlan?>(null) }
+    var closePickerAfterAdd by remember { mutableStateOf(false) }
     var showSpotifyImportDialog by remember { mutableStateOf(false) }
     // Which album or playlist the collection menu is open on, or null when it
     // is shut. One slot for every surface that can open it — the shelves on
@@ -898,6 +905,48 @@ private fun BitChordApp(
     val showQueueNotice: (String) -> Unit = { message ->
         queueNoticeId += 1
         queueNotice = QueueActionNotice(queueNoticeId, message)
+    }
+    val finishPlaylistAdd: (PlaylistAddPlan, Boolean) -> Unit = { plan, allowDuplicates ->
+        playlistActionBusy = true
+        pendingPlaylistAdd = null
+        viewModel.commitPlaylistAdd(plan, allowDuplicates) { result ->
+            playlistActionBusy = false
+            if (result.failed > 0) {
+                playlistOperationError = if (closePickerAfterAdd) context.getString(R.string.failed) else null
+                showQueueNotice(context.getString(R.string.failed))
+            } else if (result.added > 0) {
+                showQueueNotice(
+                    if (result.added > 1) context.resources.getQuantityString(
+                        R.plurals.added_to_playlists_notice, result.added, result.added,
+                    ) else context.getString(R.string.song_added_to_playlist),
+                )
+                if (closePickerAfterAdd) {
+                    playlistTarget = null
+                    creatingPlaylist = false
+                    playlistOperationError = null
+                }
+            }
+        }
+    }
+    val requestPlaylistAdd: (List<UserPlaylist>, Song, Boolean) -> Unit = { picked, song, closePicker ->
+        if (!playlistActionBusy && pendingPlaylistAdd == null) {
+            playlistActionBusy = true
+            playlistOperationError = null
+            closePickerAfterAdd = closePicker
+            viewModel.preparePlaylistAdd(picked, song) { result ->
+                result.fold(
+                    onSuccess = { plan ->
+                        if (plan.duplicates.isNotEmpty()) pendingPlaylistAdd = plan
+                        else finishPlaylistAdd(plan, false)
+                    },
+                    onFailure = {
+                        playlistActionBusy = false
+                        playlistOperationError = if (closePicker) context.getString(R.string.playlist_check_failed) else null
+                        if (!closePicker) showQueueNotice(context.getString(R.string.playlist_check_failed))
+                    },
+                )
+            }
+        }
     }
     LaunchedEffect(queueNotice?.id) {
         val shown = queueNotice ?: return@LaunchedEffect
@@ -3017,7 +3066,18 @@ private fun BitChordApp(
                                 onArtistClick = { id, name ->
                                     viewModel.openDetail(id, name, "Artist", null, BrowseType.ARTIST)
                                 },
-                                onAddSuggested = { song -> viewModel.addSuggestedSong(page.browseId, song) },
+                                onAddSuggested = { song ->
+                                    requestPlaylistAdd(
+                                        listOf(UserPlaylist(
+                                            playlistId = page.browseId.removePrefix("VL"),
+                                            title = page.title,
+                                            subtitle = page.subtitle,
+                                            thumbnailUrl = page.thumbnailUrl,
+                                        )),
+                                        song,
+                                        false,
+                                    )
+                                },
                                 // Saving is an account action, so it isn't offered to a
                                 // guest at all — same as the like and add-to-playlist rows
                                 // in the track menu.
@@ -3466,7 +3526,7 @@ private fun BitChordApp(
                     !showAccountScrobbling && !showSources && !showListenTogether && !showEqualizer && !showReplay
                 val chromePageColor = when {
                     isDetailVisible -> detailPalette.background
-                    pageKey == "$TAB_KEY$TAB_HOME" -> daylightHomeBackground(MaterialTheme.colorScheme.background)
+                    pageKey == "$TAB_KEY$TAB_HOME" -> daylightHomeBackground(MaterialTheme.colorScheme.background, LocalPinkCloud.current)
                     else -> MaterialTheme.colorScheme.background
                 }
                 // This is the bottom floor itself turned upside down, not a
@@ -4448,46 +4508,83 @@ private fun BitChordApp(
         if (playlistTarget != null || creatingPlaylist) {
             val target = playlistTarget
             val dismiss = {
-                playlistTarget = null
-                creatingPlaylist = false
+                if (!playlistActionBusy) {
+                    playlistTarget = null
+                    creatingPlaylist = false
+                    playlistOperationError = null
+                }
+            }
+            val deviceOnlyTrack = target?.videoId?.let {
+                it.startsWith("content:") || it.startsWith("file:")
+            } == true
+            val pickerPlaylists = remember(playlists, localPlaylists, configuration, context, deviceOnlyTrack) {
+                localPlaylists.map { local ->
+                    UserPlaylist(
+                        playlistId = local.browseId,
+                        title = local.title,
+                        subtitle = context.getString(R.string.local_playlist_subtitle, local.songs.size),
+                        thumbnailUrl = local.songs.firstOrNull()?.thumbnailUrl,
+                    )
+                } + if (deviceOnlyTrack) emptyList() else playlists
             }
             ModalBottomSheet(
                 onDismissRequest = dismiss,
                 containerColor = MaterialTheme.colorScheme.background,
+                properties = ModalBottomSheetProperties(shouldDismissOnBackPress = !playlistActionBusy),
             ) {
                 PlaylistPickerSheet(
-                    playlists = playlists,
+                    playlists = pickerPlaylists,
                     loading = playlistsLoading,
                     song = target,
                     startCreating = target == null,
+                    busy = playlistActionBusy,
+                    error = playlistOperationError,
+                    savedLocally = !signedIn || deviceOnlyTrack,
                     onAdd = { picked ->
-                        target?.let { song ->
-                            viewModel.addToPlaylists(picked, song) { added, alreadyThere, failed ->
-                                // One line for the whole batch, saying the
-                                // outcome that matters most: what went in, else
-                                // that it was all there already, else that it
-                                // didn't work.
-                                showQueueNotice(
-                                    when {
-                                        added > 1 -> context.resources.getQuantityString(
-                                            R.plurals.added_to_playlists_notice, added, added,
-                                        )
-                                        added == 1 -> context.getString(R.string.song_added_to_playlist)
-                                        alreadyThere > 0 && failed == 0 ->
-                                            context.getString(R.string.song_already_in_playlist)
-                                        else -> context.getString(R.string.failed)
-                                    },
+                        target?.let { requestPlaylistAdd(picked, it, true) }
+                    },
+                    onCreate = { title, privacy ->
+                        if (!playlistActionBusy) {
+                            playlistActionBusy = true
+                            playlistOperationError = null
+                            viewModel.createPlaylist(title, privacy, target) { result ->
+                                playlistActionBusy = false
+                                result.fold(
+                                    onSuccess = { dismiss() },
+                                    onFailure = { playlistOperationError = context.getString(R.string.playlist_create_failed) },
                                 )
                             }
                         }
-                        dismiss()
-                    },
-                    onCreate = { title, privacy ->
-                        viewModel.createPlaylist(title, privacy, target)
-                        dismiss()
                     },
                 )
             }
+        }
+
+        pendingPlaylistAdd?.let { plan ->
+            val cancelAdd = {
+                pendingPlaylistAdd = null
+                playlistActionBusy = false
+            }
+            // A real dialog window keeps the confirmation above the picker sheet's window.
+            AlertDialog(
+                onDismissRequest = cancelAdd,
+                title = { Text(stringResource(R.string.playlist_duplicate_title)) },
+                text = {
+                    Text(stringResource(
+                        R.string.playlist_duplicate_message,
+                        plan.song.title,
+                        plan.duplicates.joinToString(", ", limit = 3, truncated = "…") { it.title },
+                    ))
+                },
+                confirmButton = {
+                    TextButton(onClick = { finishPlaylistAdd(plan, true) }) {
+                        Text(stringResource(R.string.playlist_add_anyway))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = cancelAdd) { Text(stringResource(R.string.cancel)) }
+                },
+            )
         }
 
         if (showSpotifyImportDialog) {
@@ -4495,15 +4592,18 @@ private fun BitChordApp(
             SpotifyImportAlert(
                 hazeState = hazeState,
                 signedIn = signedIn,
-                onImported = { title, privacy, songs ->
+                onImported = { title, privacy, songs, onSaved ->
                     viewModel.createPlaylistWithVideoIds(
                         title,
                         privacy,
                         songs.map { it.videoId },
                         songs,
-                    ) { browseId, pTitle, savedLocally ->
+                    ) { browseId, pTitle, savedLocally, remoteAddedCount ->
+                        onSaved()
                         showQueueNotice(
-                            context.getString(
+                            if (remoteAddedCount != null) context.getString(
+                                R.string.playlist_import_partial, pTitle, remoteAddedCount, songs.size,
+                            ) else context.getString(
                                 if (savedLocally && signedIn) R.string.spotify_import_local_fallback
                                 else R.string.spotify_import_done,
                                 pTitle,

@@ -262,6 +262,13 @@ fun SongActionsSheet(
             GroupSeparator(palette)
         }
 
+        ActionRow(
+            icon = Icons.AutoMirrored.Rounded.PlaylistAdd,
+            label = stringResource(R.string.add_to_playlist),
+            accent = palette.accent,
+            onClick = onAddToPlaylist,
+        )
+
         if (signedIn && !isOffline) {
             ActionRow(
                 icon = if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
@@ -276,12 +283,6 @@ fun SongActionsSheet(
                 tint = if (disliked) palette.accent else null,
                 accent = palette.accent,
                 onClick = onToggleDislike,
-            )
-            ActionRow(
-                icon = Icons.AutoMirrored.Rounded.PlaylistAdd,
-                label = stringResource(R.string.add_to_playlist),
-                accent = palette.accent,
-                onClick = onAddToPlaylist,
             )
             onRemoveFromPlaylist?.let {
                 ActionRow(

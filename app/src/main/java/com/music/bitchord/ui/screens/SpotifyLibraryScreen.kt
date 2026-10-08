@@ -1,17 +1,23 @@
 package com.music.bitchord.ui.screens
 
 import android.annotation.SuppressLint
-import android.net.Uri
+import android.graphics.Bitmap
 import android.os.Build
+import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.webkit.CookieManager
+import android.webkit.RenderProcessGoneDetail
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.activity.compose.BackHandler
+import android.widget.FrameLayout
 import androidx.compose.foundation.clickable
-import androidx.core.net.toUri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,8 +27,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,52 +40,55 @@ import com.music.bitchord.sharedui.resources.spotify_logo
 import com.music.bitchord.sharedui.resources.Res
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.core.view.WindowCompat
 import coil3.compose.AsyncImage
 import com.music.bitchord.R
+import com.music.bitchord.auth.isSpotifyLoginDestination
+import com.music.bitchord.auth.isSpotifySessionDestination
+import com.music.bitchord.auth.spotifyLoginUserAgent
+import com.music.bitchord.auth.spotifySessionCookie
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.data.spotify.SpotifyLibrary
 import com.music.bitchord.data.spotify.SpotifyPlaylist
-import com.music.bitchord.data.spotify.SpotifyTrack
+import com.music.bitchord.data.web.RecoverableWebView
 
 private const val LOGIN_URL =
     "https://accounts.spotify.com/login?continue=https%3A%2F%2Fopen.spotify.com%2F"
-
-private const val LOGIN_USER_AGENT =
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-
-private const val LOGIN_LAYOUT_FIX = """
-    (function () {
-      var id = 'bitchord-login-layout-fix';
-      if (document.getElementById(id)) return;
-      var st = document.createElement('style');
-      st.id = id;
-      st.textContent =
-        'html, body { height: auto !important; min-height: 100% !important; overflow: visible !important; }' +
-        'body > div { height: auto !important; min-height: 100% !important; }' +
-        'main { position: static !important; height: auto !important; min-height: 100dvh !important;' +
-        ' max-height: none !important; overflow: visible !important; }';
-      (document.head || document.documentElement).appendChild(st);
-    })();
-"""
 
 /**
  * The signed-in Spotify account's playlists. A tap opens one as an ordinary
@@ -95,8 +106,6 @@ fun SpotifyLibraryScreen(
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    BackHandler(enabled = showLogin) { showLogin = false }
-
     LaunchedEffect(cookie) {
         if (cookie.isBlank()) {
             playlists = emptyList()
@@ -113,7 +122,7 @@ fun SpotifyLibraryScreen(
 
     if (showLogin) {
         SpotifyLogin(
-            modifier = modifier.padding(contentPadding),
+            onDismiss = { showLogin = false },
             onConnected = { token ->
                 AppSettings.setSpotifySpdcToken(token)
                 showLogin = false
@@ -237,20 +246,6 @@ private val SPOTIFY_COOKIE_URLS = listOf(
     "https://spotify.com",
 )
 
-private val LOGIN_HOST_SUFFIXES = listOf(
-    "spotify.com", "scdn.co", "google.com", "gstatic.com", "facebook.com", "apple.com",
-)
-
-private fun hostMatches(uri: Uri?, suffixes: List<String>): Boolean {
-    if (uri?.scheme != "https") return false
-    val host = uri.host?.lowercase() ?: return false
-    return suffixes.any { host == it || host.endsWith(".$it") }
-}
-
-private fun isSpotifyHost(uri: Uri?) = hostMatches(uri, listOf("spotify.com"))
-
-private fun isLoginHost(uri: Uri?) = hostMatches(uri, LOGIN_HOST_SUFFIXES)
-
 /**
  * Signs the login WebView out of Spotify. Disconnecting only forgot the
  * stored cookie, and the WebView's own jar would have signed the next
@@ -277,56 +272,205 @@ fun clearSpotifyWebSession() {
 @Composable
 private fun SpotifyLogin(
     onConnected: (String) -> Unit,
-    modifier: Modifier = Modifier,
+    onDismiss: () -> Unit,
 ) {
-    var sent by remember { mutableStateOf(false) }
-    AndroidView(
-        modifier = modifier.fillMaxSize(),
-        factory = { context ->
-            WebView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                )
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.loadWithOverviewMode = true
-                settings.useWideViewPort = true
-                settings.userAgentString = LOGIN_USER_AGENT
-                if (Build.VERSION.SDK_INT >= 33) {
-                    settings.isAlgorithmicDarkeningAllowed = false
-                } else if (Build.VERSION.SDK_INT >= 29) {
-                    @Suppress("DEPRECATION")
-                    settings.forceDark = WebSettings.FORCE_DARK_OFF
-                }
-                setBackgroundColor(0xFF121212.toInt())
-                CookieManager.getInstance().setAcceptCookie(true)
-                CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                webViewClient = object : WebViewClient() {
-                    // Spotify's own pages and the identity providers its sign-in
-                    // hands off to; anything else is not part of logging in.
-                    override fun shouldOverrideUrlLoading(
-                        view: WebView,
-                        request: WebResourceRequest,
-                    ): Boolean = !isLoginHost(request.url)
+    var webView by remember { mutableStateOf<RecoverableWebView?>(null) }
+    var failed by remember { mutableStateOf(false) }
+    var loading by remember { mutableStateOf(true) }
+    var attempt by remember { mutableStateOf(0) }
+    val currentOnConnected by rememberUpdatedState(onConnected)
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-                    override fun onPageFinished(view: WebView, url: String?) {
-                        if (isSpotifyHost(url?.toUri())) view.evaluateJavascript(LOGIN_LAYOUT_FIX, null)
-                        if (sent || url?.startsWith("https://open.spotify.com") != true) return
-                        val raw = CookieManager.getInstance().getCookie("https://open.spotify.com") ?: return
-                        val token = raw.split(";")
-                            .map { it.trim() }
-                            .firstOrNull { it.startsWith("sp_dc=") }
-                            ?.substringAfter("=")
-                            ?.takeIf { it.isNotBlank() }
-                            ?: return
-                        sent = true
-                        onConnected(token)
-                    }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            webView?.takeUnless { it.isDisposed }?.let { view ->
+                when (event) {
+                    Lifecycle.Event.ON_RESUME -> view.onResume()
+                    Lifecycle.Event.ON_PAUSE -> view.onPause()
+                    else -> Unit
                 }
-                loadUrl(LOGIN_URL)
             }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // A separate window keeps Chromium out of the app's animated glass/backdrop
+    // recording layers. Its native viewport also resizes with the keyboard,
+    // rather than inheriting the home screen's player/navigation-bar padding.
+    Dialog(
+        onDismissRequest = {
+            val view = webView?.takeUnless { it.isDisposed }
+            if (!failed && view?.canGoBack() == true) view.goBack()
+            else currentOnDismiss()
         },
-        onRelease = { it.destroy() },
-    )
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnClickOutside = false,
+            decorFitsSystemWindows = false,
+        ),
+    ) {
+        val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
+        val lightSystemBars = MaterialTheme.colorScheme.background.luminance() > 0.5f
+        SideEffect {
+            dialogWindow?.let { window ->
+                WindowCompat.getInsetsController(window, window.decorView).apply {
+                    isAppearanceLightStatusBars = lightSystemBars
+                    isAppearanceLightNavigationBars = lightSystemBars
+                }
+            }
+        }
+        DisposableEffect(dialogWindow) {
+            val previousInputMode = dialogWindow?.attributes?.softInputMode
+            dialogWindow?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+            onDispose {
+                previousInputMode?.let { dialogWindow?.setSoftInputMode(it) }
+            }
+        }
+        Column(
+            Modifier.fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .systemBarsPadding()
+                .imePadding(),
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = currentOnDismiss) {
+                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close), tint = MaterialTheme.colorScheme.onBackground)
+                }
+                Text(stringResource(R.string.spotify_sign_in), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
+            }
+            Box(Modifier.fillMaxWidth().weight(1f).background(Color(0xFF121212))) {
+                if (failed) {
+                    Column(
+                        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            stringResource(R.string.spotify_login_load_error),
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Button(onClick = { attempt++; failed = false; loading = true }) {
+                            Text(stringResource(R.string.retry))
+                        }
+                    }
+                } else key(attempt) {
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { context ->
+                            FrameLayout(context).apply {
+                                layoutParams = ViewGroup.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                )
+                                val nativeView = RecoverableWebView(context).apply webViewConfig@ {
+                                    layoutParams = FrameLayout.LayoutParams(
+                                        ViewGroup.LayoutParams.MATCH_PARENT,
+                                        ViewGroup.LayoutParams.MATCH_PARENT,
+                                    )
+                                    settings.javaScriptEnabled = true
+                                    settings.domStorageEnabled = true
+                                    settings.useWideViewPort = true
+                                    settings.userAgentString = spotifyLoginUserAgent(settings.userAgentString)
+                                    settings.allowFileAccess = false
+                                    settings.allowContentAccess = false
+                                    if (Build.VERSION.SDK_INT >= 33) {
+                                        settings.isAlgorithmicDarkeningAllowed = false
+                                    } else if (Build.VERSION.SDK_INT >= 29) {
+                                        @Suppress("DEPRECATION")
+                                        settings.forceDark = WebSettings.FORCE_DARK_OFF
+                                    }
+                                    setBackgroundColor(0xFF121212.toInt())
+                                    val cookies = CookieManager.getInstance().apply {
+                                        setAcceptCookie(true)
+                                        setAcceptThirdPartyCookies(this@webViewConfig, true)
+                                    }
+                                    var captured = false
+                                    fun captureSession(url: String?) {
+                                        if (isDisposed || captured || !isSpotifySessionDestination(url)) return
+                                        val token = spotifySessionCookie(cookies.getCookie("https://open.spotify.com"))
+                                            ?: return
+                                        captured = true
+                                        cookies.flush()
+                                        visibility = View.GONE
+                                        currentOnConnected(token)
+                                    }
+                                    webChromeClient = WebChromeClient()
+                                    webViewClient = object : WebViewClient() {
+                                        override fun shouldOverrideUrlLoading(
+                                            view: WebView,
+                                            request: WebResourceRequest,
+                                        ): Boolean = !isSpotifyLoginDestination(request.url.toString())
+
+                                        override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
+                                            if (!isDisposed) loading = true
+                                        }
+
+                                        override fun onPageFinished(view: WebView, url: String?) {
+                                            if (isDisposed) return
+                                            loading = false
+                                            captureSession(url)
+                                        }
+
+                                        // Spotify can navigate client-side after sign-in without
+                                        // another page load, so page-finished alone misses it.
+                                        override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
+                                            captureSession(url)
+                                        }
+
+                                        override fun onReceivedError(
+                                            view: WebView,
+                                            request: WebResourceRequest,
+                                            error: WebResourceError,
+                                        ) {
+                                            if (!isDisposed && request.isForMainFrame) {
+                                                loading = false
+                                                failed = true
+                                            }
+                                        }
+
+                                        override fun onReceivedHttpError(
+                                            view: WebView,
+                                            request: WebResourceRequest,
+                                            errorResponse: WebResourceResponse,
+                                        ) {
+                                            if (!isDisposed && request.isForMainFrame) {
+                                                loading = false
+                                                failed = true
+                                            }
+                                        }
+
+                                        override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                                            dispose(rendererGone = true)
+                                            if (webView === view) webView = null
+                                            loading = false
+                                            failed = true
+                                            // Returning false would make Android crash the app too.
+                                            return true
+                                        }
+                                    }
+                                }
+                                addView(nativeView)
+                                webView = nativeView
+                                nativeView.loadUrl(LOGIN_URL)
+                            }
+                        },
+                        onRelease = { container ->
+                            val child = container.getChildAt(0) as? RecoverableWebView
+                            if (webView === child) webView = null
+                            child?.dispose()
+                        },
+                    )
+                }
+                if (loading && !failed) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter))
+                }
+            }
+        }
+    }
 }

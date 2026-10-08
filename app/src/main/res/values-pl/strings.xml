@@ -234,6 +234,7 @@
     <string name="system">System</string>
     <string name="light">Jasny</string>
     <string name="dark">Ciemny</string>
+    <string name="pink_cloud">Różowa chmura</string>
     <string name="full_screen_cover_art_subtitle">Wyświetla okładkę na całym ekranie odtwarzacza zamiast kwadratowej okładki</string>
     <string name="animated_cover_art_subtitle">Odtwarza animowaną okładkę dostępną w niektórych wydaniach zamiast statycznej</string>
     <string name="dont_repeat_songs_subtitle">AutoPlay nie zaproponuje utworu, który został już odtworzony lub zaproponowany w tej sesji</string>
@@ -1337,4 +1338,12 @@
     <string name="credits_bitchord_heading">Na podstawie BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh i współtwórcy</string>
     <string name="credits_icon_heading">Ikona aplikacji</string>
+    <string name="spotify_login_load_error">Nie udało się wczytać logowania do Spotify. Spróbuj ponownie.</string>
+    <string name="playlist_duplicate_title">Już na playliście</string>
+    <string name="playlist_duplicate_message">%1$s jest już na %2$s. Dodać kolejną kopię?</string>
+    <string name="playlist_add_anyway">Dodaj mimo to</string>
+    <string name="playlist_check_failed">Nie udało się sprawdzić tej playlisty. Spróbuj ponownie.</string>
+    <string name="playlist_create_failed">Nie udało się utworzyć playlisty. Spróbuj ponownie.</string>
+    <string name="playlist_saved_on_device">Zapisana na tym urządzeniu</string>
+    <string name="playlist_import_partial">Utworzono %1$s z %2$d z %3$d utworów. Zachowaj lokalną kopię, aby nie utracić utworów.</string>
 </resources>

@@ -236,6 +236,7 @@
     <string name="system">System</string>
     <string name="light">Hell</string>
     <string name="dark">Dunkel</string>
+    <string name="pink_cloud">Rosa Wolke</string>
     <string name="full_screen_cover_art_subtitle">Zieht das Cover bis an die Ränder des Players statt es quadratisch darzustellen</string>
     <string name="animated_cover_art_subtitle">Spielt das Endlosvideo ab, das manche Veröffentlichungen anstelle eines Standbilds mitbringen</string>
     <string name="dont_repeat_songs_subtitle">Die automatische Wiedergabe schlägt in dieser Sitzung keinen bereits gespielten oder vorgeschlagenen Song erneut vor</string>
@@ -1297,4 +1298,12 @@
     <string name="credits_bitchord_heading">Basierend auf BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh und Mitwirkende</string>
     <string name="credits_icon_heading">App-Symbol</string>
+    <string name="spotify_login_load_error">Die Spotify-Anmeldung konnte nicht geladen werden. Bitte versuche es erneut.</string>
+    <string name="playlist_duplicate_title">Bereits in der Playlist</string>
+    <string name="playlist_duplicate_message">%1$s ist bereits in %2$s. Eine weitere Kopie hinzufügen?</string>
+    <string name="playlist_add_anyway">Trotzdem hinzufügen</string>
+    <string name="playlist_check_failed">Diese Playlist konnte nicht geprüft werden. Versuche es erneut.</string>
+    <string name="playlist_create_failed">Die Playlist konnte nicht erstellt werden. Versuche es erneut.</string>
+    <string name="playlist_saved_on_device">Auf diesem Gerät gespeichert</string>
+    <string name="playlist_import_partial">%1$s wurde mit %2$d von %3$d Titeln erstellt. Behalte die lokale Kopie, damit keine Titel verloren gehen.</string>
 </resources>

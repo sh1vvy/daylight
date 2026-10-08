@@ -231,6 +231,7 @@
     <string name="system">システム</string>
     <string name="light">ライト</string>
     <string name="dark">ダーク</string>
+    <string name="pink_cloud">ピンク雲</string>
     <string name="full_screen_cover_art_subtitle">正方形のジャケットの代わりにカバーをプレイヤーの端まで広げます</string>
     <string name="animated_cover_art_subtitle">静止画のジャケットの代わりに一部のリリースが持つループ動画を再生します</string>
     <string name="dont_repeat_songs_subtitle">オートプレイは、このセッションで既に再生または提案された曲を再度提案しません</string>
@@ -1275,4 +1276,12 @@
     <string name="credits_bitchord_heading">BitChordをベースにしています</string>
     <string name="credits_bitchord_authors">Kushagra Singhと貢献者</string>
     <string name="credits_icon_heading">アプリアイコン</string>
+    <string name="spotify_login_load_error">Spotifyのログインを読み込めませんでした。もう一度お試しください。</string>
+    <string name="playlist_duplicate_title">プレイリストに追加済み</string>
+    <string name="playlist_duplicate_message">%1$sはすでに%2$sにあります。もう一度追加しますか？</string>
+    <string name="playlist_add_anyway">追加する</string>
+    <string name="playlist_check_failed">プレイリストを確認できませんでした。もう一度お試しください。</string>
+    <string name="playlist_create_failed">プレイリストを作成できませんでした。もう一度お試しください。</string>
+    <string name="playlist_saved_on_device">この端末に保存済み</string>
+    <string name="playlist_import_partial">%1$sを%3$d曲中%2$d曲で作成しました。曲を失わないよう端末のコピーを保持してください。</string>
 </resources>

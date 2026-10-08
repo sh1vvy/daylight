@@ -267,6 +267,7 @@
     <string name="system">Hệ thống</string>
     <string name="light">Sáng</string>
     <string name="dark">Tối</string>
+    <string name="pink_cloud">Mây hồng</string>
     <string name="full_screen_cover_art_subtitle">Mở rộng ảnh bìa ra các cạnh của trình phát thay vì khung vuông</string>
     <string name="animated_cover_art_subtitle">Phát video vòng lặp mà một số bản phát hành cung cấp thay vì ảnh tĩnh</string>
     <string name="miscellaneous_footer">Khi bật, việc đóng ứng dụng khỏi màn hình ứng dụng gần đây cũng sẽ dừng phát nhạc.</string>
@@ -1214,4 +1215,12 @@
     <string name="credits_bitchord_heading">Dựa trên BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh và những người đóng góp</string>
     <string name="credits_icon_heading">Biểu tượng ứng dụng</string>
+    <string name="spotify_login_load_error">Không thể tải trang đăng nhập Spotify. Vui lòng thử lại.</string>
+    <string name="playlist_duplicate_title">Đã có trong danh sách phát</string>
+    <string name="playlist_duplicate_message">%1$s đã có trong %2$s. Thêm một bản nữa?</string>
+    <string name="playlist_add_anyway">Vẫn thêm</string>
+    <string name="playlist_check_failed">Không thể kiểm tra danh sách phát này. Thử lại.</string>
+    <string name="playlist_create_failed">Không thể tạo danh sách phát. Thử lại.</string>
+    <string name="playlist_saved_on_device">Đã lưu trên thiết bị này</string>
+    <string name="playlist_import_partial">Đã tạo %1$s với %2$d trên %3$d bài hát. Giữ bản sao trên thiết bị để không mất bài hát.</string>
 </resources>

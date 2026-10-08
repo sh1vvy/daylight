@@ -255,6 +255,7 @@
     <string name="system">ระบบ</string>
     <string name="light">สว่าง</string>
     <string name="dark">มืด</string>
+    <string name="pink_cloud">เมฆสีชมพู</string>
     <string name="full_screen_cover_art_subtitle">ขยายปกอัลบั้มเต็มขอบเครื่องเล่นแทนปกสี่เหลี่ยมจัตุรัส</string>
     <string name="animated_cover_art_subtitle">เล่นวิดีโอวนซ้ำที่บางผลงานมีให้แทนปกนิ่ง</string>
     <string name="dont_repeat_songs_subtitle">AutoPlay จะไม่แนะนำเพลงที่เล่นหรือแนะนำไปแล้วในเซสชันนี้</string>
@@ -1280,4 +1281,12 @@
     <string name="credits_bitchord_heading">พัฒนาจาก BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh และผู้ร่วมพัฒนา</string>
     <string name="credits_icon_heading">ไอคอนแอป</string>
+    <string name="spotify_login_load_error">ไม่สามารถโหลดหน้าเข้าสู่ระบบ Spotify ได้ โปรดลองอีกครั้ง</string>
+    <string name="playlist_duplicate_title">อยู่ในเพลย์ลิสต์แล้ว</string>
+    <string name="playlist_duplicate_message">%1$s อยู่ใน %2$s แล้ว ต้องการเพิ่มอีกครั้งหรือไม่</string>
+    <string name="playlist_add_anyway">เพิ่มต่อไป</string>
+    <string name="playlist_check_failed">ตรวจสอบเพลย์ลิสต์นี้ไม่ได้ โปรดลองอีกครั้ง</string>
+    <string name="playlist_create_failed">สร้างเพลย์ลิสต์ไม่ได้ โปรดลองอีกครั้ง</string>
+    <string name="playlist_saved_on_device">บันทึกบนอุปกรณ์นี้แล้ว</string>
+    <string name="playlist_import_partial">สร้าง %1$s พร้อม %2$d จาก %3$d เพลงแล้ว เก็บสำเนาในอุปกรณ์ไว้เพื่อไม่ให้เพลงสูญหาย</string>
 </resources>

@@ -35,6 +35,7 @@ import com.music.bitchord.ui.graphics.toImageBitmap
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.music.bitchord.ui.graphics.ColorUtils
+import com.music.bitchord.ui.theme.LocalPinkCloud
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
@@ -107,11 +108,12 @@ fun MeshGradientBackground(
     animated: Boolean = true,
 ) {
     val reduceAnimation by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
+    val pinkCloud = LocalPinkCloud.current
 
-    val tuned = remember(palette) {
+    val tuned = remember(palette, pinkCloud) {
         (palette.colors.ifEmpty { FallbackColors } + FallbackColors)
             .take(4)
-            .map { it.tuned() }
+            .map { color -> color.tuned().let { if (pinkCloud) PinkCloudPlayerStyle.colorFor(it) else it } }
     }
 
     // Each colour slot crossfades independently when the track (palette) changes,
@@ -120,7 +122,7 @@ fun MeshGradientBackground(
     val animatedColors = tuned.mapIndexed { index, color ->
         animateColorAsState(color, colorSpec, label = "meshColor$index")
     }
-    val base = remember(tuned) { tuned.first().dimmed() }
+    val base = remember(tuned, pinkCloud) { if (pinkCloud) PinkCloudPlayerStyle.base else tuned.first().dimmed() }
     val baseColor = animateColorAsState(base, colorSpec, label = "meshBase")
 
     // Read in the draw lambda, not here: an Animatable read during draw

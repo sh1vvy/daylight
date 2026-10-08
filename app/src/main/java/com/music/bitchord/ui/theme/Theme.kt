@@ -47,6 +47,46 @@ private val LightColors = lightColorScheme(
     outline = Color(0xFFE5E5EA),
 )
 
+/** Soft blush surfaces with deep rose ink, including dialogs and elevated controls. */
+internal val PinkCloudColors = lightColorScheme(
+    primary = Color(0xFFA23765),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFD7E6),
+    onPrimaryContainer = Color(0xFF561C36),
+    inversePrimary = Color(0xFFFFAFCE),
+    secondary = Color(0xFF805265),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFFFDAE8),
+    onSecondaryContainer = Color(0xFF482638),
+    tertiary = Color(0xFF765681),
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFF5DCFF),
+    onTertiaryContainer = Color(0xFF3D2448),
+    background = Color(0xFFFFF2F6),
+    onBackground = Color(0xFF39212D),
+    surface = Color(0xFFFFFAFC),
+    onSurface = Color(0xFF39212D),
+    surfaceVariant = Color(0xFFF7DCE6),
+    onSurfaceVariant = Color(0xFF704755),
+    surfaceTint = Color(0xFFA23765),
+    inverseSurface = Color(0xFF49303D),
+    inverseOnSurface = Color(0xFFFFECF3),
+    error = Color(0xFFB32643),
+    onError = Color.White,
+    errorContainer = Color(0xFFFFDAE0),
+    onErrorContainer = Color(0xFF68001E),
+    outline = Color(0xFF9F7687),
+    outlineVariant = Color(0xFFE2BCCA),
+    scrim = Color(0xFF2F1824),
+    surfaceBright = Color(0xFFFFFAFC),
+    surfaceDim = Color(0xFFEBD0DA),
+    surfaceContainer = Color(0xFFFFE7F0),
+    surfaceContainerHigh = Color(0xFFFBDDE8),
+    surfaceContainerHighest = Color(0xFFF4D3E0),
+    surfaceContainerLow = Color(0xFFFFEFF5),
+    surfaceContainerLowest = Color(0xFFFFFCFD),
+)
+
 /** Inter 4.1, with its text-size spacing for controls and longer passages. */
 val DaylightFont = FontFamily(
     Font(R.font.inter_regular, FontWeight.Normal),
@@ -113,11 +153,19 @@ private fun Typography.withFamily(family: FontFamily) = Typography(
 @Composable
 fun BitChordTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    pinkCloud: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    CompositionLocalProvider(LocalLyricsFontFamily provides DaylightLyricsFont) {
+    CompositionLocalProvider(
+        LocalLyricsFontFamily provides DaylightLyricsFont,
+        LocalPinkCloud provides pinkCloud,
+    ) {
         MaterialTheme(
-            colorScheme = if (darkTheme) DarkColors else LightColors,
+            colorScheme = when {
+                pinkCloud -> PinkCloudColors
+                darkTheme -> DarkColors
+                else -> LightColors
+            },
             typography = DaylightTypography,
             content = content,
         )

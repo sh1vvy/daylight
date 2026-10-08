@@ -5,12 +5,14 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.music.bitchord.data.DebugLog as Log
 import com.music.bitchord.data.Http
 import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.data.web.RecoverableWebView
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -143,12 +145,13 @@ internal object SpotifyToken {
         // The player caches its token in web storage and skips a fresh
         // /api/token request if a live one is already sitting there, leaving
         // the hook with nothing to see — wipe storage so every harvest forces
-        // a real mint.
-        runCatching { WebStorage.getInstance().deleteAllData() }
+        // a real mint. Leave the accounts sign-in and other integrations' web
+        // storage intact if they are open at the same time.
+        runCatching { WebStorage.getInstance().deleteOrigin("https://open.spotify.com") }
 
-        var webView: WebView? = null
+        var webView: RecoverableWebView? = null
         return try {
-            webView = WebView(context).apply {
+            webView = RecoverableWebView(context).apply {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
                 settings.userAgentString = CANVAS_UA
@@ -157,15 +160,27 @@ internal object SpotifyToken {
 
                 webViewClient = object : WebViewClient() {
                     override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
+                        if (isDisposed) return
                         super.onPageStarted(view, url, favicon)
                         view.evaluateJavascript(HOOK_SCRIPT, null)
                     }
 
                     override fun onPageFinished(view: WebView, url: String?) {
+                        if (isDisposed) return
                         super.onPageFinished(view, url)
                         // Re-assert in case the player navigated client-side
                         // after the onPageStarted injection ran.
                         view.evaluateJavascript(HOOK_SCRIPT, null)
+                    }
+
+                    override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                        // Hidden token harvesters may share the login's renderer.
+                        // Every affected WebView must consume the callback or
+                        // Android will still terminate the host application.
+                        dispose(rendererGone = true)
+                        webView = null
+                        deferred.complete(null)
+                        return true
                     }
                 }
                 loadUrl("https://open.spotify.com/")
@@ -177,9 +192,10 @@ internal object SpotifyToken {
             null
         } finally {
             runCatching {
-                webView?.removeJavascriptInterface(BRIDGE_NAME)
-                webView?.stopLoading()
-                webView?.destroy()
+                webView?.takeUnless { it.isDisposed }?.let { view ->
+                    view.removeJavascriptInterface(BRIDGE_NAME)
+                    view.dispose()
+                }
             }
         }
     }

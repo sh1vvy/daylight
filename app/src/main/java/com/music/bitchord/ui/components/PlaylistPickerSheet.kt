@@ -92,6 +92,9 @@ fun PlaylistPickerSheet(
     modifier: Modifier = Modifier,
     song: Song? = null,
     startCreating: Boolean = false,
+    busy: Boolean = false,
+    error: String? = null,
+    savedLocally: Boolean = false,
 ) {
     var creating by remember { mutableStateOf(startCreating) }
     // By id rather than by value: the list is re-fetched under an open sheet,
@@ -104,6 +107,9 @@ fun PlaylistPickerSheet(
             // form; the sheet's own dismiss is the way out.
             onBack = if (startCreating) null else ({ creating = false }),
             onCreate = onCreate,
+            busy = busy,
+            error = error,
+            savedLocally = savedLocally,
             modifier = modifier,
         )
         return
@@ -122,7 +128,7 @@ fun PlaylistPickerSheet(
         ActionRow(
             icon = BitChordIcons.Plus,
             label = stringResource(R.string.new_playlist),
-            onClick = { creating = true },
+            onClick = { if (!busy) creating = true },
         )
 
         when {
@@ -161,6 +167,7 @@ fun PlaylistPickerSheet(
                         PlaylistRow(
                             playlist = playlist,
                             selected = ticked,
+                            enabled = !busy,
                             onClick = {
                                 selected = if (ticked) selected - playlist.playlistId else selected + playlist.playlistId
                             },
@@ -170,13 +177,19 @@ fun PlaylistPickerSheet(
                 Spacer(Modifier.height(12.dp))
                 Button(
                     onClick = { onAdd(playlists.filter { it.playlistId in selected }) },
-                    enabled = selected.isNotEmpty(),
+                    enabled = selected.isNotEmpty() && !busy,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 22.dp),
                 ) {
+                    if (busy) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                    }
                     Text(
-                        if (selected.isEmpty()) {
+                        if (busy) {
+                            stringResource(R.string.checking)
+                        } else if (selected.isEmpty()) {
                             stringResource(R.string.add_to_playlist)
                         } else {
                             pluralStringResource(R.plurals.add_to_playlists_count, selected.size, selected.size)
@@ -185,16 +198,17 @@ fun PlaylistPickerSheet(
                 }
             }
         }
+        error?.let { PlaylistOperationError(it) }
         Spacer(Modifier.height(24.dp))
     }
 }
 
 @Composable
-private fun PlaylistRow(playlist: UserPlaylist, selected: Boolean, onClick: () -> Unit) {
+private fun PlaylistRow(playlist: UserPlaylist, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 22.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -245,6 +259,9 @@ private fun NewPlaylistForm(
     onBack: (() -> Unit)?,
     onCreate: (String, PlaylistPrivacy) -> Unit,
     modifier: Modifier = Modifier,
+    busy: Boolean = false,
+    error: String? = null,
+    savedLocally: Boolean = false,
 ) {
     var name by remember { mutableStateOf("") }
     var privacy by remember { mutableStateOf(PlaylistPrivacy.PRIVATE) }
@@ -256,7 +273,7 @@ private fun NewPlaylistForm(
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     val submit: () -> Unit = {
-        if (name.isNotBlank()) {
+        if (name.isNotBlank() && !busy) {
             focusManager.clearFocus()
             onCreate(name, privacy)
         }
@@ -276,7 +293,7 @@ private fun NewPlaylistForm(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             onBack?.let {
-                IconButton(onClick = it) {
+                IconButton(onClick = it, enabled = !busy) {
                     Icon(
                         Icons.AutoMirrored.Rounded.ArrowBack,
                         contentDescription = stringResource(R.string.back),
@@ -291,7 +308,10 @@ private fun NewPlaylistForm(
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
-                    text = stringResource(R.string.saved_to_youtube_music_account),
+                    text = stringResource(
+                        if (savedLocally) R.string.playlist_saved_on_device
+                        else R.string.saved_to_youtube_music_account,
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -318,6 +338,7 @@ private fun NewPlaylistForm(
                 BasicTextField(
                     value = name,
                     onValueChange = { name = it },
+                    enabled = !busy,
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(
                         color = MaterialTheme.colorScheme.onBackground,
@@ -335,7 +356,7 @@ private fun NewPlaylistForm(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(CircleShape)
-                        .clickable { name = "" },
+                        .clickable(enabled = !busy) { name = "" },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -348,35 +369,52 @@ private fun NewPlaylistForm(
             }
         }
 
-        SheetHeading(stringResource(R.string.who_can_see_it).uppercase(Locale.getDefault()))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 22.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            PlaylistPrivacy.entries.forEach { option ->
-                PrivacyPill(
-                    icon = option.icon,
-                    label = option.label,
-                    selected = option == privacy,
-                    onClick = { privacy = option },
-                )
+        if (!savedLocally) {
+            SheetHeading(stringResource(R.string.who_can_see_it).uppercase(Locale.getDefault()))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 22.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PlaylistPrivacy.entries.forEach { option ->
+                    PrivacyPill(
+                        icon = option.icon,
+                        label = option.label,
+                        selected = option == privacy,
+                        onClick = { if (!busy) privacy = option },
+                    )
+                }
             }
         }
 
         Spacer(Modifier.height(20.dp))
+        error?.let { PlaylistOperationError(it) }
         Button(
             onClick = submit,
-            enabled = name.isNotBlank(),
+            enabled = name.isNotBlank() && !busy,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 22.dp),
         ) {
+            if (busy) {
+                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+            }
             Text(stringResource(R.string.create_playlist))
         }
         Spacer(Modifier.height(28.dp))
     }
+}
+
+@Composable
+private fun PlaylistOperationError(message: String) {
+    Text(
+        text = message,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.error,
+        modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp),
+    )
 }
 
 /**

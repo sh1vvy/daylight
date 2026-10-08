@@ -246,6 +246,7 @@
     <string name="system">Системная</string>
     <string name="light">Светлая</string>
     <string name="dark">Тёмная</string>
+    <string name="pink_cloud">Розовое облако</string>
     <string name="full_screen_cover_art_subtitle">Растягивает обложку до краёв плеера вместо квадратного варианта</string>
     <string name="animated_cover_art_subtitle">Воспроизводит зацикленное видео, которое есть у некоторых релизов вместо неподвижной обложки</string>
     <string name="dont_repeat_songs_subtitle">Автовоспроизведение не будет предлагать уже сыгранную или предложенную в этой сессии песню</string>
@@ -1329,4 +1330,12 @@
     <string name="credits_bitchord_heading">На основе BitChord</string>
     <string name="credits_bitchord_authors">Kushagra Singh и участники проекта</string>
     <string name="credits_icon_heading">Иконка приложения</string>
+    <string name="spotify_login_load_error">Не удалось загрузить вход в Spotify. Попробуйте снова.</string>
+    <string name="playlist_duplicate_title">Уже в плейлисте</string>
+    <string name="playlist_duplicate_message">%1$s уже есть в %2$s. Добавить ещё одну копию?</string>
+    <string name="playlist_add_anyway">Всё равно добавить</string>
+    <string name="playlist_check_failed">Не удалось проверить плейлист. Попробуйте снова.</string>
+    <string name="playlist_create_failed">Не удалось создать плейлист. Попробуйте снова.</string>
+    <string name="playlist_saved_on_device">Сохранено на этом устройстве</string>
+    <string name="playlist_import_partial">Создан %1$s с %2$d из %3$d песен. Сохраните локальную копию, чтобы не потерять песни.</string>
 </resources>

@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.ImageBitmap
 import coil3.compose.LocalPlatformContext
@@ -105,6 +106,7 @@ fun rememberArtworkPalette(
     keyColors: ArtworkKeyColors? = null,
 ): ArtworkPalette {
     val scheme = MaterialTheme.colorScheme
+    val pinkCloud = LocalPinkCloud.current
     val reduceAnimation by PlayerPlatform.host.settings.reduceAnimation.collectAsStateWithLifecycle()
     // Always asked, so the composable call is unconditional; handed nothing to
     // read when the colours are already in hand.
@@ -116,8 +118,9 @@ fun rememberArtworkPalette(
     // front of a surface that could already be right.
     val knownUpFront = remember(imageUrl) { decoded != null }
 
-    val target = remember(seed, dark, scheme) {
-        seed?.toPalette(dark) ?: ArtworkPalette(
+    val target = remember(seed, dark, scheme, pinkCloud) {
+        val artwork = seed?.toPalette(dark)
+        if (pinkCloud) pinkCloudArtworkPalette(scheme, artwork) else artwork ?: ArtworkPalette(
             background = scheme.background,
             wash = scheme.background,
             elevated = scheme.surfaceVariant,
@@ -145,6 +148,20 @@ fun rememberArtworkPalette(
         divider = animateColorAsState(target.divider, spec, label = "tintDivider").value,
     )
 }
+
+/** Keep sleeves visible in the wash while the page, controls and text follow Pink Cloud. */
+internal fun pinkCloudArtworkPalette(
+    scheme: androidx.compose.material3.ColorScheme,
+    artwork: ArtworkPalette?,
+): ArtworkPalette = ArtworkPalette(
+    background = lerp(scheme.background, artwork?.background ?: scheme.background, 0.08f),
+    wash = lerp(scheme.surfaceContainerLow, artwork?.wash ?: scheme.surfaceContainerLow, 0.12f),
+    elevated = scheme.surfaceVariant,
+    accent = scheme.primary,
+    onBackground = scheme.onBackground,
+    onBackgroundVariant = scheme.onSurfaceVariant,
+    divider = scheme.outlineVariant,
+)
 
 /**
  * Reads top-band relative luminance from the cached palette decode.

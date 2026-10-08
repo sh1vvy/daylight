@@ -162,6 +162,7 @@ fun LibraryScreen(
                     val emptyPlaylists = HomeShelf(PLAYLISTS, emptyList())
                     PlaylistShelf(
                         shelf = emptyPlaylists,
+                        savedLocally = true,
                         onItemClick = onShelfItemClick,
                         onItemLongPress = onShelfItemLongPress,
                         onNewPlaylist = onNewPlaylist,
@@ -313,6 +314,7 @@ private fun PlaylistShelf(
     onImportSpotifyPlaylist: (() -> Unit)? = null,
     onShowAll: () -> Unit,
     pinnedPlaylists: List<String> = emptyList(),
+    savedLocally: Boolean = false,
 ) {
     LibraryGridShelf(
         shelf = shelf,
@@ -325,7 +327,7 @@ private fun PlaylistShelf(
                 NewShelfCard(
                     icon = BitChordIcons.Plus,
                     label = stringResource(Res.string.new_playlist),
-                    subtitle = stringResource(Res.string.saved_to_youtube_music),
+                    subtitle = stringResource(if (savedLocally) Res.string.on_device else Res.string.saved_to_youtube_music),
                     onClick = onNewPlaylist,
                 )
                 if (onImportSpotifyPlaylist != null) {

@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.music.bitchord.ui.graphics.ColorUtils
+import com.music.bitchord.ui.theme.LocalPinkCloud
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
@@ -143,18 +145,21 @@ fun FullArtworkBlurBackdrop(
     image: ImageBitmap?,
     modifier: Modifier = Modifier,
 ) {
+    val pinkCloud = LocalPinkCloud.current
+    val scrim = if (pinkCloud) PinkCloudPlayerStyle.scrim else Color.Black
     val imageAlpha by androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (image != null) 1f else 0f,
         animationSpec = tween(320, easing = FastOutSlowInEasing),
         label = "preparedBackdropImage",
     )
-    Box(modifier = modifier.fillMaxSize().background(FallbackBackdrop)) {
+    Box(modifier = modifier.fillMaxSize().background(if (pinkCloud) PinkCloudPlayerStyle.base else FallbackBackdrop)) {
         image?.let { bitmap ->
             val painter = remember(bitmap) { BitmapPainter(bitmap) }
             Image(
                 painter = painter,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                colorFilter = if (pinkCloud) PinkCloudPlayerStyle.imageFilter else null,
                 modifier = Modifier.fillMaxSize().graphicsLayer { alpha = imageAlpha },
             )
         }
@@ -164,9 +169,9 @@ fun FullArtworkBlurBackdrop(
         Canvas(Modifier.fillMaxSize()) {
             drawRect(
                 brush = Brush.verticalGradient(
-                    0f to Color.Black.copy(alpha = 0.34f),
-                    0.55f to Color.Black.copy(alpha = 0.48f),
-                    1f to Color.Black.copy(alpha = 0.64f),
+                    0f to scrim.copy(alpha = 0.34f),
+                    0.55f to scrim.copy(alpha = 0.48f),
+                    1f to scrim.copy(alpha = 0.64f),
                 ),
             )
         }
@@ -323,6 +328,9 @@ fun ArtworkMeshBackdrop(
      */
     blurRadius: Dp = 32.dp,
 ) {
+    val pinkCloud = LocalPinkCloud.current
+    val imageFilter = if (pinkCloud) PinkCloudPlayerStyle.imageFilter else null
+    val scrim = if (pinkCloud) PinkCloudPlayerStyle.scrim else Color.Black
     val reduceAnimation by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
     val reduceDynamicBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     // RenderEffect only; below API 31 `blur` is a no-op. It is not missed here —
@@ -373,14 +381,14 @@ fun ArtworkMeshBackdrop(
             // and along the bottom. The default treatment clamps instead, which
             // cannot lose alpha — this is only here so nothing downstream can
             // reintroduce the bug.
-            .background(fallback)
+            .background(if (pinkCloud) PinkCloudPlayerStyle.base else fallback)
             .then(if (canBlur) Modifier.blur(blurRadius) else Modifier),
     ) {
         val seamY = seam.toPx().coerceIn(0f, size.height)
-        shown?.let { drawMesh(it, seamY, alpha = 1f) }
+        shown?.let { drawMesh(it, seamY, alpha = 1f, colorFilter = imageFilter) }
         // Read here rather than in composition: an Animatable read inside a
         // draw lambda invalidates the drawing and leaves composition out of it.
-        incoming?.let { drawMesh(it, seamY, alpha = fade.value) }
+        incoming?.let { drawMesh(it, seamY, alpha = fade.value, colorFilter = imageFilter) }
 
         // Enough of a scrim to keep white text off a bright sleeve, and no
         // more. The old backdrop needed a heavier one because it lightened
@@ -389,8 +397,8 @@ fun ArtworkMeshBackdrop(
         drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(
-                    Color.Black.copy(alpha = 0.06f),
-                    Color.Black.copy(alpha = 0.30f),
+                    scrim.copy(alpha = 0.06f),
+                    scrim.copy(alpha = 0.30f),
                 ),
             ),
         )
@@ -402,7 +410,7 @@ fun ArtworkMeshBackdrop(
  * first row held from there up. Two draws of one small texture, both stretched
  * by the sampler.
  */
-private fun DrawScope.drawMesh(mesh: ArtworkMesh, seamY: Float, alpha: Float) {
+private fun DrawScope.drawMesh(mesh: ArtworkMesh, seamY: Float, alpha: Float, colorFilter: ColorFilter?) {
     if (alpha <= 0.001f) return
     val image = mesh.image
     val width = size.width.roundToInt()
@@ -417,6 +425,7 @@ private fun DrawScope.drawMesh(mesh: ArtworkMesh, seamY: Float, alpha: Float) {
             dstOffset = IntOffset.Zero,
             dstSize = IntSize(width, seamY.roundToInt()),
             alpha = alpha,
+            colorFilter = colorFilter,
             filterQuality = FilterQuality.Low,
         )
     }
@@ -429,6 +438,7 @@ private fun DrawScope.drawMesh(mesh: ArtworkMesh, seamY: Float, alpha: Float) {
         dstOffset = IntOffset(0, seamY.roundToInt()),
         dstSize = IntSize(width, (size.height - seamY).roundToInt()),
         alpha = alpha,
+        colorFilter = colorFilter,
         filterQuality = FilterQuality.Low,
     )
 }

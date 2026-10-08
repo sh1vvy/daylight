@@ -12,7 +12,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import com.music.bitchord.ui.components.longPressMenuClickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -1318,7 +1317,7 @@ private fun DrillDownActionRow(
             Icon(
                 BitChordIcons.Shuffle,
                 contentDescription = stringResource(R.string.shuffle),
-                tint = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -1654,14 +1653,14 @@ private fun DownloadSelectionBar(
             Icon(
                 Icons.Rounded.Check,
                 contentDescription = stringResource(R.string.select_all),
-                tint = if (isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp),
             )
         }
         Text(
             text = "$count ${stringResource(R.string.selected)}",
             style = MaterialTheme.typography.titleSmall,
-            color = if (isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
         onUpload?.let { upload ->

@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.ui.theme.LocalPinkCloud
 
 /** A unique queue result, so repeating the same action restarts its lifetime. */
 data class QueueActionNotice(
@@ -55,7 +56,7 @@ fun QueueActionNoticeHost(
     ) { current ->
         if (current != null) {
             Surface(
-                color = Color(0xFF282828),
+                color = if (LocalPinkCloud.current) MaterialTheme.colorScheme.inverseSurface else Color(0xFF282828),
                 contentColor = Color.White,
                 shape = RoundedCornerShape(5.dp),
                 shadowElevation = 4.dp,

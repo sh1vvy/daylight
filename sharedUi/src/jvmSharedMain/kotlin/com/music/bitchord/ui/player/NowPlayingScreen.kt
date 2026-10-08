@@ -141,6 +141,7 @@ import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.music.bitchord.ui.theme.StatusBarIcons
+import com.music.bitchord.ui.theme.LocalPinkCloud
 import com.music.bitchord.ui.theme.rememberArtworkTopBandLuminance
 import com.music.bitchord.ui.theme.topBandScrimAlpha
 import com.music.bitchord.ui.LyricsProviderState
@@ -741,6 +742,9 @@ fun NowPlayingScreen(
 ) {
     val density = LocalDensity.current
     val haptics = rememberHaptics()
+    val pinkCloud = LocalPinkCloud.current
+    val playerBase = if (pinkCloud) PinkCloudPlayerStyle.base else Color.Black
+    val playerScrim = if (pinkCloud) PinkCloudPlayerStyle.scrim else Color.Black
 
     // Remote tracks whose art lives inside the file resolve it here, once —
     // every surface below reads the same value rather than each triggering
@@ -2053,7 +2057,7 @@ fun NowPlayingScreen(
             .fillMaxSize()
             .onSizeChanged { playerBounds = it }
             .then(dockHost)
-            .background(Color.Black),
+            .background(playerBase),
     ) {
         // Anchored to the sleeve's bottom edge, so the screen carries on in the
         // colours the artwork ended in rather than in a quantiser's idea of what
@@ -2194,11 +2198,11 @@ fun NowPlayingScreen(
         }
 
         val steps = 8
-        val gradientColors = remember(topGradientAlpha) {
+        val gradientColors = remember(topGradientAlpha, playerScrim) {
             List(steps) { index ->
                 val progress = index / (steps - 1).toFloat()
                 val factor = (1f - progress).toDouble().pow(1.5).toFloat()
-                Color.Black.copy(alpha = topGradientAlpha * factor)
+                playerScrim.copy(alpha = topGradientAlpha * factor)
             }
         }
         val topScrimBrush = remember(gradientColors) {
@@ -2216,7 +2220,7 @@ fun NowPlayingScreen(
                         Brush.verticalGradient(
                             0f to Color.Transparent,
                             0.40f to Color.Transparent,
-                            1f to Color.Black.copy(alpha = 0.70f),
+                            1f to playerScrim.copy(alpha = 0.70f),
                         ),
                     ),
             )
@@ -2252,8 +2256,8 @@ fun NowPlayingScreen(
                             Modifier.background(
                                 Brush.verticalGradient(
                                     0.00f to Color.Transparent,
-                                    SPOTIFY_DECK_TOP_FADE_FRACTION to Color.Black.copy(alpha = 0.40f),
-                                    1.00f to Color.Black.copy(alpha = 0.40f),
+                                    SPOTIFY_DECK_TOP_FADE_FRACTION to playerScrim.copy(alpha = 0.40f),
+                                    1.00f to playerScrim.copy(alpha = 0.40f),
                                 ),
                             )
                         } else {
@@ -2308,7 +2312,7 @@ fun NowPlayingScreen(
             Box(
                 Modifier.matchParentSize()
                     .graphicsLayer { alpha = spotifyCanvasDim.value }
-                    .background(Color.Black),
+                    .background(playerScrim),
             )
         }
 

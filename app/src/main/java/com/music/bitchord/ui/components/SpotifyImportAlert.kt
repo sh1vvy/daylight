@@ -58,7 +58,7 @@ fun SpotifyImportAlert(
     hazeState: HazeState,
     signedIn: Boolean,
     /** Called once the songs are matched; [privacy] is meaningful only when signed in. */
-    onImported: (title: String, privacy: PlaylistPrivacy, songs: List<Song>) -> Unit,
+    onImported: (title: String, privacy: PlaylistPrivacy, songs: List<Song>, onSaved: () -> Unit) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -87,8 +87,12 @@ fun SpotifyImportAlert(
                     status = context.getString(R.string.spotify_import_matching, done, total)
                 }
                 if (songs.isEmpty()) error(context.getString(R.string.spotify_import_none))
-                onImported(name, privacy, songs)
-                if (missed.isEmpty()) onDismiss() else unmatched = missed
+                status = context.getString(R.string.listen_together_creating)
+                onImported(name, privacy, songs) {
+                    working = false
+                    if (missed.isEmpty()) onDismiss() else unmatched = missed
+                }
+                return@launch
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

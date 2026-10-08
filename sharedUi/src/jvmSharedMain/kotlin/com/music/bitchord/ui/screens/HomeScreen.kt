@@ -516,8 +516,8 @@ private fun HomeTitle(title: String, modifier: Modifier = Modifier) {
 /** The wordmark's height against the heading's font size. */
 private const val LOGO_TO_FONT = 0.9f
 
-/** Daylight mark viewport, 100 x 68. */
-private const val LOGO_ASPECT = 100f / 68f
+/** Daylight butterfly mark viewport, 100 x 72. */
+private const val LOGO_ASPECT = 100f / 72f
 
 /**
  * Shared by the home feed, Explore and Library so headings line up across tabs.

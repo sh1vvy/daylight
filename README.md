@@ -1,5 +1,5 @@
 <div align="center">
-<img src="Logo.png" alt="Daylight sunrise icon" width="150" />
+<img src="Logo.png" alt="Daylight butterfly icon — art by 11" width="150" />
 
 # Daylight
 
@@ -14,7 +14,7 @@ An independent Android music player by [sh1vvy](https://github.com/sh1vvy), base
 
 ## About
 
-Daylight starts with BitChord’s playback engine and Android interface, with its own name, sunrise icon, warm accent colors, installation identity, and release channel. Android is the supported platform for this fork.
+Daylight starts with BitChord’s playback engine and Android interface, with its own name, butterfly icon, warm accent colors, installation identity, and release channel. Android is the supported platform for this fork.
 
 Inherited features include YouTube Music search and playback, local music, downloads, synchronized lyrics, artwork-driven player colors, crossfade, Automix, equalizer, sleep timer, playlists, and optional account integrations. Availability depends on providers and device support. This initial fork changes the product identity; it does not represent a new playback engine.
 
@@ -60,5 +60,7 @@ Daylight does not report installations to BitChord’s live usage counter. Jam r
 BitChord was created by **Kushagra Singh and its contributors**. Daylight retains their Git history, copyright notices, and the **GNU General Public License v3.0**. See [LICENSE](LICENSE), [UPSTREAM.md](UPSTREAM.md), and [original contributor credits](docs/UPSTREAM_MAINTAINERS.md).
 
 Daylight uses [Inter 4.1 and Inter Display](https://rsms.me/inter/) by Rasmus Andersson throughout its interface, lyrics, widgets, and shared image cards, distributed under the [SIL Open Font License](docs/licenses/Inter-OFL.txt). The license is also bundled with the app.
+
+**© art by 11 ([_artbyeleven on IG](https://www.instagram.com/_artbyeleven/))**. The launcher uses the supplied butterfly artwork; in-app branding uses a flat butterfly mark adapted from it. The artist credit is also included in Settings and the app’s assets.
 
 Daylight is independent of BitChord’s maintainers and is not affiliated with YouTube, Google, Spotify, Discord, or other service providers. Provider names identify integrations. If you distribute this derivative, provide its corresponding source under GPLv3.

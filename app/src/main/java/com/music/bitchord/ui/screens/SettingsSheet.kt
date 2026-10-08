@@ -1433,6 +1433,11 @@ fun SettingsScreen(
                     append("Based on BitChord")
                 }
                 append("\nGPLv3 · Daylight by sh1vvy")
+                append("\n© art by 11 (")
+                withLink(LinkAnnotation.Url("https://www.instagram.com/_artbyeleven/", linkStyles)) {
+                    append("_artbyeleven on IG")
+                }
+                append(")")
             },
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

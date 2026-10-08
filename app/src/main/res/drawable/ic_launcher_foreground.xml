@@ -1,7 +1,7 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="100" android:viewportHeight="100">
-  <group android:translateX="18" android:translateY="28" android:scaleX="0.64" android:scaleY="0.64">
-  <path android:pathData="M30,48 A20,20 0 0,1 70,48 Z" android:fillColor="#FFFFFFFF" />
-  <path android:pathData="M50,6 V14 M23,17 L29,23 M77,17 L71,23 M10,39 H18 M82,39 H90" android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="6" android:strokeLineCap="round" />
-  <path android:pathData="M17,54 H83 M26,63 H74" android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="6" android:strokeLineCap="round" />
-  </group>
-</vector>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- © art by 11 (_artbyeleven on IG). Inset protects the butterfly from launcher masks. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="12dp" android:insetRight="12dp"
+    android:insetTop="12dp" android:insetBottom="12dp">
+    <bitmap android:src="@drawable/daylight_launcher_art" android:gravity="fill" android:filter="true" />
+</inset>

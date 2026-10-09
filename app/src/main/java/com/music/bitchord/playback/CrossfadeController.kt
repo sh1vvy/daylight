@@ -3,12 +3,16 @@ package com.music.bitchord.playback
 import android.os.SystemClock
 import android.util.Log
 import androidx.media3.common.C
+import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DecoderReuseEvaluation
+import androidx.media3.exoplayer.analytics.AnalyticsListener
+import com.music.bitchord.data.NerdStats
 import com.music.bitchord.data.listentogether.ListenTogether
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.data.settings.MixBlend
@@ -16,6 +20,8 @@ import com.music.bitchord.data.settings.SmartAnalysis
 import com.music.bitchord.data.settings.TrackAnalysisState
 import com.music.bitchord.data.settings.TransitionWindow
 import com.music.bitchord.playback.smart.CrossfadeMode
+import com.music.bitchord.playback.smart.AutomixAudioPolicy
+import com.music.bitchord.playback.smart.AutomixTransitionGate
 import com.music.bitchord.playback.smart.FILTER_ECHO_AT
 import com.music.bitchord.playback.smart.FilterTransitionVariant
 import com.music.bitchord.playback.smart.TrackAnalysis
@@ -26,6 +32,7 @@ import com.music.bitchord.playback.smart.planTransition
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.PI
@@ -259,6 +266,82 @@ class CrossfadeController(
     /** Which player this class's own listener is currently attached to. */
     private var listeningTo: ExoPlayer? = null
     private var tickerJob: Job? = null
+    private var eligibilityJob: Job? = null
+
+    private val automixGate = AutomixTransitionGate()
+    private val formatListeners = mutableMapOf<ExoPlayer, AnalyticsListener>()
+    private val decoderFormats = mutableMapOf<ExoPlayer, LinkedHashMap<String, NerdStats.Snapshot>>()
+
+    /** Renderer read-ahead may already describe the following track; retain each event's URI. */
+    private fun itemKey(item: MediaItem): String = item.localConfiguration?.uri?.toString() ?: item.mediaId
+
+    private fun decoderFormat(player: ExoPlayer): NerdStats.Snapshot? =
+        player.currentMediaItem?.let { decoderFormats[player]?.get(itemKey(it)) }
+
+    private fun nextDecoderFormat(player: ExoPlayer): NerdStats.Snapshot? {
+        val next = player.nextMediaItemIndex
+        return if (next == C.INDEX_UNSET) null else decoderFormats[player]?.get(itemKey(player.getMediaItemAt(next)))
+    }
+
+    private fun attachFormatListener(player: ExoPlayer) {
+        if (player in formatListeners) return
+        val formats = LinkedHashMap<String, NerdStats.Snapshot>()
+        decoderFormats[player] = formats
+        val listener = object : AnalyticsListener {
+            override fun onAudioInputFormatChanged(
+                eventTime: AnalyticsListener.EventTime,
+                format: Format,
+                decoderReuseEvaluation: DecoderReuseEvaluation?,
+            ) {
+                val timeline = eventTime.timeline
+                if (eventTime.windowIndex !in 0 until timeline.windowCount) return
+                val item = timeline.getWindow(eventTime.windowIndex, Timeline.Window()).mediaItem
+                if (formats.size >= 8 && itemKey(item) !in formats) formats.remove(formats.keys.first())
+                formats[itemKey(item)] = format.automixSnapshot()
+                updateAutomixEligibility()
+                // Catch a format change before the next gain tick can make Hi-Res audible.
+                if (smartFadeActive && (phase == Phase.ARMING || phase == Phase.FADING)) {
+                    if (automixVerdict() == AutomixAudioPolicy.Verdict.HI_RES) stopIneligibleAutomix()
+                }
+            }
+        }
+        formatListeners[player] = listener
+        player.addAnalyticsListener(listener)
+        // A controller can be rebuilt while an already prepared player keeps playing.
+        player.currentMediaItem?.let { item ->
+            player.audioFormat?.let { formats[itemKey(item)] = it.automixSnapshot() }
+        }
+    }
+
+    private fun updateAutomixEligibility() = AutomixEligibility.publish(decoderFormat(active()))
+
+    private fun automixVerdict(): AutomixAudioPolicy.Verdict {
+        val out = outgoing ?: active()
+        val into = incoming
+        val nextItem = into?.currentMediaItem ?: out.nextMediaItemIndex
+            .takeIf { it != C.INDEX_UNSET }?.let(out::getMediaItemAt)
+            ?: return AutomixAudioPolicy.Verdict.WAITING_FOR_FORMAT
+        val currentItem = out.currentMediaItem ?: return AutomixAudioPolicy.Verdict.WAITING_FOR_FORMAT
+        val pair = "${itemKey(currentItem)}\u0000${itemKey(nextItem)}"
+        return automixGate.verdict(
+            pair, AutomixEligibility.hiResSelected(), decoderFormat(out),
+            into?.let(::decoderFormat) ?: nextDecoderFormat(out),
+        )
+    }
+
+    /** Keep the session deck and queue intact; a disallowed standby never receives gain. */
+    private fun stopIneligibleAutomix() {
+        Log.d(TAG, "automix paused for ineligible audio format or Hi-Res quality")
+        AppSettings.smartTransitionWindow.value = null
+        val session = active()
+        leavingOnBail()?.volume = 0f
+        // Finish must not leave a beatmatch ease running on a newly Hi-Res stream.
+        outgoingPlaybackRate = 1.0
+        endEase(clickless = false)
+        finish()
+        session.setPlaybackSpeed(AppSettings.playbackSpeed.value)
+        session.volume = 1f
+    }
 
     /** Length of the transition in flight, in ms. Fixed when it begins. */
     private var fadeMs = 0L
@@ -636,6 +719,9 @@ class CrossfadeController(
                 // The blend is running and the incoming track is already
                 // playing under it: this is just the handoff, a little late.
                 handOff(held, into)
+                // A late Hi-Res/unknown format can reject that handoff. The
+                // released hold must still let the original queue move on.
+                if (active() === held && phase != Phase.FADING) held.play()
                 return
             }
             // No blend to hand to. Let the queue move on as it would have.
@@ -662,6 +748,17 @@ class CrossfadeController(
 
     fun start() {
         listenTo(active())
+        attachFormatListener(active())
+        attachFormatListener(standby())
+        updateAutomixEligibility()
+        eligibilityJob?.cancel()
+        eligibilityJob = scope.launch {
+            AppSettings.losslessQuality.collect {
+                updateAutomixEligibility()
+                if (AutomixEligibility.hiResSelected() && smartFadeActive &&
+                    (phase == Phase.ARMING || phase == Phase.FADING)) stopIneligibleAutomix()
+            }
+        }
         tickerJob?.cancel()
         tickerJob = scope.launch {
             while (isActive) {
@@ -682,10 +779,17 @@ class CrossfadeController(
     fun release() {
         tickerJob?.cancel()
         tickerJob = null
+        eligibilityJob?.cancel()
+        eligibilityJob = null
         endEase(clickless = false)
         releaseHold()
         listeningTo?.removeListener(listener)
         listeningTo = null
+        formatListeners.forEach { (player, listener) -> player.removeAnalyticsListener(listener) }
+        formatListeners.clear()
+        decoderFormats.clear()
+        automixGate.reset()
+        AutomixEligibility.reset()
         active().volume = 1f
         AppSettings.smartMixInProgress.value = false
         AppSettings.smartMixBlend.value = null
@@ -717,6 +821,12 @@ class CrossfadeController(
     // ---- Ticker -------------------------------------------------------------
 
     private fun tick() {
+        updateAutomixEligibility()
+        if (smartFadeActive && (phase == Phase.ARMING || phase == Phase.FADING) &&
+            automixVerdict() == AutomixAudioPolicy.Verdict.HI_RES) {
+            stopIneligibleAutomix()
+        }
+        if (!AutomixEligibility.analysisAllowed() && easing != null) endEase(clickless = false)
         // A pause has to take the other player with it, or one half of the blend
         // carries on alone over a stopped one. Mirrored every tick rather than
         // handled as an event, so audio focus loss, the sleep timer and the
@@ -755,6 +865,12 @@ class CrossfadeController(
     private fun considerAutoTransition() {
         val player = active()
         if (!player.isPlaying) return
+        if (AppSettings.smartFadeEnabled.value &&
+            (!AutomixEligibility.canActivateNow() || automixVerdict() == AutomixAudioPolicy.Verdict.HI_RES)) {
+            AppSettings.smartTransitionWindow.value = null
+            AppSettings.smartMixInProgress.value = false
+            return
+        }
         // Not while a version swap owns the standby player — see
         // [versionSwapActive]. Nothing to clean up on the way out unlike the
         // party case below: a version swap is a between-tracks affair on the
@@ -1040,6 +1156,8 @@ class CrossfadeController(
      * the loop is switched off.
      */
     private fun requestAnalysisAround(player: ExoPlayer, duration: Long) {
+        if (!AutomixAudioPolicy.mayAnalyze(AutomixEligibility.hiResSelected(), decoderFormat(player), nextDecoderFormat(player))) return
+        if (automixVerdict() == AutomixAudioPolicy.Verdict.HI_RES) return
         val currentItem = player.currentMediaItem ?: return
         val nextIndex = player.nextMediaItemIndex
         if (nextIndex == C.INDEX_UNSET) return
@@ -1061,6 +1179,10 @@ class CrossfadeController(
         val currentItem = player.currentMediaItem
         val nextIndex = player.nextMediaItemIndex
         val nextItem = if (nextIndex == C.INDEX_UNSET) null else player.getMediaItemAt(nextIndex)
+        if (!AutomixEligibility.analysisAllowed()) {
+            AppSettings.smartAnalysis.value = SmartAnalysis()
+            return
+        }
         AppSettings.smartAnalysis.value = SmartAnalysis(
             current = currentItem?.let { stateOf(it, analysisFor(it)) } ?: TrackAnalysisState.WAITING,
             next = nextItem?.let { stateOf(it, analysisFor(it)) } ?: TrackAnalysisState.WAITING,
@@ -1176,6 +1298,7 @@ class CrossfadeController(
         val out = active()
         val into = standby()
         if (out === into) return false
+        if (smart && (!AutomixEligibility.canActivateNow() || automixVerdict() == AutomixAudioPolicy.Verdict.HI_RES)) return false
         val nextIndex = out.nextMediaItemIndex
         if (nextIndex == C.INDEX_UNSET) return false
         // The last blend's stretch, if it is somehow still easing off: this
@@ -1223,6 +1346,7 @@ class CrossfadeController(
         // fight each other. Undone in [finish].
         into.setPlaybackSpeed((AppSettings.playbackSpeed.value * incomingPlaybackRate).toFloat())
         into.volume = 0f
+        decoderFormats[into]?.clear()
         into.setMediaItems(items, nextIndex, incomingCueTimeMs)
         // Before `prepare`, so the standby's per-player audio state is right
         // for the incoming track from its very first decoded frame rather than
@@ -1312,18 +1436,23 @@ class CrossfadeController(
         val out = outgoing ?: return bail()
         val into = incoming ?: return bail()
         if (!stillWorthFading()) return bail()
+        val eligibility = if (smartFadeActive) automixVerdict() else AutomixAudioPolicy.Verdict.ALLOWED
+        if (eligibility == AutomixAudioPolicy.Verdict.HI_RES) return stopIneligibleAutomix()
         // Paused while armed: the transition is no longer imminent, and holding
         // a prepared decoder open against a stopped player is worse than arming
         // again when playback resumes.
         if (!out.playWhenReady) return bail()
 
         val expired = SystemClock.elapsedRealtime() > armDeadline
-        val ready = into.playbackState == Player.STATE_READY
+        val ready = into.playbackState == Player.STATE_READY && eligibility == AutomixAudioPolicy.Verdict.ALLOWED
 
         // A standby that never got the incoming track ready has nothing to fade
         // up. Give up and let the queue move on plainly rather than fading into
         // silence.
         if (expired && !ready) return bail()
+        // Preparation may run silently to identify the incoming stream, but
+        // no outgoing filter/speed ride starts before that format is eligible.
+        if (smartFadeActive && eligibility == AutomixAudioPolicy.Verdict.WAITING_FOR_FORMAT) return
 
         // Both sinks write seconds ahead of the speaker. The standby fills its
         // whole buffer while it waits here, so its filter has to be at the
@@ -1360,6 +1489,7 @@ class CrossfadeController(
     private fun startFade() {
         val out = outgoing ?: return bail()
         val into = incoming ?: return bail()
+        if (smartFadeActive && automixVerdict() != AutomixAudioPolicy.Verdict.ALLOWED) return
 
         into.volume = 0f
         into.playWhenReady = true
@@ -1402,6 +1532,10 @@ class CrossfadeController(
      */
     private fun handOff(out: ExoPlayer, into: ExoPlayer) {
         if (handedOff) return
+        if (smartFadeActive && automixVerdict() != AutomixAudioPolicy.Verdict.ALLOWED) {
+            stopIneligibleAutomix()
+            return
+        }
         // AutoPlay may have appended to the queue since the standby was loaded
         // with a copy of it — during arming or the first half of the blend,
         // both of which the outgoing player owned — and those tracks would
@@ -1470,6 +1604,7 @@ class CrossfadeController(
     private fun driveFade() {
         val out = outgoing ?: return bail()
         val player = incoming ?: return bail()
+        if (smartFadeActive && automixVerdict() != AutomixAudioPolicy.Verdict.ALLOWED) return stopIneligibleAutomix()
         // The incoming track gets the same say over the length as the outgoing
         // one did, so a long crossfade into a short track tightens rather than
         // swallowing it. Its duration is often still unknown when the fade
@@ -1536,6 +1671,7 @@ class CrossfadeController(
         // song fading in — a second time on the player that is leaving.
         if (!handedOff && (progress >= render.handoffAt || (outRemaining != null && outRemaining <= HANDOFF_GUARD_MS))) {
             handOff(out, player)
+            if (phase != Phase.FADING) return
         }
         publishBlend(out, player)
         rideFilters(incomingAt, outgoingAt)
@@ -1830,6 +1966,7 @@ class CrossfadeController(
     private fun retire(player: ExoPlayer) {
         player.stop()
         player.clearMediaItems()
+        decoderFormats[player]?.clear()
         // This is the next transition's incoming player, and from its handoff
         // the session: a hold left on it would pause every track at its end.
         player.pauseAtEndOfMediaItems = false

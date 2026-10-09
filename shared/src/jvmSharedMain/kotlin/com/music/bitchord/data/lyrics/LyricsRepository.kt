@@ -6,7 +6,12 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.job
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import com.music.bitchord.data.model.Song
+import com.music.bitchord.data.model.durationMillis
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
@@ -69,6 +74,40 @@ object LyricsRepository {
     /** Lyrics, and which source they turned out to come from. */
     data class Result(val source: LyricsSource, val lines: List<LyricLine>)
 
+    private val results = LyricsResultCache()
+
+    /** Retain the small listening window, rather than every playlist the user browses. */
+    fun retainQueueWindow(currentVideoId: String, previousPlayed: List<String>, upcomingVideoIds: List<String>) {
+        results.retain((previousPlayed.takeLast(3) + currentVideoId + upcomingVideoIds.take(3)).toSet())
+    }
+
+    /** One song and at most two selected providers at a time; no full provider races in the background. */
+    suspend fun warmQueue(
+        upcoming: List<Song>,
+        sources: Set<LyricsSource>,
+        order: List<LyricsSource>,
+        prioritizeSyllableSync: Boolean,
+    ) {
+        val chosen = (order + LyricsSource.offered).distinct()
+            .filter { it in sources && !it.hidden && it in PREFETCH_SOURCES }.take(2)
+        if (chosen.isEmpty()) return
+        for (song in upcoming.distinctBy(Song::videoId).take(3)) {
+            if (song.localUri != null || song.durationMillis() <= 0L) continue
+            withTimeoutOrNull(6_000L) {
+                lyrics(
+                    song.videoId, song.title, song.artist, song.durationMillis(), song.albumName,
+                    sources = sources, order = order, prioritizeSyllableSync = prioritizeSyllableSync,
+                    isExplicit = song.isExplicit, prefetchSources = chosen,
+                )
+            }
+        }
+    }
+
+    private val PREFETCH_SOURCES = setOf(
+        LyricsSource.LRC_RED, LyricsSource.BINI_LYRICS, LyricsSource.BETTER_LYRICS,
+        LyricsSource.BETTER_LYRICS_PORTATO, LyricsSource.LYRICS_PLUS, LyricsSource.UNISON, LyricsSource.LRCLIB,
+    )
+
     /**
      * [sources] is the user's pick from Settings; anything not in it is not
      * contacted at all. An empty set means no lyrics, which is the same answer
@@ -105,7 +144,34 @@ object LyricsRepository {
         onSourceResult: ((LyricsSource, Result?) -> Unit)? = null,
         /** Lets callers turn a cancelled race loser back into "not fetched". */
         onSourceCancelled: ((LyricsSource) -> Unit)? = null,
+        /** True only when completed responses establish absence; transient failures remain retryable. */
+        onLookupFinished: ((definitiveMissing: Boolean) -> Unit)? = null,
+        onSourceFailed: ((LyricsSource) -> Unit)? = null,
+        /** Internal background path, restricted to two sequential providers. */
+        prefetchSources: List<LyricsSource>? = null,
     ): Result? = coroutineScope {
+        val health = LyricsRequestHealth(currentCoroutineContext().job)
+        try {
+            val found = withContext(health.context) {
+                lookup(videoId, title, artist, durationMs, album, sources, order, prioritizeSyllableSync,
+                    isrc, isExplicit, onSourceStarted, onSourceResult, onSourceCancelled, onSourceFailed, prefetchSources)
+            }
+            onLookupFinished?.invoke(found == null && health.definitiveMissing)
+            found
+        } finally {
+            health.close()
+        }
+    }
+
+    private suspend fun lookup(
+        videoId: String, title: String, artist: String, durationMs: Long, album: String?,
+        sources: Set<LyricsSource>, order: List<LyricsSource>, prioritizeSyllableSync: Boolean,
+        isrc: String?, isExplicit: Boolean?,
+        onSourceStarted: ((LyricsSource) -> Unit)?, onSourceResult: ((LyricsSource, Result?) -> Unit)?,
+        onSourceCancelled: ((LyricsSource) -> Unit)?, onSourceFailed: ((LyricsSource) -> Unit)?,
+        prefetchSources: List<LyricsSource>?,
+    ): Result? = coroutineScope {
+        val lookupHealth = LyricsRequestHealth.current.get()
         val sequence = (order + LyricsSource.offered)
             .distinct()
             .filter { it in sources && !it.hidden }
@@ -134,32 +200,45 @@ object LyricsRepository {
 
         // Genius is a plain text web scraper. To preserve bandwidth and avoid rate-limiting,
         // it starts lazily and is only contacted if all higher-priority synced sources miss.
-        val racing: List<Pair<LyricsSource, Deferred<Result?>>> = sequence.map { source ->
-            val startMode = if (source == LyricsSource.GENIUS) kotlinx.coroutines.CoroutineStart.LAZY else kotlinx.coroutines.CoroutineStart.DEFAULT
+        val fetching = prefetchSources?.let { selected -> sequence.filter { it in selected } } ?: sequence
+        val racing: List<Pair<LyricsSource, Deferred<Result?>>> = fetching.map { source ->
+            val startMode = if (source == LyricsSource.GENIUS || prefetchSources != null) {
+                kotlinx.coroutines.CoroutineStart.LAZY
+            } else {
+                kotlinx.coroutines.CoroutineStart.DEFAULT
+            }
             source to async(Dispatchers.IO, start = startMode) {
                 onSourceStarted?.invoke(source)
+                val attempt = LyricsRequestHealth(currentCoroutineContext().job)
                 try {
-                    val found = fetch(
-                        source,
-                        videoId,
-                        searchTitle,
-                        searchArtist,
-                        durationMs,
-                        album,
-                        recording,
-                        hit,
-                        isExplicit,
-                        verifiedExplicitRecording,
-                        documents::get,
-                    )?.let { result(source, it) }
-                    onSourceResult?.invoke(source, found)
-                    found
+                    withContext(attempt.context) {
+                        val key = LyricsResultCache.Key(
+                            videoId, searchTitle, searchArtist, (durationMs + 500L) / 1_000L,
+                            album, isExplicit, source,
+                        )
+                        val found = results.getOrFetch(key) {
+                            fetch(
+                                source, videoId, searchTitle, searchArtist, durationMs, album,
+                                recording, hit, isExplicit, verifiedExplicitRecording, documents::get,
+                            )?.let { result(source, it) }
+                        }
+                        if (found == null && (attempt.hasFailure || lookupHealth?.hasFailure == true) && onSourceFailed != null) {
+                            onSourceFailed(source)
+                        } else {
+                            onSourceResult?.invoke(source, found)
+                        }
+                        found
+                    }
                 } catch (cancelled: CancellationException) {
                     onSourceCancelled?.invoke(source)
                     throw cancelled
                 } catch (_: Exception) {
-                    onSourceResult?.invoke(source, null)
+                    attempt.failure()
+                    if (onSourceFailed != null) onSourceFailed(source) else onSourceResult?.invoke(source, null)
                     null
+                } finally {
+                    lookupHealth?.merge(attempt)
+                    attempt.close()
                 }
             }
         }
@@ -327,7 +406,18 @@ object LyricsRepository {
         private val inFlight = ConcurrentHashMap<String, Deferred<String?>>()
 
         suspend fun get(url: String): String? =
-            inFlight.computeIfAbsent(url) { scope.async(Dispatchers.IO) { lyricsGet(url) } }.await()
+            inFlight.computeIfAbsent(url) {
+                scope.async(Dispatchers.IO) {
+                    val parent = LyricsRequestHealth.current.get()
+                    val health = LyricsRequestHealth(currentCoroutineContext().job)
+                    try {
+                        withContext(health.context) { lyricsGet(url) }
+                    } finally {
+                        parent?.merge(health)
+                        health.close()
+                    }
+                }
+            }.await()
 
         fun cancel() = inFlight.values.forEach { it.cancel() }
     }

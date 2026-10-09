@@ -30,7 +30,7 @@ object SimpMusicLyrics {
         withContext(Dispatchers.IO) {
             if (videoId.isBlank()) return@withContext null
             val body = lyricsGet(BASE + videoId) ?: return@withContext null
-            val response = runCatching { lyricsJson.decodeFromString<Response>(body) }.getOrNull()
+            val response = lyricsParse { lyricsJson.decodeFromString<Response>(body) }
             if (response == null || !response.success) return@withContext null
 
             val seconds = (durationMs / 1000).toInt()

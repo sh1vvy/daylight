@@ -54,6 +54,10 @@ class DynamicLruCacheEvictor(
     private val headBudgetBytes: Long = DEFAULT_HEAD_BUDGET_BYTES,
 ) : CacheEvictor {
 
+    @Volatile var preferredTracks: Set<String> = emptySet()
+
+    private fun preferred(span: CacheSpan) = span.key.substringBefore('#') in preferredTracks
+
     private val leastRecentlyUsed = TreeSet<CacheSpan>(::compare)
 
     /**
@@ -112,6 +116,12 @@ class DynamicLruCacheEvictor(
 
     private fun evictCache(cache: Cache, requiredSpace: Long) {
         while (currentSize + requiredSpace > maxBytes) {
+            val unpreferred = leastRecentlyUsed.firstOrNull { !preferred(it) }
+                ?: protectedHeads.firstOrNull { !preferred(it) }
+            if (unpreferred != null) {
+                cache.removeSpan(unpreferred)
+                continue
+            }
             if (leastRecentlyUsed.isNotEmpty()) {
                 cache.removeSpan(leastRecentlyUsed.first())
                 continue

@@ -8,7 +8,7 @@ data class FlacStreamInfo(
     val totalSamples: Long,
 ) {
     val durationMs: Long get() = totalSamples * 1_000 / sampleRateHz
-    val isHiRes: Boolean get() = bitDepth > 16 || sampleRateHz > 48_000
+    val isHiRes: Boolean get() = bitDepth > 24 || sampleRateHz > 48_000
 
     companion object {
         const val HEADER_BYTES = 42

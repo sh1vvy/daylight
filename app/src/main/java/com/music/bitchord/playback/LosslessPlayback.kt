@@ -5,6 +5,7 @@ import com.music.bitchord.data.lossless.LosslessBetaOptions
 import com.music.bitchord.data.lossless.LosslessRecording
 import com.music.bitchord.data.lossless.LosslessBetaResult
 import com.music.bitchord.data.lossless.LosslessFallbackReason
+import com.music.bitchord.data.settings.LosslessQuality
 import com.music.bitchord.data.NerdStats
 import com.music.bitchord.data.sources.SourceStream
 import com.music.bitchord.data.sources.StreamFormat
@@ -15,14 +16,17 @@ import kotlinx.coroutines.CancellationException
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-/** Beta requests bypass the audio disk cache and keep one rendition for every reopen/seek. */
+/** Selects a verified, separately keyed rendition before audio reaches the disk cache. */
 internal class LosslessPlayback(
     private val beta: LosslessBetaClient = LosslessBetaClient(),
     private val endpoint: String = COMMUNITY_ENDPOINT,
 ) {
     private val locks = ConcurrentHashMap<String, Mutex>()
-    private data class Choice(val stream: SourceStream, val status: NerdStats.LosslessBetaStatus)
-    private val choices = LinkedHashMap<String, Choice>()
+    private data class Choice(
+        val stream: SourceStream, val status: NerdStats.LosslessBetaStatus,
+        val quality: LosslessQuality, val cacheKey: String?, val committed: Boolean,
+    )
+    private val choices = LinkedHashMap<String, Choice>(32, .75f, true)
 
     suspend fun resolve(
         key: String,
@@ -30,12 +34,17 @@ internal class LosslessPlayback(
         enabled: Boolean,
         metered: Boolean,
         inParty: Boolean,
+        quality: LosslessQuality = LosslessQuality.HI_RES,
+        commit: Boolean = true,
         stillEligible: () -> Boolean = { eligible(enabled, metered, inParty, target.isVideo) },
         durationSeconds: suspend () -> Int? = { null },
         onStatus: (NerdStats.LosslessBetaStatus) -> Unit = {},
         youtube: suspend () -> SourceStream,
     ): SourceStream = locks.computeIfAbsent(key) { Mutex() }.withLock {
-        synchronized(choices) { choices[key] }?.let { onStatus(it.status); return@withLock it.stream }
+        synchronized(choices) { choices[key] }?.takeIf { it.committed || (it.status in setOf(NerdStats.LosslessBetaStatus.VERIFIED, NerdStats.LosslessBetaStatus.NO_MATCH, NerdStats.LosslessBetaStatus.NOT_FLAC) && it.quality == quality && stillEligible() && eligible(enabled, metered, inParty, target.isVideo)) }?.let {
+            if (commit && !it.committed) synchronized(choices) { choices[key] = it.copy(committed = true) }
+            onStatus(it.status); return@withLock it.stream
+        }
         val result = if (eligible(enabled, metered, inParty, target.isVideo)) {
             onStatus(NerdStats.LosslessBetaStatus.CHECKING)
             val duration = target.durationSec?.takeIf { it > 0 } ?: try {
@@ -44,7 +53,8 @@ internal class LosslessPlayback(
                 throw cancelled
             } catch (_: Exception) { null }
             beta.resolveDetailed(
-                LosslessBetaOptions(stillEligible(), endpoint),
+                LosslessBetaOptions(stillEligible(), endpoint,
+                    maxSampleRateHz = if (quality == LosslessQuality.LOSSLESS) 48_000 else 192_000),
                 LosslessRecording(target.title, listOf(target.artist),
                     (duration ?: 0) * 1_000L, target.isExplicit, isVideo = target.isVideo),
             )
@@ -62,17 +72,22 @@ internal class LosslessPlayback(
         val status = if (verified != null) NerdStats.LosslessBetaStatus.VERIFIED
             else NerdStats.LosslessBetaStatus.valueOf((result.fallback ?: LosslessFallbackReason.INELIGIBLE).name)
         onStatus(status)
-        // Only opened media items enter this map; queued tracks do not cause lookups.
+        val renditionKey = verified?.let {
+            val videoId = key.substringAfter("v=", "").substringBefore('&')
+            "$videoId#lossless-${it.recordingId}-${it.fingerprint}"
+        }
         synchronized(choices) {
             if (choices.size >= 256) {
                 val oldest = choices.keys.first()
                 choices.remove(oldest)
                 locks.remove(oldest)
             }
-            choices[key] = Choice(stream, status)
+            choices[key] = Choice(stream, status, quality, renditionKey, commit)
         }
         stream
     }
+
+    fun cacheKey(key: String): String? = synchronized(choices) { choices[key]?.cacheKey }
 
     companion object {
         const val PARAMETER = "lossless_beta"
@@ -83,6 +98,19 @@ internal class LosslessPlayback(
             enabled && !metered && !inParty && !isVideo
 
         fun tag(uri: String): String = "$uri&$PARAMETER=${UUID.randomUUID()}"
+        fun withoutParameters(uri: String, parameters: Set<String>): String {
+            val base = uri.substringBefore('#')
+            val query = base.substringAfter('?', "").split('&').filter {
+                it.isNotEmpty() && it.substringBefore('=') !in parameters
+            }.joinToString("&")
+            return base.substringBefore('?') + (if (query.isEmpty()) "" else "?$query") +
+                if ('#' in uri) "#${uri.substringAfter('#')}" else ""
+        }
+        fun retag(uri: String, enabled: Boolean): String {
+            val clean = withoutParameters(uri, setOf(PARAMETER))
+            val base = clean.substringBefore('#')
+            return (if (enabled) tag(base) else base) + if ('#' in clean) "#${clean.substringAfter('#')}" else ""
+        }
         fun isTagged(uri: String): Boolean = uri.substringAfter('?', "").substringBefore('#')
             .split('&').any { it.substringBefore('=') == PARAMETER && it.substringAfter('=', "").isNotBlank() }
     }

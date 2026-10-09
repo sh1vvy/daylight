@@ -287,9 +287,7 @@ object Musixmatch {
             .header("Accept-Language", "en-US,en;q=0.9")
             .apply { if (cookie != null) header("Cookie", cookie) }
             .build()
-        client.newCall(request).execute().use { response ->
-            if (response.isSuccessful) response.body?.string() else null
-        }
+        client.newCall(request).lyricsBody()
     }.getOrNull()
 
     @Serializable

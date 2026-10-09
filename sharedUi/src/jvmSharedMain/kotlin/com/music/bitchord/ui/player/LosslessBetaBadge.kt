@@ -2,6 +2,11 @@ package com.music.bitchord.ui.player
 
 import com.music.bitchord.data.NerdStats
 
-/** A fallback label needs an actual lossy decoder, not merely a failed lookup. */
-internal fun betaFallbackIsVisible(status: NerdStats.LosslessBetaStatus?, stats: NerdStats.Snapshot?): Boolean =
-    status?.isFallback == true && stats?.mimeType != null && !stats.isLossless && stats.sourceName == "YouTube"
+internal enum class ConfirmedLosslessLabel { LOSSLESS, HI_RES }
+
+/** Normal playback remains unlabelled; a provider's claimed format cannot light the badge. */
+internal fun confirmedLosslessLabel(stats: NerdStats.Snapshot?): ConfirmedLosslessLabel? = when {
+    stats?.isLossless != true -> null
+    stats.isHiRes -> ConfirmedLosslessLabel.HI_RES
+    else -> ConfirmedLosslessLabel.LOSSLESS
+}

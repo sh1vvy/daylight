@@ -91,7 +91,7 @@ class AudioPipelineTelemetryTest {
         assertNotEquals(2304, hiResSnapshot.bitrateKbps)
         assertEquals(2304, hiResSnapshot.pcmDataRateKbps)
         assertTrue(hiResSnapshot.isLossless)
-        assertTrue(hiResSnapshot.isHiRes)
+        assertFalse(hiResSnapshot.isHiRes) // 24-bit / 48 kHz is the regular Lossless tier.
     }
 
     @Test

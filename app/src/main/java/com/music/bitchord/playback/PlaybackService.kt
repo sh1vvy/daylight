@@ -124,6 +124,7 @@ import com.music.bitchord.data.innertube.PlayerClient
 import com.music.bitchord.data.innertube.StreamResolver
 import com.music.bitchord.data.model.LikeStatus
 import com.music.bitchord.data.model.Song
+import com.music.bitchord.data.model.durationMillis
 import com.music.bitchord.data.scrobbling.LastFM
 import com.music.bitchord.data.scrobbling.ScrobbleManager
 import com.music.bitchord.data.settings.AppSettings
@@ -736,6 +737,9 @@ class PlaybackService : MediaLibraryService() {
     private var preferredPrefetchJob: Job? = null
     /** Logical queue request, before a video id is replaced by its audio counterpart. */
     private var preferredPrefetchRequest: Pair<Boolean, List<String>>? = null
+    private var serviceLyricsWarmJob: Job? = null
+    private val recentLyricsTracks = ArrayDeque<String>()
+    private var lyricsWindowCurrent: String? = null
     private var autoplaySeed: String? = null
 
     /** Index in the live queue represented by entry zero of the persisted window. */
@@ -1354,39 +1358,7 @@ class PlaybackService : MediaLibraryService() {
                     .build()
             }
             if (LosslessPlayback.isTagged(dataSpec.uri.toString())) {
-                val stream = runBlocking(about) {
-                    withTimeout(RESOLVE_TIMEOUT_MS) {
-                        losslessPlayback.resolve(
-                            key = dataSpec.uri.toString(),
-                            target = SourceResolver.targetIn(dataSpec.uri),
-                            enabled = AppSettings.losslessBeta.value,
-                            metered = AppSettings.meteredConnection.value != false,
-                            inParty = ListenTogether.state.value.inParty,
-                            stillEligible = { LosslessPlayback.eligible(AppSettings.losslessBeta.value,
-                                AppSettings.meteredConnection.value != false, ListenTogether.state.value.inParty, false) },
-                            durationSeconds = {
-                                StreamResolver.durationSeconds(videoId) ?: run {
-                                    // The existing warm-up/extraction returns original recording timing.
-                                    // Reuse its URL for fallback rather than requesting a separate watch page.
-                                    StreamResolver.resolve(videoId)
-                                    StreamResolver.durationSeconds(videoId)
-                                }
-                            },
-                            onStatus = { NerdStats.onLosslessBetaStatus(videoId, it) },
-                            youtube = {
-                                val url = StreamResolver.resolve(videoId)
-                                SourceStream(url, headers = StreamResolver.mediaHeadersFor(url))
-                            },
-                        )
-                    }
-                }
-                val sourceName = if (stream.sourceConfigId == LosslessPlayback.SOURCE_ID) "Lossless beta" else "YouTube"
-                TrackLog.d("LOSSLESS", "$videoId -> $sourceName ${stream.format.summary} (${NerdStats.losslessBetaStatus.value[videoId]})", about = videoId)
-                if (stream.format != StreamFormat()) NerdStats.onSourceStream(videoId, stream.format, sourceName)
-                else NerdStats.clearDeclared(videoId)
-                NerdStats.recordSource(videoId, sourceName)
-                return@Resolver dataSpec.buildUpon().setUri(Uri.parse(stream.url))
-                    .setHttpRequestHeaders(stream.headers).build()
+                return@Resolver prepareLosslessDataSpec(dataSpec, publish = true)
             }
             // An upgraded item carries a marker and its stream has already
             // been found — see [QualityUpgrade]. Answered before anything
@@ -1591,7 +1563,7 @@ class PlaybackService : MediaLibraryService() {
         val defaultDataSourceFactory = SmbDataSource.RoutingFactory(
             DefaultDataSource.Factory(this, resolvingFactory),
         )
-        AudioCache.setUpstream(defaultDataSourceFactory)
+        AudioCache.setUpstream(defaultDataSourceFactory, ::prepareLosslessDataSpec)
         // DsdExtractorsFactory: the stock extractors plus DSF/DFF, which Media3
         // cannot open at all. A DSD file leaves the extractor as float PCM.
         mediaSourceFactory = DefaultMediaSourceFactory(
@@ -1670,7 +1642,8 @@ class PlaybackService : MediaLibraryService() {
                     if (!LosslessPlayback.isTagged(item.localConfiguration?.uri.toString())) continue
                     // Preserve metadata/queue identity without rechecking every song's local file.
                     val youtube = item.buildUpon()
-                        .setUri(PlaybackFallback.directYouTubeSourceUri(item.localConfiguration!!.uri.toString()))
+                        .setUri(Uri.parse(PlaybackFallback.directYouTubeSourceUri(item.localConfiguration!!.uri.toString()))
+                            .buildUpon().appendQueryParameter("jam_youtube", "1").build())
                         .setMimeType(null).build()
                     if (index == current) {
                         swappingMediaId = item.mediaId
@@ -1708,6 +1681,32 @@ class PlaybackService : MediaLibraryService() {
         // publisher reads the format off the player, so it can't go stale
         // against the track the bitrate is looked up for.
         exoPlayer.addAnalyticsListener(formatListener)
+
+        scope.launch {
+            combine(AppSettings.losslessQuality, AppSettings.meteredConnection, AppSettings.syncedLyrics,
+                AppSettings.lyricsSources, AppSettings.lyricsSourceOrder) { quality, metered, lyrics, sources, order ->
+                listOf(quality, metered, lyrics, sources, order)
+            }.distinctUntilChanged().collect {
+                player?.takeIf { it.isPlaying }?.let(::prefetchAround)
+            }
+        }
+
+        scope.launch {
+            var previous = Triple(AppSettings.losslessQuality.value, AppSettings.meteredConnection.value,
+                ListenTogether.state.value.inParty)
+            var first = true
+            combine(AppSettings.losslessQuality, AppSettings.meteredConnection,
+                ListenTogether.state.map { it.inParty }.distinctUntilChanged()) { quality, metered, party ->
+                Triple(quality, metered, party)
+            }.distinctUntilChanged().collect { flags ->
+                if (first || flags != previous) {
+                    first = false
+                    previous = flags
+                    refreshQueuedLosslessMode()
+                }
+                player?.takeIf { it.isPlaying }?.let(::prefetchAround)
+            }
+        }
 
         reportProgress()
 
@@ -5302,6 +5301,83 @@ class PlaybackService : MediaLibraryService() {
         MediaWidget.refresh(this)
     }
 
+    /** Apply a new tier to unopened entries without changing the current file during a seek. */
+    private fun refreshQueuedLosslessMode() {
+        val live = player ?: return
+        val enabled = LosslessPlayback.eligible(AppSettings.losslessBeta.value,
+            AppSettings.meteredConnection.value != false, ListenTogether.state.value.inParty, false)
+        val current = live.currentMediaItemIndex
+        val items = (0 until live.mediaItemCount).map { index ->
+            val item = live.getMediaItemAt(index)
+            val uri = item.localConfiguration?.uri
+            val preserveCurrent = index == current && live.playbackState != Player.STATE_IDLE
+            if (preserveCurrent || uri?.scheme != "bitchord" || uri.getQueryParameter("v") == null ||
+                (uri.getQueryParameter(DIRECT_YOUTUBE_PARAMETER) == "1" && uri.getQueryParameter("jam_youtube") != "1") ||
+                item.toSong().isVideoOrigin ||
+                OriginalVersion.isPinned(item.mediaId)) item
+            else {
+                val clean = if (uri.getQueryParameter("jam_youtube") == "1" && !ListenTogether.state.value.inParty) {
+                    LosslessPlayback.withoutParameters(uri.toString(), setOf("jam_youtube", DIRECT_YOUTUBE_PARAMETER, QualityUpgrade.MARKER))
+                } else uri.toString()
+                item.buildUpon().setUri(LosslessPlayback.retag(clean, enabled)).setMimeType(null).build()
+            }
+        }
+        val changed = items.indices.filter { items[it] != live.getMediaItemAt(it) }
+        if (changed.isEmpty()) return
+        crossfade?.onSkipRequested()
+        // At most two batched queue updates around the current entry.
+        if (current > 0) live.replaceMediaItems(0, current, items.take(current))
+        val start = if (current >= 0 && live.playbackState != Player.STATE_IDLE) current + 1 else current.coerceAtLeast(0)
+        if (start < items.size) live.replaceMediaItems(start, items.size, items.drop(start))
+    }
+
+    /** Resolve once before selecting the byte-cache key; prefetch never updates audible diagnostics. */
+    private fun prepareLosslessDataSpec(dataSpec: DataSpec, publish: Boolean): DataSpec {
+        val uri = dataSpec.uri
+        val videoId = uri.getQueryParameter("v") ?: return dataSpec
+        val quality = AppSettings.losslessQuality.value
+        val stream = runBlocking(TrackLog.about(videoId)) {
+            withTimeout(RESOLVE_TIMEOUT_MS) {
+                losslessPlayback.resolve(
+                    key = uri.toString(), target = SourceResolver.targetIn(uri),
+                    enabled = AppSettings.losslessBeta.value,
+                    metered = AppSettings.meteredConnection.value != false,
+                    inParty = ListenTogether.state.value.inParty,
+                    quality = quality, commit = publish,
+                    stillEligible = {
+                        quality == AppSettings.losslessQuality.value && LosslessPlayback.eligible(
+                            AppSettings.losslessBeta.value, AppSettings.meteredConnection.value != false,
+                            ListenTogether.state.value.inParty, false)
+                    },
+                    durationSeconds = {
+                        StreamResolver.durationSeconds(videoId) ?: run {
+                            StreamResolver.resolve(videoId)
+                            StreamResolver.durationSeconds(videoId)
+                        }
+                    },
+                    onStatus = { if (publish) NerdStats.onLosslessBetaStatus(videoId, it) },
+                    youtube = {
+                        val url = StreamResolver.resolve(videoId)
+                        SourceStream(url, headers = StreamResolver.mediaHeadersFor(url))
+                    },
+                )
+            }
+        }
+        val cacheKey = losslessPlayback.cacheKey(uri.toString()) ?: YouTubeRenditionKey.forStream(videoId, stream.url)
+        AudioCache.rememberPreparedKey(uri, cacheKey)
+        if (publish) {
+            val sourceName = if (stream.sourceConfigId == LosslessPlayback.SOURCE_ID) "Lossless" else "YouTube"
+            if (stream.format != StreamFormat()) NerdStats.onSourceStream(videoId, stream.format, sourceName)
+            else NerdStats.clearDeclared(videoId)
+            NerdStats.recordSource(videoId, sourceName)
+            StreamContainer.served(videoId, stream.url)
+            TrackLog.d("LOSSLESS", "$videoId -> $sourceName ${stream.format.summary}", about = videoId)
+        }
+        AudioCache.recordServed(dataSpec, stream.url)
+        return dataSpec.buildUpon().setUri(Uri.parse(stream.url)).setKey(cacheKey)
+            .setHttpRequestHeaders(stream.headers).build()
+    }
+
     private var foreignCachePurgeJob: Job? = null
 
     /**
@@ -5338,60 +5414,68 @@ class PlaybackService : MediaLibraryService() {
      * tracks is more than it does anything with, but it decides that, not this.
      */
     private fun prefetchAround(player: ExoPlayer) {
-        val nextIndex = player.nextMediaItemIndex
-        val upcomingSongs = if (nextIndex != C.INDEX_UNSET) {
-            val end = (nextIndex + AudioCache.QUEUE_DEPTH - 1).coerceAtMost(player.mediaItemCount - 1)
-            (nextIndex..end).map { index -> player.getMediaItemAt(index).toSong() }
-        } else {
-            emptyList()
+        if (!player.playWhenReady || player.playbackState == Player.STATE_ENDED) {
+            cancelPrefetch()
+            return
         }
-        // So whatever read-ahead writes for these can be named in the Cached
-        // songs folder; its own requests carry nothing but an id.
+        AudioCache.setPlaybackBufferReady(QueuePreloadPolicy.canWarm(player.isPlaying, player.currentPosition, player.bufferedPosition, player.duration))
+        // Follow the actual shuffle/repeat order, without warming a repeated item twice.
+        val upcoming = mutableListOf<MediaItem>()
+        val visited = mutableSetOf(player.currentMediaItemIndex)
+        var index = player.nextMediaItemIndex
+        while (index != C.INDEX_UNSET && visited.add(index) && upcoming.size < AudioCache.QUEUE_DEPTH) {
+            upcoming += player.getMediaItemAt(index)
+            index = player.currentTimeline.getNextWindowIndex(index, player.repeatMode, player.shuffleModeEnabled)
+        }
+        val upcomingSongs = upcoming.map { it.toSong() }
         AudioCache.noteSongs(upcomingSongs)
+        AudioCache.retainPlaybackWindow(player.currentMediaItem?.mediaId, upcomingSongs.map { it.videoId })
         val preferAudio = AppSettings.preferMusicOnly.value
-        val request = preferAudio to upcomingSongs.map { it.videoId }
+        val request = preferAudio to (listOf(AppSettings.losslessQuality.value.name,
+            AppSettings.meteredConnection.value.toString(), ListenTogether.state.value.inParty.toString()) +
+            upcoming.map { it.localConfiguration?.uri.toString() } +
+            listOf(AppSettings.syncedLyrics.value.toString(), AppSettings.lyricsSources.value.toString(),
+                AppSettings.lyricsSourceOrder.value.toString(), AppSettings.prioritizeSyllableSync.value.toString()))
         if (request == preferredPrefetchRequest) return
         preferredPrefetchRequest = request
         preferredPrefetchJob?.cancel()
-
-        fun warm(songs: List<Song>) {
-            AudioCache.prefetchQueue(
-                songs.map { song ->
-                    // The title, artist and runtime the item was built with —
-                    // see [Song.toMediaItem]. Read from the queued item because
-                    // read-ahead has no other way to reach this metadata.
-                    AudioCache.Upcoming(
-                        mediaId = song.videoId,
-                        target = TrackMatcher.targetOf(song),
-                    )
-                },
-            )
+        serviceLyricsWarmJob?.cancel()
+        val currentId = player.currentMediaItem?.mediaId
+        if (currentId != lyricsWindowCurrent) {
+            lyricsWindowCurrent?.let { recentLyricsTracks.remove(it); recentLyricsTracks.addLast(it) }
+            while (recentLyricsTracks.size > 3) recentLyricsTracks.removeFirst()
+            lyricsWindowCurrent = currentId
+        }
+        currentId?.let { LyricsRepository.retainQueueWindow(it, recentLyricsTracks.toList(), upcomingSongs.take(3).map(Song::videoId)) }
+        if (AppSettings.syncedLyrics.value && AppSettings.meteredConnection.value == false) {
+            serviceLyricsWarmJob = scope.launch(Dispatchers.IO) {
+                delay(1_200)
+                LyricsRepository.warmQueue(upcomingSongs.take(3), AppSettings.lyricsSources.value,
+                    AppSettings.lyricsSourceOrder.value, AppSettings.prioritizeSyllableSync.value)
+            }
         }
 
+        fun warm(songs: List<Song>) {
+            AudioCache.prefetchQueue(songs.mapIndexed { position, song ->
+                // Keep the queued URI's edition/timing/tag. Its prepared FLAC key is shared by playback.
+                val queued = upcoming.getOrNull(position)?.takeIf { it.mediaId == song.videoId }
+                AudioCache.Upcoming(song.videoId, TrackMatcher.targetOf(song),
+                    queued?.localConfiguration?.uri ?: song.toMediaItem().localConfiguration?.uri
+                        ?: Uri.parse("bitchord://watch?v=${song.videoId}"))
+            })
+        }
         val next = upcomingSongs.firstOrNull()
         if (!preferAudio || next?.isVideo != true) {
             preferredPrefetchJob = null
             warm(upcomingSongs)
             return
         }
-
-        // Do not warm the video's bytes while its catalogue lookup is in
-        // flight: if that lookup succeeds, playback will ask for a different
-        // media id and every byte spent on the video would be wasted. An
-        // unchanged result is the fallback and is warmed on the same path.
         AudioCache.cancel()
         preferredPrefetchJob = scope.launch {
             val preferred = runCatching { YtMusicRepository.resolveAudio(next) }
-                .onFailure {
-                    TrackLog.d(
-                        "BitChord",
-                        "music-only queue warm-up fell back to video: ${it.message}",
-                        about = next.videoId,
-                    )
-                }
+                .onFailure { TrackLog.d("BitChord", "music-only queue warm-up fell back to video: ${it.message}", about = next.videoId) }
                 .getOrDefault(next)
-            if (preferredPrefetchRequest != request) return@launch
-            warm(listOf(preferred) + upcomingSongs.drop(1))
+            if (preferredPrefetchRequest == request) warm(listOf(preferred) + upcomingSongs.drop(1))
         }
     }
 
@@ -5400,6 +5484,9 @@ class PlaybackService : MediaLibraryService() {
         preferredPrefetchRequest = null
         preferredPrefetchJob?.cancel()
         preferredPrefetchJob = null
+        serviceLyricsWarmJob?.cancel()
+        serviceLyricsWarmJob = null
+        AudioCache.setPlaybackBufferReady(false)
         AudioCache.cancel()
     }
 
@@ -5417,6 +5504,8 @@ class PlaybackService : MediaLibraryService() {
                 // that happened to be first would go on reporting a player that
                 // has been silent since the last crossfade.
                 val player = this@PlaybackService.player
+                AudioCache.setPlaybackBufferReady(player != null && QueuePreloadPolicy.canWarm(
+                    player.isPlaying, player.currentPosition, player.bufferedPosition, player.duration))
                 if (player != null && player.isPlaying) {
                     lastPositionSeconds = player.currentPosition / 1000
                     player.currentMediaItem?.mediaId?.let {
@@ -6599,7 +6688,7 @@ class PlaybackService : MediaLibraryService() {
         // just been disabled or the next track is still waiting on a provider.
         updateLyricSubtitle()
         if (!AppSettings.syncedLyrics.value) return
-        val trackDurationMs = (player?.duration ?: 0L).takeIf { it > 0 } ?: 0L
+        val trackDurationMs = (player?.duration ?: 0L).takeIf { it > 0 } ?: currentSong.durationMillis()
 
         serviceLyricsJob = scope.launch(Dispatchers.IO) {
             val localUri = currentSong.localUri

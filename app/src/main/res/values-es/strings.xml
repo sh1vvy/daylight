@@ -197,7 +197,7 @@
     <string name="blocking">Bloqueando</string>
     <string name="crossfade">Fundido cruzado</string>
     <string name="crossfade_subtitle">Mezcla una pista con la siguiente</string>
-    <string name="automix">Mezcla automática [BETA]</string>
+    <string name="automix">Mezcla automática ᴮᴱᵀᴬ</string>
     <string name="automix_performance">Rendimiento de mezcla automática</string>
     <string name="automix_performance_subtitle">Define cuánta CPU puede usar el análisis en segundo plano</string>
     <string name="automix_performance_warning">El rendimiento alto analiza más rápido, pero puede consumir más batería y calentar el teléfono.</string>
@@ -1293,10 +1293,11 @@
     <string name="settings_category_downloads_subtitle">Offline music, files and cache</string>
     <string name="settings_category_performance_subtitle">Smoothness and advanced controls</string>
     <string name="settings_category_data_subtitle">Listening history and backups</string>
-    <string name="quality_best_available_description">Best available YouTube Music audio</string>
+    <string name="quality_best_available_description">Audio de alta calidad</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="lossless_beta">Sin pérdida beta</string>
-    <string name="lossless_beta_subtitle">Prueba FLAC de Monochrome por Wi-Fi. La disponibilidad varía; los archivos grandes usan más datos. YouTube es la alternativa. Jams y descargas siguen en YouTube. Se aplica al iniciar una cola nueva.</string>
-    <string name="lossless_beta_fallback_quality">Calidad alternativa de YouTube: %1$s</string>
+    <string name="hi_res_lossless">Sin pérdida de alta resolución</string>
+    <string name="quality_lossless_description">24 bits · hasta 48 kHz</string>
+    <string name="quality_hi_res_description">Audio de mayor resolución</string>
+    <string name="automix_high_res_unavailable">No disponible con audio sin pérdida de alta resolución</string>
 </resources>

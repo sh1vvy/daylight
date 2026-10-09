@@ -158,6 +158,8 @@ import com.music.bitchord.R
 import com.music.bitchord.data.sources.DeviceCodecs
 import com.music.bitchord.data.settings.AudioQuality
 import com.music.bitchord.data.settings.AndroidOnlineQuality
+import com.music.bitchord.data.settings.LosslessQuality
+import com.music.bitchord.playback.AutomixEligibility
 import com.music.bitchord.data.settings.DownloadQuality
 import com.music.bitchord.data.settings.ThemeMode
 import com.music.bitchord.data.stats.Backup
@@ -225,7 +227,10 @@ fun SettingsScreen(
     val sessionId by AppSettings.audioSessionId.collectAsStateWithLifecycle()
     val outputPcmMode by AppSettings.outputPcmMode.collectAsStateWithLifecycle()
     val preferUsbDac by AppSettings.preferUsbDac.collectAsStateWithLifecycle()
-    val losslessBeta by AppSettings.losslessBeta.collectAsStateWithLifecycle()
+    val losslessQuality by AppSettings.losslessQuality.collectAsStateWithLifecycle()
+    val automixRuntimeAllowed by AutomixEligibility.allowed.collectAsStateWithLifecycle()
+    val automixAllowed = automixRuntimeAllowed && losslessQuality != LosslessQuality.HI_RES &&
+        AutomixEligibility.canActivateNow()
     val loudnessNormalization by AppSettings.loudnessNormalization.collectAsStateWithLifecycle()
     val loudnessOffOnSpeaker by AppSettings.loudnessOffOnSpeaker.collectAsStateWithLifecycle()
     val outputStatus by AudioOutputStatus.current.collectAsStateWithLifecycle()
@@ -570,33 +575,14 @@ fun SettingsScreen(
             onToggle = { categoryExpansion = categoryExpansion.toggle("playback") },
         ) {
             val onWifiTitle = stringResource(R.string.on_wifi)
-            row(onWifiTitle, "wi-fi", "streaming quality") {
+            row(onWifiTitle, "wi-fi", "streaming quality", "lossless", "flac", "hi-res") {
                 SettingsRow(
                     icon = Icons.Rounded.Wifi,
                     title = onWifiTitle,
                     badge = stringResource(R.string.in_use).takeIf { metered == false },
-                    value = if (losslessBeta) stringResource(R.string.lossless_beta) else wifiQuality.localizedLabel(),
-                    subtitle = if (losslessBeta) stringResource(R.string.lossless_beta_fallback_quality, wifiQuality.localizedLabel()) else null,
+                    value = if (losslessQuality == LosslessQuality.OFF) wifiQuality.localizedLabel()
+                        else losslessQuality.localizedLabel(),
                     onClick = { picking = QualityTarget.WIFI },
-                )
-            }
-            val losslessTitle = stringResource(R.string.lossless_beta)
-            row(losslessTitle, "flac", "hi-res", "hifi", "audio quality") {
-                SettingsRow(
-                    icon = Icons.Rounded.HighQuality,
-                    title = losslessTitle,
-                    subtitle = stringResource(R.string.lossless_beta_subtitle),
-                    trailing = {
-                        Switch(
-                            checked = losslessBeta,
-                            onCheckedChange = AppSettings::setLosslessBeta,
-                            colors = SwitchDefaults.colors(
-                                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                checkedBorderColor = MaterialTheme.colorScheme.primary,
-                            ),
-                        )
-                    },
-                    onClick = { AppSettings.setLosslessBeta(!losslessBeta) },
                 )
             }
             val onMobileDataTitle = stringResource(R.string.on_mobile_data)
@@ -747,22 +733,28 @@ fun SettingsScreen(
                 SettingsRow(
                     icon = Icons.Rounded.AutoAwesome,
                     title = automixTitle,
-                    subtitle = if (smartFade) {
-                        stringResource(R.string.automix_enabled_subtitle)
-                    } else {
-                        stringResource(R.string.automix_disabled_subtitle)
+                    subtitle = when {
+                        !automixAllowed -> stringResource(R.string.automix_high_res_unavailable)
+                        smartFade -> stringResource(R.string.automix_enabled_subtitle)
+                        else -> stringResource(R.string.automix_disabled_subtitle)
                     },
+                    enabled = automixAllowed,
                     trailing = {
                         Switch(
-                            checked = smartFade,
-                            onCheckedChange = AppSettings::setSmartFadeEnabled,
+                            checked = smartFade && automixAllowed,
+                            enabled = automixAllowed,
+                            onCheckedChange = {
+                                if (!it || AutomixEligibility.canActivateNow()) AppSettings.setSmartFadeEnabled(it)
+                            },
                             colors = SwitchDefaults.colors(
                                 checkedTrackColor = MaterialTheme.colorScheme.primary,
                                 checkedBorderColor = MaterialTheme.colorScheme.primary,
                             ),
                         )
                     },
-                    onClick = { AppSettings.setSmartFadeEnabled(!smartFade) },
+                    onClick = {
+                        if (AutomixEligibility.canActivateNow()) AppSettings.setSmartFadeEnabled(!smartFade)
+                    },
                 )
             }
             val automixPerformanceTitle = stringResource(R.string.automix_performance)
@@ -1223,9 +1215,9 @@ fun SettingsScreen(
                     onSliderValue = {
                         AppSettings.setAudioCacheLimitBytes(it.roundToInt().toLong() * 1024 * 1024)
                     },
-                    valueRange = (AppSettings.DEFAULT_CACHE_LIMIT_BYTES / (1024 * 1024)).toFloat()..
+                    valueRange = (AppSettings.minimumAudioCacheLimitBytes / (1024 * 1024)).toFloat()..
                         CACHE_UNLIMITED_STOP_MB.toFloat(),
-                    steps = 19,
+                    steps = if (losslessQuality == LosslessQuality.OFF) 19 else 18,
                 )
             }
             val clearSongCacheTitle = stringResource(R.string.clear_song_cache)
@@ -1458,9 +1450,9 @@ fun SettingsScreen(
                     QualityTarget.WIFI -> wifiQuality
                     QualityTarget.CELLULAR -> cellularQuality
                 },
-                losslessBeta = target == QualityTarget.WIFI && losslessBeta,
-                onSelectLossless = if (target == QualityTarget.WIFI) ({
-                    AppSettings.setLosslessBeta(true)
+                losslessQuality = if (target == QualityTarget.WIFI) losslessQuality else LosslessQuality.OFF,
+                onSelectLossless = if (target == QualityTarget.WIFI) ({ quality ->
+                    AppSettings.setLosslessQuality(quality)
                     picking = null
                 }) else null,
                 // Choosing a YouTube rung on Wi-Fi exits its beta mode.
@@ -1468,7 +1460,7 @@ fun SettingsScreen(
                 onSelect = { quality ->
                     when (target) {
                         QualityTarget.WIFI -> {
-                            AppSettings.setLosslessBeta(false)
+                            AppSettings.setLosslessQuality(LosslessQuality.OFF)
                             AppSettings.setAudioQualityWifi(quality)
                         }
                         QualityTarget.CELLULAR -> AppSettings.setAudioQualityCellular(quality)
@@ -1642,6 +1634,11 @@ private fun AudioQuality.localizedLabel(): String = stringResource(
 )
 
 @Composable
+private fun LosslessQuality.localizedLabel(): String = stringResource(
+    if (this == LosslessQuality.HI_RES) R.string.hi_res_lossless else R.string.lossless,
+)
+
+@Composable
 private fun DownloadQuality.localizedLabel(): String = stringResource(
     if (AndroidOnlineQuality.downloadSelection(this) == DownloadQuality.STANDARD) R.string.standard
     else R.string.high,
@@ -1785,14 +1782,14 @@ internal fun AccountCard(
     }
 }
 
-/** The available YouTube Music quality choices for one connection. */
+/** Four Wi-Fi tiers; mobile data retains its independent Low/High choices. */
 @Composable
 private fun QualitySheet(
     target: QualityTarget,
     selected: AudioQuality,
     onSelect: (AudioQuality) -> Unit,
-    losslessBeta: Boolean,
-    onSelectLossless: (() -> Unit)?,
+    losslessQuality: LosslessQuality,
+    onSelectLossless: ((LosslessQuality) -> Unit)?,
 ) {
     val haptics = LocalHapticFeedback.current
     Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
@@ -1825,25 +1822,9 @@ private fun QualitySheet(
         }
         HorizontalDivider(thickness = 0.5.dp, color = settingsOutlineColor())
 
-        if (onSelectLossless != null) {
-            Row(
-                Modifier.fillMaxWidth().clickable(onClick = onSelectLossless)
-                    .padding(horizontal = 22.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.lossless_beta), style = MaterialTheme.typography.bodyLarge)
-                    Text(stringResource(R.string.lossless_beta_fallback_quality, selected.localizedLabel()),
-                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (losslessBeta) Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.selected),
-                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-            }
-        }
-
-        // Best first — the option most people want shouldn't be last.
-        AndroidOnlineQuality.streamingOptions.forEach { quality ->
-            val chosen = !losslessBeta && quality == AndroidOnlineQuality.streamingSelection(selected)
+        listOf(AudioQuality.LOW, AudioQuality.HIGH).forEach { quality ->
+            val chosen = losslessQuality == LosslessQuality.OFF &&
+                quality == AndroidOnlineQuality.streamingSelection(selected)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1877,6 +1858,38 @@ private fun QualitySheet(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(22.dp),
                     )
+                }
+            }
+        }
+        if (onSelectLossless != null) {
+            listOf(LosslessQuality.LOSSLESS, LosslessQuality.HI_RES).forEach { quality ->
+                Row(
+                    Modifier.fillMaxWidth().clickable {
+                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onSelectLossless(quality)
+                    }.padding(horizontal = 22.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = quality.localizedLabel(),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                        Text(
+                            text = stringResource(
+                                if (quality == LosslessQuality.HI_RES) R.string.quality_hi_res_description
+                                else R.string.quality_lossless_description,
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (losslessQuality == quality) {
+                        Spacer(Modifier.width(12.dp))
+                        Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.selected),
+                            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                    }
                 }
             }
         }

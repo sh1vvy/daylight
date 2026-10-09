@@ -107,16 +107,9 @@ object NerdStats {
         val isDolbyAtmos: Boolean
             get() = isDolbyAtmosMime(mimeType)
 
-        /**
-         * Whether this is better than CD quality — the line Tidal, Qobuz and
-         * Apple Music all draw it at: past 16-bit or past 48kHz, not merely
-         * lossless. A 16-bit/44.1kHz FLAC is a bit-exact CD rip and gets
-         * called "Lossless"; a 24-bit/96kHz one is "Hi-Res Lossless", because
-         * calling both the same thing would flatten a distinction the
-         * listener can plausibly hear.
-         */
+        /** Hi-Res follows the selectable tier: above 24-bit / 48 kHz. */
         val isHiRes: Boolean
-            get() = isLossless && ((bitDepth ?: 0) > 16 || (sampleRateHz ?: 0) > 48_000)
+            get() = isLossless && ((bitDepth ?: 0) > 24 || (sampleRateHz ?: 0) > 48_000)
 
         /**
          * Whether this is lossy, but at the top of what lossy gets — a 320kbps

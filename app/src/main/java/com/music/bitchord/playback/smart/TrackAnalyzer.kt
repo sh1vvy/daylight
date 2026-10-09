@@ -38,6 +38,7 @@ import com.music.bitchord.data.settings.AutomixPerformanceMode
 import com.music.bitchord.data.sources.SourceResolver
 import com.music.bitchord.data.sources.TrackMatcher
 import com.music.bitchord.playback.AudioCache
+import com.music.bitchord.playback.AutomixEligibility
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -99,11 +100,16 @@ class TrackAnalyzer(private val context: Context, private val cache: AudioCache)
      * an uncached track a megabyte fetched over the same connection the party's
      * own sync is sharing.
      *
+     * Hi-Res quality and actual Hi-Res playback have the same restriction:
+     * AutoMix cannot run there, so decoding or inferring its transition is
+     * wasted work. Turning AutoMix off also stops an already queued pass.
+     *
      * Read fresh at every entry point and between the stages of a pass in
      * flight, rather than latched when the party starts, so joining one stops
      * the work already running instead of only the work not yet queued.
      */
-    private val stopped: Boolean get() = ListenTogether.state.value.inParty
+    private val stopped: Boolean get() = ListenTogether.state.value.inParty ||
+        !AppSettings.smartFadeEnabled.value || !AutomixEligibility.analysisAllowed()
 
     /**
      * Resolved on first use, not at construction, for the reason [AnalysisStore]

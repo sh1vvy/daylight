@@ -13,8 +13,9 @@ class FlacStreamInfoTest {
         assertFalse(info.isHiRes)
     }
 
-    @Test fun `higher depth or sample rate establishes hi res`() {
-        assertTrue(FlacStreamInfo.read(flacHeader(44_100, 24))!!.isHiRes)
+    @Test fun `regular lossless permits 24 bit through 48k while higher rates are hi res`() {
+        assertFalse(FlacStreamInfo.read(flacHeader(44_100, 24))!!.isHiRes)
+        assertFalse(FlacStreamInfo.read(flacHeader(48_000, 24))!!.isHiRes)
         assertTrue(FlacStreamInfo.read(flacHeader(96_000, 16))!!.isHiRes)
         assertFalse(FlacStreamInfo.read(flacHeader(48_000, 16))!!.isHiRes)
     }

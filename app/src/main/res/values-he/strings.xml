@@ -197,7 +197,7 @@
     <string name="blocking">חוסם</string>
     <string name="crossfade">Crossfade</string>
     <string name="crossfade_subtitle">ממזג רצועה אחת לתוך הבאה</string>
-    <string name="automix">Automix [BETA]</string>
+    <string name="automix">Automix ᴮᴱᵀᴬ</string>
     <string name="skip_silence">דילוג על שקט</string>
     <string name="skip_silence_subtitle">קיצוץ הפסקות ארוכות משנייה</string>
     <string name="skip_silence_float_subtitle">לא זמין בפלט float של 32 סיביות</string>
@@ -1326,10 +1326,11 @@
     <string name="settings_category_downloads_subtitle">Offline music, files and cache</string>
     <string name="settings_category_performance_subtitle">Smoothness and advanced controls</string>
     <string name="settings_category_data_subtitle">Listening history and backups</string>
-    <string name="quality_best_available_description">Best available YouTube Music audio</string>
+    <string name="quality_best_available_description">שמע באיכות גבוהה</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="lossless_beta">בטא ללא אובדן</string>
-    <string name="lossless_beta_subtitle">ניסיון לנגן FLAC תואם מ-Monochrome ב-Wi-Fi. הזמינות משתנה וקבצים גדולים צורכים יותר נתונים. YouTube הוא הגיבוי. Jams והורדות נשארים ב-YouTube. חל כשמתחילים תור חדש.</string>
-    <string name="lossless_beta_fallback_quality">איכות גיבוי של YouTube: %1$s</string>
+    <string name="hi_res_lossless">ללא אובדן ברזולוציה גבוהה</string>
+    <string name="quality_lossless_description">24 ביט · עד 48 קה״ץ</string>
+    <string name="quality_hi_res_description">שמע ברזולוציה גבוהה יותר</string>
+    <string name="automix_high_res_unavailable">לא זמין עם שמע ללא אובדן ברזולוציה גבוהה</string>
 </resources>

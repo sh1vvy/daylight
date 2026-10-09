@@ -79,7 +79,7 @@ object TtmlLyrics {
         val sides = lineAlignments(sung.map { it.second }, agentTypes(document))
         sung.mapIndexed { index, (line, _) -> line.copy(alignment = sides[index]) }
             .withInstrumentalGaps()
-    }.getOrDefault(emptyList())
+    }.onFailure { LyricsRequestHealth.current.get()?.failure() }.getOrDefault(emptyList())
 
     /** One optional parser feature, set if this parser has it. */
     private fun DocumentBuilderFactory.harden(feature: String, value: Boolean = true) {

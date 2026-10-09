@@ -297,6 +297,8 @@ object AppSettings {
      * quietly rewriting itself.
      */
     val dolbyAtmos = MutableStateFlow(true)
+    /** Wi-Fi lossless ceiling; the old boolean remains a compatibility view for playback. */
+    val losslessQuality = MutableStateFlow(LosslessQuality.OFF)
     val losslessBeta = MutableStateFlow(false)
 
     /**
@@ -789,7 +791,8 @@ object AppSettings {
         loudnessNormalization.value = prefs.getBoolean(KEY_LOUDNESS_NORMALIZATION, true)
         loudnessOffOnSpeaker.value = prefs.getBoolean(KEY_LOUDNESS_OFF_ON_SPEAKER, true)
         dolbyAtmos.value = prefs.getBoolean(KEY_DOLBY_ATMOS, true)
-        losslessBeta.value = prefs.getBoolean(KEY_LOSSLESS_BETA, false)
+        losslessQuality.value = readAndMigrateLosslessQuality(prefs)
+        losslessBeta.value = losslessQuality.value != LosslessQuality.OFF
         spatialAudio.value = prefs.getBoolean(KEY_SPATIAL_AUDIO, false)
         equalizerEnabled.value = prefs.getBoolean(KEY_EQ_ENABLED, false)
         equalizerMode.value = runCatching {
@@ -848,7 +851,7 @@ object AppSettings {
         prioritizeSyllableSync.value = prefs.getBoolean(KEY_PRIORITIZE_SYLLABLE_SYNC, false)
         paxSenixApiKey.value = prefs.getString(KEY_PAXSENIX_API_KEY, "").orEmpty()
         com.music.bitchord.data.lyrics.PaxSenix.setApiKey(paxSenixApiKey.value)
-        audioCacheLimitBytes.value = clampCacheLimit(prefs.getLong(KEY_CACHE_LIMIT, DEFAULT_CACHE_LIMIT_BYTES))
+        audioCacheLimitBytes.value = readAndMigrateAudioCacheLimit(prefs, losslessQuality.value)
         showCacheFolder.value = prefs.getBoolean(KEY_SHOW_CACHE_FOLDER, false)
         lastfmEnabled.value = prefs.getBoolean(KEY_LASTFM_ENABLED, false)
         lastfmUsername.value = prefs.getString(KEY_LASTFM_USERNAME, "").orEmpty()
@@ -1060,6 +1063,7 @@ object AppSettings {
     }
 
     fun setSmartFadeEnabled(value: Boolean) {
+        if (value && !com.music.bitchord.playback.AutomixEligibility.canActivateNow()) return
         smartFadeEnabled.value = value
         prefs.edit().putBoolean(KEY_SMART_FADE, value).apply()
     }
@@ -1079,10 +1083,25 @@ object AppSettings {
         prefs.edit().putBoolean(KEY_DOLBY_ATMOS, value).apply()
     }
 
-    fun setLosslessBeta(value: Boolean) {
-        losslessBeta.value = value
-        prefs.edit().putBoolean(KEY_LOSSLESS_BETA, value).apply()
+    /** Retains Dev.4/5's full ceiling for older callers of the boolean switch. */
+    fun setLosslessBeta(value: Boolean) =
+        setLosslessQuality(if (value) LosslessQuality.HI_RES else LosslessQuality.OFF)
+
+    fun setLosslessQuality(value: LosslessQuality) {
+        val cacheLimit = AudioCacheBudget.clamp(audioCacheLimitBytes.value, value)
+        audioCacheLimitBytes.value = cacheLimit
+        losslessQuality.value = value
+        losslessBeta.value = value != LosslessQuality.OFF
+        prefs.edit()
+            .putString(LOSSLESS_QUALITY_PREFERENCE, value.name)
+            .putBoolean(KEY_LOSSLESS_BETA, value != LosslessQuality.OFF)
+            .putLong(KEY_CACHE_LIMIT, cacheLimit)
+            .apply()
     }
+
+    /** Minimum disk budget for the currently selected Wi-Fi audio quality. */
+    val minimumAudioCacheLimitBytes: Long
+        get() = AudioCacheBudget.minimum(losslessQuality.value)
 
     fun setSpatialAudio(value: Boolean) {
         spatialAudio.value = value
@@ -1391,8 +1410,8 @@ object AppSettings {
     }
 
     /**
-     * Clamped to [DEFAULT_CACHE_LIMIT_BYTES]..[MAX_CACHE_LIMIT_BYTES] — the floor is the default, not zero.
-     * Anything past [MAX_CACHE_LIMIT_BYTES] is [UNLIMITED_CACHE_LIMIT_BYTES].
+     * Normal playback keeps at least 512 MiB; lossless reserves a 1 GiB budget.
+     * Anything past [MAX_CACHE_LIMIT_BYTES] is an explicitly selected unlimited budget.
      */
     fun setAudioCacheLimitBytes(value: Long) {
         val clamped = clampCacheLimit(value)
@@ -1401,8 +1420,7 @@ object AppSettings {
     }
 
     private fun clampCacheLimit(value: Long): Long =
-        if (value > MAX_CACHE_LIMIT_BYTES) UNLIMITED_CACHE_LIMIT_BYTES
-        else value.coerceAtLeast(DEFAULT_CACHE_LIMIT_BYTES)
+        AudioCacheBudget.clamp(value, losslessQuality.value)
 
     fun setShowCacheFolder(value: Boolean) {
         showCacheFolder.value = value
@@ -1864,6 +1882,7 @@ object AppSettings {
     )
 
     const val DEFAULT_CACHE_LIMIT_BYTES = 512L * 1024 * 1024
+    const val MIN_LOSSLESS_CACHE_LIMIT_BYTES = 1024L * 1024 * 1024
     const val MAX_CACHE_LIMIT_BYTES = 10L * 1024 * 1024 * 1024
 
     /** The cache limit with no ceiling: only free storage bounds it. */
@@ -1913,7 +1932,7 @@ object AppSettings {
     private const val KEY_SHUFFLE_ENABLED = "shuffle_enabled"
     private const val KEY_REPEAT_MODE = "repeat_mode"
     private const val KEY_NERD_STATS = "show_nerd_stats"
-    private const val KEY_CACHE_LIMIT = "audio_cache_limit_bytes"
+    private const val KEY_CACHE_LIMIT = AUDIO_CACHE_LIMIT_PREFERENCE
     private const val KEY_REDUCE_ANIMATION = "reduce_animation"
     private const val KEY_HIGH_PERFORMANCE_MODE = "high_performance_mode"
     private const val KEY_PERFORMANCE_REFRESH_RATE = "performance_refresh_rate"

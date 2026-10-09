@@ -75,8 +75,11 @@ object LrcRed {
             .addQueryParameter("q", "$title $artist".trim())
             .build()
         val body = lyricsGet(url.toString()) ?: return null
-        val hits = runCatching { lyricsJson.decodeFromString<Response>(body) }.getOrNull()?.hits
-            ?: return null
+        val response = lyricsParse { lyricsJson.decodeFromString<Response>(body) } ?: return null
+        val hits = response.hits ?: run {
+            LyricsRequestHealth.current.get()?.failure()
+            return null
+        }
         return best(hits, title, artist, durationMs)
     }
 

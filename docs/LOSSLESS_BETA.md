@@ -1,6 +1,47 @@
-# Lossless beta research and implementation
+# Lossless streaming in Daylight Dev.6
 
-Checked on 9 October 2026. This is an opt-in Android streaming feature, disabled on fresh installs. The user approved the proposed playback integration in this chat before it was connected.
+Updated 9 October 2026. Lossless remains optional; fresh installs use normal audio.
+
+## Quality choices
+
+Settings → Playback → On Wi-Fi offers four tiers:
+
+| Tier | Ceiling |
+| --- | --- |
+| Low | Lower-bitrate YouTube audio |
+| High | Best available YouTube audio |
+| Lossless | Verified FLAC up to 24-bit / 48 kHz |
+| Hi-Res Lossless | Verified FLAC up to 24-bit / 192 kHz |
+
+Lossless uses unmetered connections. Cellular, metered Wi-Fi and an unknown/offline connection retain normal audio. Previously enabled Dev.4/5 beta preferences migrate to Hi-Res Lossless; disabled preferences stay off. Eligible noncurrent queue entries refresh when the lossless tier or connection changes. The current file stays fixed through seeks and continuation reads.
+
+Music videos, video-origin tracks, local files, explicit original-version pins, Jams, downloads and Cast keep their existing playback paths. Jams, downloads and Cast use YouTube. A missing or uncertain FLAC match also uses YouTube.
+
+## Verification and playback
+
+The Monochrome-compatible connector requires a playable entry, the explicit/clean edition when known, duration within two seconds, and either a matching ISRC or an exact normalized title with a shared artist. A 42-byte FLAC STREAMINFO read verifies codec, rate, depth, channels and duration. Home/search rows without duration reuse timing from the existing YouTube extraction. Unknown duration cannot qualify a match.
+
+Search and header checks have a five-second budget including waits for shared lookups. At most three matching candidates are checked. Requests are cancellable, response sizes are bounded, and redirects are refused. Up to 128 recording-and-quality lookup results are retained: verified results for ten minutes, stable misses for thirty seconds, and no cached network failures. Concurrent requests share a lookup.
+
+Only decoder-confirmed lossless earns the main player's static Lossless or Hi-Res Lossless label. Ordinary audio has no quality badge; fallback reasons remain in Stats for nerds. Hi-Res means a lossless rate above 48 kHz or depth above 24 bits. AutoMix cannot activate while Hi-Res is selected or actually playing, and its saved preference survives the temporary restriction.
+
+A failed selected stream takes the existing one-way YouTube recovery path, preserving song and position. Revert to original bypasses lossless. Joining a Jam switches marked items to YouTube without changing queue identity or the Jam protocol. After leaving, noncurrent entries return to the selected tier; the currently opened YouTube file stays fixed. Explicit original-version pins and error-recovery fallbacks remain intact.
+
+## Caching and warming
+
+FLAC now uses persistent audio caching under a separate recording/header-fingerprint key. Prepared playback and queue warming share that exact key; FLAC never shares YouTube byte ranges. Lossless fallback keys also identify the selected YouTube rendition. A committed file remains pinned across reopening and seeking; an unopened warmed choice is rechecked against the active tier, connection and Jam state.
+
+The normal cache defaults to 512 MiB. Either lossless tier raises its minimum to 1 GiB; settings cannot lower it below that floor while enabled. The existing bounded LRU still enforces the chosen budget. Larger existing limits and explicitly selected Unlimited are preserved.
+
+The next five songs are prepared sequentially after the current buffer is ready. Each gets its source search and a short opening: 256 KiB for normal audio, 2 MiB for Lossless or 4 MiB for the Hi-Res selection. Wi-Fi may then cache more of the immediate next song, capped at 64 MiB or one sixteenth of the cache budget. The current song, previous two played songs and upcoming openings receive eviction priority, within the same total limit. Pause, queue, quality and connection changes stop stale workers.
+
+See [performance notes](PERFORMANCE.md) for the accompanying lyric cache and earlier playlist/artwork improvements.
+
+## Limits and validation
+
+File verification establishes the delivered FLAC format, not its mastering history or bit-perfect Android output. Existing output precision and negotiated-output reporting remain unchanged. Exclusive USB output, lossless downloads, a provider picker and mixed-source Jams are separate work.
+
+Regression coverage includes preference/cache migration, both quality ceilings, header and range validation, edition/recording matching, timeout/cancellation, shared lookup reuse, warmed-choice eligibility, rendition pinning, separate cache keys and bounded warming. Native Android checks verify actual decoder format and seeking; availability still depends on the source.
 
 ## Sources checked
 
@@ -25,25 +66,3 @@ Requests identified themselves as Daylight; no borrowed token, Origin or browser
 | Taylor Swift — Lover, 154014344886095872 | FLAC, 24-bit / 44.1 kHz |
 
 The sampled HiFi API instance answered catalogue requests but returned HTTP 403 for the sampled stream. These observations establish current reachability and encoding, not full catalogue coverage, provenance of the master, or guaranteed future uptime. Monochrome documents access restrictions for self-hosted web clients; Daylight does not spoof its identity to evade them. A refusal or changed protocol becomes a normal YouTube fallback.
-
-## Behavior
-
-Settings → Playback → Lossless beta starts disabled. It applies to newly started queues on an unmetered network; music videos and video-origin tracks retain YouTube. No request reaches the extra service while the option is disabled. Downloads and Cast receivers retain their existing YouTube path.
-
-The connector requires a playable catalogue entry, matching explicit/clean edition when known, matching duration within two seconds, and either a matching ISRC or an exact normalized title and shared artist. FLAC STREAMINFO independently verifies codec, sample rate, bit depth, channel count and recording duration. Headers, filenames, provider labels and file-size estimates cannot establish lossless or hi-res. Uncertain matches fall back.
-
-Search and header validation share a five-second budget, are cancellable and bounded in size. Up to three independently matching candidates can be checked, so one mislabeled AAC file does not hide another genuine FLAC. A selected rendition stays pinned for the life of that playback URI, including seeks and continuation reads. Each new play receives its own URI marker. The beta bypasses the existing audio disk cache so FLAC cannot be mixed with YouTube bytes. YouTube URL warm-up remains available; beta byte prefetch is suppressed.
-
-Dev.4's original 1.5-second budget was too short: live Taylor Swift searches took 1.2–1.6 seconds before header validation, which needed another 0.7–1.5 seconds. Dev.5 corrects this. Home and All-search rows that omit duration now reuse timing returned by the existing YouTube extraction; no additional metadata endpoint is called. Unknown or mismatched duration still rejects a substitution.
-
-YouTube warm-up bitrate telemetry is excluded from FLAC decoder statistics; it describes the unused fallback URL, not the selected lossless file.
-
-The Wi-Fi quality picker includes Lossless beta and shows the separate YouTube fallback quality. Cellular retains the YouTube choices. The main player's Lossless / Hi-Res Lossless badge is gated on the actual decoder's codec; a provider selection alone cannot earn it. While checking, it says Checking lossless. If the measured stream is YouTube Opus/AAC after a beta miss, the player names that actual codec and Stats for nerds includes the reason (timeout, unmatched recording, non-FLAC file, missing duration, excluded playback or unavailable source).
-
-A failing selected stream uses the existing one-way YouTube recovery path, preserving song and position. Explicit Revert to original bypasses the beta. Joining a Jam rebuilds any beta-marked queue entries as direct YouTube items and preserves the current position; newly built Jam items never get a beta marker. Party synchronization, queue metadata and the server protocol retain their existing behavior.
-
-## Limits and validation
-
-This beta verifies the delivered FLAC format. It does not claim that a file was never transcoded upstream, or that Android outputs it bit perfectly. The existing output precision and negotiated-output display remain in place. Exclusive USB output is a separate change and has not been enabled here. Offline lossless downloads, a provider picker, persistent FLAC caching, automatic source updates and mixed-source Jams are deferred.
-
-Local HTTP tests cover off/default behavior, edition/recording rejection, real FLAC header parsing, AAC rejection, malformed and oversized replies, range validation, cancellation, time budget, no redirect impersonation, YouTube fallback, rendition pinning and Jam/metered/video policy. Existing Android online-source policy tests still ensure that legacy modules and add-ons stay disabled.

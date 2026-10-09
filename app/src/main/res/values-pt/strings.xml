@@ -198,7 +198,7 @@
     <string name="blocking">Bloqueando</string>
     <string name="crossfade">Fade cruzado</string>
     <string name="crossfade_subtitle">Mescla uma faixa com a próxima</string>
-    <string name="automix">Automix [BETA]</string>
+    <string name="automix">Automix ᴮᴱᵀᴬ</string>
     <string name="skip_silence">Pular silêncio</string>
     <string name="skip_silence_subtitle">Corta pausas maiores que um segundo</string>
     <string name="skip_silence_float_subtitle">Indisponível com saída float de 32 bits</string>
@@ -1326,10 +1326,11 @@
     <string name="settings_category_downloads_subtitle">Offline music, files and cache</string>
     <string name="settings_category_performance_subtitle">Smoothness and advanced controls</string>
     <string name="settings_category_data_subtitle">Listening history and backups</string>
-    <string name="quality_best_available_description">Best available YouTube Music audio</string>
+    <string name="quality_best_available_description">Áudio de alta qualidade</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="lossless_beta">Sem perdas beta</string>
-    <string name="lossless_beta_subtitle">Experimente FLAC correspondentes do Monochrome por Wi-Fi. A disponibilidade varia; arquivos maiores usam mais dados. O YouTube é a alternativa. Jams e downloads continuam no YouTube. Vale ao iniciar uma nova fila.</string>
-    <string name="lossless_beta_fallback_quality">Qualidade alternativa do YouTube: %1$s</string>
+    <string name="hi_res_lossless">Sem perdas de alta resolução</string>
+    <string name="quality_lossless_description">24 bits · até 48 kHz</string>
+    <string name="quality_hi_res_description">Áudio de maior resolução</string>
+    <string name="automix_high_res_unavailable">Indisponível com áudio sem perdas de alta resolução</string>
 </resources>

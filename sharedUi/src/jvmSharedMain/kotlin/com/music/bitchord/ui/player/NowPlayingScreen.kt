@@ -739,6 +739,8 @@ fun NowPlayingScreen(
      */
     windowHeight: Dp,
     modifier: Modifier = Modifier,
+    /** A completed, reliable absence disables entry; loading and network failures remain retryable. */
+    lyricsMissing: Boolean = false,
 ) {
     val density = LocalDensity.current
     val haptics = rememberHaptics()
@@ -922,9 +924,11 @@ fun NowPlayingScreen(
     // open but the half-player was not, so every trip into lyrics briefly
     // started an exit animation and reversed it on the following frame.
     val openLyrics: () -> Unit = {
-        lyricsControlsOpen = true
-        lyricsOpen = true
-        queueOpen = false
+        if (!lyricsMissing) {
+            lyricsControlsOpen = true
+            lyricsOpen = true
+            queueOpen = false
+        }
     }
     val closeLyrics: () -> Unit = {
         lyricsControlsOpen = false
@@ -1486,6 +1490,7 @@ fun NowPlayingScreen(
     val playerActions: @Composable () -> Unit = {
         PlayerActionRow(
             lyricsOpen = lyricsOpen,
+            lyricsEnabled = !lyricsMissing,
             queueOpen = queueOpen,
             shuffleEnabled = shuffleEnabled,
             repeatMode = repeatMode,

@@ -3,6 +3,9 @@ package com.music.bitchord.data.lossless
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.security.MessageDigest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -26,7 +29,12 @@ import kotlin.coroutines.resumeWithException
 import kotlin.math.abs
 
 /** The extra source is contacted only after an explicit opt-in. */
-data class LosslessBetaOptions(val enabled: Boolean = false, val serverUrl: String = "")
+data class LosslessBetaOptions(
+    val enabled: Boolean = false,
+    val serverUrl: String = "",
+    val maxSampleRateHz: Int = 192_000,
+    val maxBitDepth: Int = 24,
+)
 
 data class LosslessRecording(
     val title: String,
@@ -37,7 +45,13 @@ data class LosslessRecording(
     val isVideo: Boolean = false,
 )
 
-data class VerifiedLosslessStream(val url: String, val recordingId: String, val info: FlacStreamInfo)
+data class VerifiedLosslessStream(
+    val url: String,
+    val recordingId: String,
+    val info: FlacStreamInfo,
+    /** STREAMINFO includes the audio MD5, so different files never share partial bytes. */
+    val fingerprint: String = "",
+)
 
 enum class LosslessFallbackReason {
     INELIGIBLE, MISSING_METADATA, NO_MATCH, NOT_FLAC, UNAVAILABLE, TIMED_OUT;
@@ -66,6 +80,11 @@ class LosslessBetaClient(
         .followSslRedirects(false)
         .build()
     private val json = Json { ignoreUnknownKeys = true }
+    private data class Lookup(val endpoint: String, val recording: LosslessRecording, val rate: Int, val depth: Int)
+    private data class Memo(val result: LosslessBetaResult, val expiresAtNanos: Long)
+    private val memo = LinkedHashMap<Lookup, Memo>(32, .75f, true)
+    private class Gate(val mutex: Mutex = Mutex(), var users: Int = 0)
+    private val locks = HashMap<Lookup, Gate>()
 
     suspend fun resolve(options: LosslessBetaOptions, wanted: LosslessRecording): VerifiedLosslessStream? =
         resolveDetailed(options, wanted).stream
@@ -76,20 +95,44 @@ class LosslessBetaClient(
             wanted.artists.none { it.isNotBlank() } || wanted.durationMs <= 0
         ) return LosslessBetaResult(fallback = LosslessFallbackReason.MISSING_METADATA)
         val base = endpoint(options.serverUrl) ?: return LosslessBetaResult(fallback = LosslessFallbackReason.UNAVAILABLE)
-        return withTimeoutOrNull(budgetMs) {
-            try {
-                resolveFrom(base, wanted)
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: IOException) {
-                LosslessBetaResult(fallback = LosslessFallbackReason.UNAVAILABLE)
-            } catch (_: RuntimeException) {
-                LosslessBetaResult(fallback = LosslessFallbackReason.UNAVAILABLE)
+        val key = Lookup(base.toString(), wanted, options.maxSampleRateHz, options.maxBitDepth)
+        fun cached(): LosslessBetaResult? = synchronized(memo) {
+            memo[key]?.takeIf { it.expiresAtNanos > System.nanoTime() }?.result
+        }
+        cached()?.let { return it }
+        // The queue warmer and a tap on the same recording share one lookup.
+        val gate = synchronized(locks) { locks.getOrPut(key) { Gate() }.also { it.users++ } }
+        try {
+        return withTimeoutOrNull(budgetMs) { gate.mutex.withLock {
+            cached()?.let { return@withLock it }
+            val result = withTimeoutOrNull(budgetMs) {
+                try {
+                    resolveFrom(base, wanted, options)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: IOException) {
+                    LosslessBetaResult(fallback = LosslessFallbackReason.UNAVAILABLE)
+                } catch (_: RuntimeException) {
+                    LosslessBetaResult(fallback = LosslessFallbackReason.UNAVAILABLE)
+                }
+            } ?: LosslessBetaResult(fallback = LosslessFallbackReason.TIMED_OUT)
+            val ttlMs = when {
+                result.stream != null -> 10 * 60_000L
+                result.fallback == LosslessFallbackReason.NO_MATCH || result.fallback == LosslessFallbackReason.NOT_FLAC -> 30_000L
+                else -> 0L // A network failure must never hide a recovered server.
             }
-        } ?: LosslessBetaResult(fallback = LosslessFallbackReason.TIMED_OUT)
+            if (ttlMs > 0) synchronized(memo) {
+                memo[key] = Memo(result, System.nanoTime() + ttlMs * 1_000_000)
+                while (memo.size > MAX_MEMOS) memo.remove(memo.keys.first())
+            }
+            result
+        } } ?: LosslessBetaResult(fallback = LosslessFallbackReason.TIMED_OUT)
+        } finally {
+            synchronized(locks) { if (--gate.users == 0) locks.remove(key, gate) }
+        }
     }
 
-    private suspend fun resolveFrom(base: HttpUrl, wanted: LosslessRecording): LosslessBetaResult {
+    private suspend fun resolveFrom(base: HttpUrl, wanted: LosslessRecording, options: LosslessBetaOptions): LosslessBetaResult {
         val searchUrl = base.newBuilder().addPathSegments("search/tracks")
             .addQueryParameter("q", "${wanted.title} ${wanted.artists.first { it.isNotBlank() }}")
             .addQueryParameter("limit", "20").build()
@@ -116,7 +159,10 @@ class LosslessBetaClient(
             val info = FlacStreamInfo.read(header)
             if (info == null) { failure = LosslessFallbackReason.NOT_FLAC; continue }
             if (abs(info.durationMs - wanted.durationMs) > MAX_DURATION_DELTA_MS) continue
-            return LosslessBetaResult(stream = VerifiedLosslessStream(url.toString(), id, info))
+            if (info.sampleRateHz > options.maxSampleRateHz || info.bitDepth > options.maxBitDepth) continue
+            val fingerprint = MessageDigest.getInstance("SHA-256").digest(header)
+                .joinToString("") { "%02x".format(it) }
+            return LosslessBetaResult(stream = VerifiedLosslessStream(url.toString(), id, info, fingerprint))
         }
         return LosslessBetaResult(fallback = failure)
     }
@@ -191,6 +237,7 @@ class LosslessBetaClient(
         .replace(Regex("[^\\p{L}\\p{N}]+"), " ").trim()
 
     companion object {
+        private const val MAX_MEMOS = 128
         private const val MAX_SEARCH_BYTES = 256 * 1024
         private const val MAX_DURATION_DELTA_MS = 2_000
     }

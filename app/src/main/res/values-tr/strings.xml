@@ -209,7 +209,7 @@
     <string name="blocking">Engelliyor</string>
     <string name="crossfade">Çapraz geçiş</string>
     <string name="crossfade_subtitle">Bir parçayı diğerine karıştırır</string>
-    <string name="automix">Automix [BETA]</string>
+    <string name="automix">Automix ᴮᴱᵀᴬ</string>
     <string name="automix_performance">Automix performansı</string>
     <string name="automix_performance_subtitle">Arka plan analizinin ne kadar CPU kullanabileceğini ayarlar</string>
     <string name="automix_performance_warning">Daha yüksek performans, parçaları daha hızlı analiz eder ancak daha fazla pil kullanabilir ve telefonu ısıtabilir.</string>
@@ -1278,10 +1278,11 @@
     <string name="settings_category_downloads_subtitle">Offline music, files and cache</string>
     <string name="settings_category_performance_subtitle">Smoothness and advanced controls</string>
     <string name="settings_category_data_subtitle">Listening history and backups</string>
-    <string name="quality_best_available_description">Best available YouTube Music audio</string>
+    <string name="quality_best_available_description">Yüksek kaliteli ses</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="lossless_beta">Kayıpsız beta</string>
-    <string name="lossless_beta_subtitle">Wi-Fi üzerinden Monochrome ile eşleşen FLAC dosyalarını deneyin. Kullanılabilirlik değişir; büyük dosyalar daha fazla veri kullanır. YouTube yedek kaynaktır. Jam ve indirmeler YouTube kullanır. Yeni kuyruk başlatıldığında uygulanır.</string>
-    <string name="lossless_beta_fallback_quality">YouTube yedek kalitesi: %1$s</string>
+    <string name="hi_res_lossless">Yüksek Çözünürlüklü Kayıpsız</string>
+    <string name="quality_lossless_description">24 bit · 48 kHz’e kadar</string>
+    <string name="quality_hi_res_description">Daha yüksek çözünürlüklü ses</string>
+    <string name="automix_high_res_unavailable">Yüksek çözünürlüklü kayıpsız seste kullanılamaz</string>
 </resources>

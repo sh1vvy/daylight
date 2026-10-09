@@ -295,6 +295,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      */
     private val _lyricsChecked = MutableStateFlow(false)
     val lyricsChecked: StateFlow<Boolean> = _lyricsChecked.asStateFlow()
+    private val _lyricsMissing = MutableStateFlow(false)
+    val lyricsMissing: StateFlow<Boolean> = _lyricsMissing.asStateFlow()
 
     private var lyricsJob: Job? = null
     private val manualLyricsJobs = mutableMapOf<LyricsSource, Job>()
@@ -331,6 +333,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val videoId: String,
         val sources: Set<LyricsSource>,
         val isExplicit: Boolean?,
+        val order: List<LyricsSource>,
+        val syllableSync: Boolean,
+        val localUri: String?,
     )
     private var lyricsFor: LyricsLookupKey? = null
 
@@ -358,7 +363,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         } else {
             emptySet()
         }
-        val key = LyricsLookupKey(videoId, sources, isExplicit)
+        val key = LyricsLookupKey(videoId, sources, isExplicit, AppSettings.lyricsSourceOrder.value,
+            AppSettings.prioritizeSyllableSync.value, localUri)
         if (lyricsFor == key) return
         // The duration lands a beat after the track, and a database match needs
         // it. Turned away here rather than inside the job below: claiming the
@@ -367,7 +373,24 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // dropped as a duplicate, and leave the track marked as being looked up
         // by nobody — which is what left a paused track loading for ever, since
         // pausing is when the duration is most likely to arrive a frame late.
-        if (localUri == null && durationMs <= 0L) return
+        if (localUri == null && durationMs <= 0L && sources.isNotEmpty()) {
+            if (lyricsFor?.videoId != videoId) {
+                lyricsGeneration += 1
+                selectedLyricsSource = null
+                currentLyricsRequest = null
+                lyricsJob?.cancel()
+                manualLyricsJobs.values.forEach(Job::cancel)
+                manualLyricsJobs.clear()
+                lyricsProviderResults.clear()
+                _lyricsProviderStates.value = LyricsSource.entries.associateWith { LyricsProviderState.NOT_FETCHED }
+                lyricsFor = null
+                _lyrics.value = null
+                _lyricsSource.value = null
+                _lyricsChecked.value = false
+                _lyricsMissing.value = false
+            }
+            return
+        }
         lyricsFor = key
         lyricsGeneration += 1
         val generation = lyricsGeneration
@@ -380,6 +403,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             LyricsSource.entries.associateWith { LyricsProviderState.NOT_FETCHED }
         _lyrics.value = null
         _lyricsSource.value = null
+        _lyricsMissing.value = false
         lyricsJob?.cancel()
         if (sources.isEmpty()) {
             // Switched off, or every source unticked. Nothing to look up, and
@@ -396,6 +420,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // this exact file, for this exact recording.
             if (localUri != null) {
                 EmbeddedLyrics.forUri(getApplication(), localUri)?.let { embedded ->
+                    if (generation != lyricsGeneration) return@launch
                     _lyrics.value = embedded
                     // No source to name: what the file records is the lyrics,
                     // not which of the eight services they came from months ago.
@@ -418,8 +443,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     providerFinished(generation, source, result)
                 },
                 onSourceCancelled = { source -> providerCancelled(generation, source) },
+                onSourceFailed = { source -> providerFailed(generation, source) },
+                onLookupFinished = { missing ->
+                    if (generation == lyricsGeneration) _lyricsMissing.value = missing
+                },
             )
+            if (generation != lyricsGeneration) return@launch
             val selected = selectedLyricsSource?.let(lyricsProviderResults::get) ?: found
+            if (selected != null) _lyricsMissing.value = false
             _lyrics.value = selected?.lines
             _lyricsSource.value = selected?.source
             _lyricsChecked.value = true
@@ -471,6 +502,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     providerFinished(generation, provider, result)
                 },
                 onSourceCancelled = { provider -> providerCancelled(generation, provider) },
+                onSourceFailed = { provider -> providerFailed(generation, provider) },
             )
         }
     }
@@ -478,6 +510,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun providerStarted(generation: Long, source: LyricsSource) {
         if (generation != lyricsGeneration) return
         _lyricsProviderStates.update { it + (source to LyricsProviderState.FETCHING) }
+    }
+
+    private fun providerFailed(generation: Long, source: LyricsSource) {
+        if (generation != lyricsGeneration) return
+        _lyricsProviderStates.update { it + (source to LyricsProviderState.NOT_FETCHED) }
     }
 
     private fun providerFinished(
@@ -513,6 +550,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun showLyricsResult(result: LyricsRepository.Result) {
+        _lyricsMissing.value = false
         _lyrics.value = result.lines
         _lyricsSource.value = result.source
         _lyricsChecked.value = true

@@ -189,7 +189,46 @@ class LosslessBetaClientTest {
         server.enqueue(MockResponse().setBody("{\"tracks\":[]}"))
         assertEquals(LosslessFallbackReason.NO_MATCH, client.resolveDetailed(options(), recording).fallback)
         server.enqueue(MockResponse().setBody("{}").setHeadersDelay(2, TimeUnit.SECONDS))
-        assertEquals(LosslessFallbackReason.TIMED_OUT, client.resolveDetailed(options(), recording).fallback)
+        assertEquals(LosslessFallbackReason.TIMED_OUT, client.resolveDetailed(options(), recording.copy(title = "Other")).fallback)
+    }
+
+    @Test fun `queued lookups coalesce and completed verified result is reused`() = runBlocking {
+        search(); audio(flacHeader())
+        val client = LosslessBetaClient()
+        val one = async(Dispatchers.IO) { client.resolve(options(), recording) }
+        val two = async(Dispatchers.IO) { client.resolve(options(), recording) }
+        assertEquals(one.await(), two.await())
+        assertEquals(one.await(), client.resolve(options(), recording))
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test fun `regular lossless accepts 24 bit 48k and rejects hi res while high tier allows it`() = runBlocking {
+        val client = LosslessBetaClient()
+        search(); audio(flacHeader(96_000, 24))
+        assertNull(client.resolve(options().copy(maxSampleRateHz = 48_000), recording))
+        search(); audio(flacHeader(96_000, 24))
+        assertNotNull(client.resolve(options(), recording))
+        search(); audio(flacHeader(48_000, 24))
+        assertNotNull(client.resolve(options().copy(maxSampleRateHz = 48_000), recording.copy(title = "Other")))
+        assertEquals(6, server.requestCount)
+    }
+
+    @Test fun `verified file fingerprints separate different resolutions and source bytes`() = runBlocking {
+        search(); audio(flacHeader(44_100, 16))
+        val first = LosslessBetaClient().resolve(options(), recording)!!
+        search(); audio(flacHeader(44_100, 16).also { it[26] = 1 })
+        val replacement = LosslessBetaClient().resolve(options(), recording)!!
+        assertNotEquals(first.fingerprint, replacement.fingerprint)
+        assertEquals(64, first.fingerprint.length)
+    }
+
+    @Test fun `temporary network failures are not negative cached`() = runBlocking {
+        val client = LosslessBetaClient()
+        server.enqueue(MockResponse().setResponseCode(503))
+        assertNull(client.resolve(options(), recording))
+        search(); audio(flacHeader())
+        assertNotNull(client.resolve(options(), recording))
+        assertEquals(3, server.requestCount)
     }
 
     private fun options(path: String = "/") = LosslessBetaOptions(true, server.url(path).toString())

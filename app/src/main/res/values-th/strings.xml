@@ -203,7 +203,7 @@
     <string name="blocking">กำลังบล็อก</string>
     <string name="crossfade">ครอสเฟด</string>
     <string name="crossfade_subtitle">ผสานเพลงหนึ่งเข้ากับเพลงถัดไป</string>
-    <string name="automix">Automix [เบต้า]</string>
+    <string name="automix">Automix ᴮᴱᵀᴬ</string>
     <string name="automix_performance">ประสิทธิภาพ Automix</string>
     <string name="automix_performance_subtitle">กำหนดปริมาณ CPU ที่ใช้วิเคราะห์ในพื้นหลัง</string>
     <string name="automix_performance_warning">ประสิทธิภาพที่สูงขึ้นจะวิเคราะห์แทร็กได้เร็วขึ้น แต่อาจใช้แบตเตอรี่มากขึ้นและทำให้เครื่องร้อนขึ้น</string>
@@ -1304,10 +1304,11 @@
     <string name="settings_category_downloads_subtitle">Offline music, files and cache</string>
     <string name="settings_category_performance_subtitle">Smoothness and advanced controls</string>
     <string name="settings_category_data_subtitle">Listening history and backups</string>
-    <string name="quality_best_available_description">Best available YouTube Music audio</string>
+    <string name="quality_best_available_description">เสียงคุณภาพสูง</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="lossless_beta">Lossless เบต้า</string>
-    <string name="lossless_beta_subtitle">ลอง FLAC ที่ตรงกันจาก Monochrome ผ่าน Wi-Fi เพลงอาจไม่มีในระบบและไฟล์ใหญ่ใช้ข้อมูลมากขึ้น โดยใช้ YouTube เป็นตัวสำรอง Jam และการดาวน์โหลดยังคงใช้ YouTube มีผลเมื่อเริ่มคิวใหม่</string>
-    <string name="lossless_beta_fallback_quality">คุณภาพ YouTube สำรอง: %1$s</string>
+    <string name="hi_res_lossless">Lossless ความละเอียดสูง</string>
+    <string name="quality_lossless_description">24 บิต · สูงสุด 48 kHz</string>
+    <string name="quality_hi_res_description">เสียงความละเอียดสูงขึ้น</string>
+    <string name="automix_high_res_unavailable">ใช้ไม่ได้กับ Lossless ความละเอียดสูง</string>
 </resources>

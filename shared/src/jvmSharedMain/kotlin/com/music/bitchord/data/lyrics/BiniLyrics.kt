@@ -83,9 +83,9 @@ object BiniLyrics {
         // A miss is a 404 here rather than an empty result set, which
         // [lyricsGet] already turns into a null.
         val body = lyricsGet(url.toString()) ?: return@withContext null
-        val response = runCatching { lyricsJson.decodeFromString<Response>(body) }.getOrNull()
+        val response = lyricsParse { lyricsJson.decodeFromString<Response>(body) }
             ?: return@withContext null
-        response.results
+        response.results.also { if (it == null) LyricsRequestHealth.current.get()?.failure() }
     }
 
     /**

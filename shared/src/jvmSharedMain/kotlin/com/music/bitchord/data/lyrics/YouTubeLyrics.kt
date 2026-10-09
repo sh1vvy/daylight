@@ -3,6 +3,7 @@ package com.music.bitchord.data.lyrics
 import com.music.bitchord.data.innertube.Innertube
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -14,7 +15,7 @@ import kotlinx.serialization.json.longOrNull
 object YouTubeMusicLyrics {
     suspend fun lyrics(videoId: String): List<LyricLine>? = withContext(Dispatchers.IO) {
         if (!YOUTUBE_ID.matches(videoId)) return@withContext null
-        val next = runCatching { Innertube.next(videoId) }.getOrNull() ?: return@withContext null
+        val next = youtubeRequest { Innertube.next(videoId) } ?: return@withContext null
         val endpoint = next.objectsNamed("tabRenderer")
             .firstOrNull { it.youtubeStrings().any { text -> text.equals("Lyrics", ignoreCase = true) } }
             ?.objectsNamed("browseEndpoint")?.firstOrNull()
@@ -25,7 +26,7 @@ object YouTubeMusicLyrics {
         val browseId = (endpoint["browseId"] as? JsonPrimitive)?.contentOrNull
             ?: return@withContext null
         val params = (endpoint["params"] as? JsonPrimitive)?.contentOrNull
-        val page = runCatching { Innertube.browse(browseId, params) }.getOrNull() ?: return@withContext null
+        val page = youtubeRequest { Innertube.browse(browseId, params) } ?: return@withContext null
         val shelf = page.objectsNamed("musicDescriptionShelfRenderer").firstOrNull()
             ?: return@withContext null
         val text = shelf["description"]?.youtubeStrings()?.joinToString("").orEmpty().trim()
@@ -38,7 +39,7 @@ object YouTubeMusicLyrics {
 object YouTubeTranscriptLyrics {
     suspend fun lyrics(videoId: String): List<LyricLine>? = withContext(Dispatchers.IO) {
         if (!YOUTUBE_ID.matches(videoId)) return@withContext null
-        val response = runCatching { Innertube.transcript(videoId) }.getOrNull()
+        val response = youtubeRequest { Innertube.transcript(videoId) }
             ?: return@withContext null
         response.objectsNamed("transcriptCueRenderer").mapNotNull { cue ->
             val start = (cue["startOffsetMs"] as? JsonPrimitive)?.longOrNull
@@ -51,6 +52,15 @@ object YouTubeTranscriptLyrics {
 }
 
 private val YOUTUBE_ID = Regex("""[A-Za-z0-9_-]{11}""")
+
+private suspend fun <T> youtubeRequest(block: suspend () -> T): T? = try {
+    block().also { LyricsRequestHealth.current.get()?.response(200) }
+} catch (cancelled: CancellationException) {
+    throw cancelled
+} catch (_: Exception) {
+    LyricsRequestHealth.current.get()?.failure()
+    null
+}
 
 private fun JsonElement.objectsNamed(name: String): Sequence<JsonObject> = sequence {
     when (this@objectsNamed) {

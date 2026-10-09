@@ -56,7 +56,7 @@ object KuGou {
             .addQueryParameter("keyword", keyword.query)
             .build()
         val body = lyricsGet(url.toString()) ?: return null
-        val response = runCatching { lyricsJson.decodeFromString<SearchSongResponse>(body) }.getOrNull()
+        val response = lyricsParse { lyricsJson.decodeFromString<SearchSongResponse>(body) }
         return response?.data?.info.orEmpty()
             .filter { seconds <= 0 || abs(it.duration - seconds) <= DURATION_TOLERANCE_SECONDS }
             .sortedBy { abs(it.duration - seconds) }
@@ -77,7 +77,7 @@ object KuGou {
             else -> return null
         }
         val body = lyricsGet(builder.build().toString()) ?: return null
-        val response = runCatching { lyricsJson.decodeFromString<SearchLyricsResponse>(body) }.getOrNull()
+        val response = lyricsParse { lyricsJson.decodeFromString<SearchLyricsResponse>(body) }
         return response?.candidates
     }
 
@@ -91,7 +91,7 @@ object KuGou {
             .addQueryParameter("accesskey", accessKey)
             .build()
         val body = lyricsGet(url.toString()) ?: return null
-        val response = runCatching { lyricsJson.decodeFromString<DownloadResponse>(body) }.getOrNull()
+        val response = lyricsParse { lyricsJson.decodeFromString<DownloadResponse>(body) }
             ?: return null
         val decoded = runCatching {
             Base64.getDecoder().decode(response.content).toString(Charsets.UTF_8)

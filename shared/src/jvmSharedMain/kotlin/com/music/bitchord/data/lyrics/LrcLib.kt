@@ -36,9 +36,8 @@ object LrcLib {
             val cleanArtist = artist.clean()
             val seconds = (durationMs / 1000).toInt()
 
-            val exact = runCatching { exactMatch(cleanTitle, cleanArtist, seconds) }.getOrNull()
-            val synced = exact ?: runCatching { bestSearchHit(cleanTitle, cleanArtist, seconds) }
-                .getOrNull()
+            val exact = lyricsParse { exactMatch(cleanTitle, cleanArtist, seconds) }
+            val synced = exact ?: lyricsParse { bestSearchHit(cleanTitle, cleanArtist, seconds) }
             synced?.let(::parseLrc)?.takeIf { it.isNotEmpty() }
         }
 
@@ -75,10 +74,7 @@ object LrcLib {
 
     private fun get(url: String): String? {
         val request = Request.Builder().url(url).header("User-Agent", AGENT).build()
-        Http.client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) return null
-            return response.body?.string()
-        }
+        return Http.client.newCall(request).lyricsBody()
     }
 
     /**

@@ -227,7 +227,7 @@
     <string name="blocking">Bloccante</string>
     <string name="crossfade">Dissolvenza incrociata</string>
     <string name="crossfade_subtitle">Sfuma un brano nel successivo</string>
-    <string name="automix">Automix [BETA]</string>
+    <string name="automix">Automix ᴮᴱᵀᴬ</string>
     <string name="automix_performance">Prestazioni Automix</string>
     <string name="automix_performance_subtitle">Imposta quanta CPU può usare l\'analisi in background</string>
     <string name="automix_performance_warning">Prestazioni più elevate analizzano i brani più velocemente, ma possono usare più batteria e scaldare il telefono.</string>
@@ -1260,10 +1260,11 @@
     <string name="settings_category_downloads_subtitle">Offline music, files and cache</string>
     <string name="settings_category_performance_subtitle">Smoothness and advanced controls</string>
     <string name="settings_category_data_subtitle">Listening history and backups</string>
-    <string name="quality_best_available_description">Best available YouTube Music audio</string>
+    <string name="quality_best_available_description">Audio di alta qualità</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="lossless_beta">Lossless beta</string>
-    <string name="lossless_beta_subtitle">Prova FLAC corrispondenti da Monochrome via Wi-Fi. La disponibilità varia; file più grandi usano più dati. YouTube è la riserva. Jam e download restano su YouTube. Si applica avviando una nuova coda.</string>
-    <string name="lossless_beta_fallback_quality">Qualità alternativa YouTube: %1$s</string>
+    <string name="hi_res_lossless">Lossless ad alta risoluzione</string>
+    <string name="quality_lossless_description">24 bit · fino a 48 kHz</string>
+    <string name="quality_hi_res_description">Audio a risoluzione superiore</string>
+    <string name="automix_high_res_unavailable">Non disponibile con Lossless ad alta risoluzione</string>
 </resources>

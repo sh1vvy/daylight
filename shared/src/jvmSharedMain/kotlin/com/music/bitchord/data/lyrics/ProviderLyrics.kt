@@ -38,7 +38,13 @@ object ProviderLyrics {
                 .joinToString("\n").trim()
         }
         if (value.isBlank()) return null
-        val json = runCatching { lyricsJson.parseToJsonElement(value) }.getOrNull() ?: return value
+        val json = runCatching { lyricsJson.parseToJsonElement(value) }.getOrElse {
+            if (value.startsWith("{")) {
+                LyricsRequestHealth.current.get()?.failure()
+                return null
+            }
+            return value
+        }
         return extract(json)?.trim()?.takeIf { it.isNotEmpty() }
     }
 
@@ -53,7 +59,10 @@ object ProviderLyrics {
         is JsonObject -> {
             if (element["isError"]?.toString() == "true" || element["ok"]?.toString() == "false" ||
                 element["error"]?.let { it !is JsonNull && it.toString() !in setOf("false", "\"\"") } == true
-            ) return null
+            ) {
+                LyricsRequestHealth.current.get()?.failure()
+                return null
+            }
             CONTENT_KEYS.asSequence().mapNotNull { element[it]?.let(::extract) }.firstOrNull()
                 ?: (element["metadata"] as? JsonObject)?.let(::extract)
                 ?: element["words"]?.let(::extract)

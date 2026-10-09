@@ -5,21 +5,24 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class LosslessBetaBadgeTest {
-    @Test fun `verified provider label cannot make Opus lossless`() {
-        val opus = stats("audio/opus")
-        assertFalse(opus.isLossless)
-        assertFalse(betaFallbackIsVisible(NerdStats.LosslessBetaStatus.VERIFIED, opus))
-        assertTrue(betaFallbackIsVisible(NerdStats.LosslessBetaStatus.TIMED_OUT, opus))
+    @Test fun `normal and pending audio have no quality label`() {
+        assertNull(confirmedLosslessLabel(null))
+        assertNull(confirmedLosslessLabel(stats("audio/opus")))
+        assertNull(confirmedLosslessLabel(stats("audio/mp4a-latm", bitrate = 320)))
     }
 
-    @Test fun `unmeasured or actually lossless audio never gets a lossy fallback label`() {
-        assertFalse(betaFallbackIsVisible(NerdStats.LosslessBetaStatus.NO_MATCH, null))
-        assertFalse(betaFallbackIsVisible(NerdStats.LosslessBetaStatus.STREAM_FAILED, stats("audio/flac")))
-        assertFalse(betaFallbackIsVisible(NerdStats.LosslessBetaStatus.NO_MATCH, stats("audio/opus", "Local")))
-        assertTrue(stats("audio/flac").isLossless)
+    @Test fun `only measured lossless audio earns a label`() {
+        assertEquals(ConfirmedLosslessLabel.LOSSLESS, confirmedLosslessLabel(stats("audio/flac", depth = 16)))
+        assertEquals(ConfirmedLosslessLabel.LOSSLESS, confirmedLosslessLabel(stats("audio/flac", depth = 24)))
+        assertEquals(ConfirmedLosslessLabel.HI_RES, confirmedLosslessLabel(stats("audio/flac", depth = 32)))
+        assertEquals(ConfirmedLosslessLabel.HI_RES, confirmedLosslessLabel(stats("audio/flac", rate = 96_000, depth = 16)))
     }
 
-    private fun stats(mime: String, source: String = "YouTube") = NerdStats.Snapshot(
-        mimeType = mime, bitrateKbps = null, sampleRateHz = 44_100, channels = 2, sourceName = source,
+    @Test fun `unmeasured depth cannot claim hi res`() {
+        assertEquals(ConfirmedLosslessLabel.LOSSLESS, confirmedLosslessLabel(stats("audio/flac")))
+    }
+
+    private fun stats(mime: String, depth: Int? = null, rate: Int = 44_100, bitrate: Int? = null) = NerdStats.Snapshot(
+        mimeType = mime, bitrateKbps = bitrate, sampleRateHz = rate, channels = 2, bitDepth = depth,
     )
 }

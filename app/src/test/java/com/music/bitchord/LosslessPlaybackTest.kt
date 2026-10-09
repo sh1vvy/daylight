@@ -1,5 +1,6 @@
 package com.music.bitchord
 
+import com.music.bitchord.data.settings.LosslessQuality
 import com.music.bitchord.data.lossless.LosslessBetaClient
 import com.music.bitchord.data.lossless.flacHeader
 import com.music.bitchord.data.NerdStats
@@ -31,6 +32,22 @@ class LosslessPlaybackTest {
         assertNotEquals(one, LosslessPlayback.tag(uri))
         assertFalse(LosslessPlayback.isTagged(uri))
         assertFalse(LosslessPlayback.isTagged("$uri&lossless_beta="))
+    }
+
+    @Test fun `quality changes retag queued metadata while removing the previous choice marker`() {
+        val original = "bitchord://watch?v=abc&n=Song%20Title&a=Artist&d=210"
+        val old = LosslessPlayback.tag(original)
+        val next = LosslessPlayback.retag(old, true)
+        assertTrue(next.startsWith(original))
+        assertNotEquals(old, next)
+        assertEquals(1, next.split("lossless_beta=").size - 1)
+        assertEquals(original, LosslessPlayback.retag(next, false))
+    }
+
+    @Test fun `temporary Jam markers can be removed without discarding recording metadata`() {
+        val original = "bitchord://watch?v=abc&n=Song%20Title&d=210"
+        val forced = "$original&direct_youtube=1&rendition=original&jam_youtube=1"
+        assertEquals(original, LosslessPlayback.withoutParameters(forced, setOf("direct_youtube", "rendition", "jam_youtube")))
     }
 
     @Test fun `beta stream error escapes to YouTube only once`() {
@@ -109,6 +126,54 @@ class LosslessPlaybackTest {
             }
             assertNull(result.format.codec)
             assertEquals("https://youtube.example/audio", result.url)
+        } finally { server.shutdown() }
+    }
+
+    @Test fun `queued FLAC uses same separate disk identity when opened and sought`() = runBlocking {
+        val server = MockWebServer(); server.start()
+        try {
+            server.enqueue(MockResponse().setBody("""{"tracks":[{"id":"123","title":"Lover","artistNames":["Taylor Swift"],"duration":221000,"playable":true}]}"""))
+            server.enqueue(MockResponse().setBody(Buffer().write(flacHeader(44_100, 24, seconds = 221))))
+            val playback = LosslessPlayback(endpoint = server.url("/").toString())
+            val uri = LosslessPlayback.tag("bitchord://watch?v=abc&n=Lover")
+            val warm = playback.resolve(uri, target(), true, false, false, commit = false) { error("fallback") }
+            val key = playback.cacheKey(uri)!!
+            assertTrue(key.startsWith("abc#lossless-123-"))
+            assertEquals(warm, playback.resolve(uri, target(), true, false, false) { error("second resolve") })
+            assertEquals(warm, playback.resolve(uri, target(), false, true, true) { error("seek changed bytes") })
+            assertEquals(key, playback.cacheKey(uri))
+            assertEquals(2, server.requestCount)
+        } finally { server.shutdown() }
+    }
+
+    @Test fun `unopened warm FLAC cannot survive cellular or a lower quality selection`() = runBlocking {
+        val server = MockWebServer(); server.start()
+        try {
+            for (key in listOf("cellular", "tier")) {
+                server.enqueue(MockResponse().setBody("""{"tracks":[{"id":"123","title":"Lover","artistNames":["Taylor Swift"],"duration":221000,"playable":true}]}"""))
+                server.enqueue(MockResponse().setBody(Buffer().write(flacHeader(96_000, 24, seconds = 221))))
+                val playback = LosslessPlayback(endpoint = server.url("/").toString())
+                playback.resolve(key, target(), true, false, false, commit = false) { error("fallback") }
+                if (key == "tier") {
+                    server.enqueue(MockResponse().setBody("""{"tracks":[{"id":"123","title":"Lover","artistNames":["Taylor Swift"],"duration":221000,"playable":true}]}"""))
+                    server.enqueue(MockResponse().setBody(Buffer().write(flacHeader(96_000, 24, seconds = 221))))
+                }
+                val result = playback.resolve(key, target(), true, key == "cellular", false,
+                    quality = LosslessQuality.LOSSLESS) { SourceStream("https://youtube.example/audio") }
+                assertNull(result.format.codec)
+                assertNull(playback.cacheKey(key))
+            }
+        } finally { server.shutdown() }
+    }
+
+    @Test fun `an ineligible unopened warm decision is retried after WiFi becomes available`() = runBlocking {
+        val server = MockWebServer(); server.start()
+        try {
+            val playback = LosslessPlayback(endpoint = server.url("/").toString())
+            playback.resolve("warm", target(), true, true, false, commit = false) { SourceStream("https://youtube.example/audio") }
+            server.enqueue(MockResponse().setBody("""{"tracks":[{"id":"123","title":"Lover","artistNames":["Taylor Swift"],"duration":221000,"playable":true}]}"""))
+            server.enqueue(MockResponse().setBody(Buffer().write(flacHeader(seconds = 221))))
+            assertEquals("flac", playback.resolve("warm", target(), true, false, false) { error("stale fallback") }.format.codec)
         } finally { server.shutdown() }
     }
 

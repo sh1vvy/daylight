@@ -196,7 +196,7 @@
     <string name="blocking">रोक रहा है</string>
     <string name="crossfade">क्रॉसफ़ेड</string>
     <string name="crossfade_subtitle">एक ट्रैक को अगले में मिलाता है</string>
-    <string name="automix">ऑटोमिक्स [BETA]</string>
+    <string name="automix">ऑटोमिक्स ᴮᴱᵀᴬ</string>
     <string name="skip_silence">खामोशी छोड़ें</string>
     <string name="skip_silence_subtitle">एक सेकंड से लंबे गैप को काटता है</string>
     <string name="skip_silence_float_subtitle">32-बिट फ़्लोट आउटपुट पर उपलब्ध नहीं</string>
@@ -1321,10 +1321,11 @@
     <string name="settings_category_downloads_subtitle">Offline music, files and cache</string>
     <string name="settings_category_performance_subtitle">Smoothness and advanced controls</string>
     <string name="settings_category_data_subtitle">Listening history and backups</string>
-    <string name="quality_best_available_description">Best available YouTube Music audio</string>
+    <string name="quality_best_available_description">उच्च गुणवत्ता वाला ऑडियो</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="lossless_beta">लॉसलेस बीटा</string>
-    <string name="lossless_beta_subtitle">Wi-Fi पर Monochrome से मिलते हुए FLAC आज़माएँ। उपलब्धता बदल सकती है; बड़ी फ़ाइलें अधिक डेटा लेती हैं। विकल्प न मिलने पर YouTube चलेगा। Jam और डाउनलोड YouTube पर रहेंगे। नई कतार शुरू करने पर लागू होगा।</string>
-    <string name="lossless_beta_fallback_quality">YouTube की वैकल्पिक गुणवत्ता: %1$s</string>
+    <string name="hi_res_lossless">हाई-रेज़ लॉसलेस</string>
+    <string name="quality_lossless_description">24-बिट · 48 kHz तक</string>
+    <string name="quality_hi_res_description">ज़्यादा रेज़ोल्यूशन वाला ऑडियो</string>
+    <string name="automix_high_res_unavailable">हाई-रेज़ लॉसलेस के साथ उपलब्ध नहीं</string>
 </resources>

@@ -206,7 +206,7 @@
     <string name="blocking">Блокирует</string>
     <string name="crossfade">Кроссфейд</string>
     <string name="crossfade_subtitle">Плавно переходит от одного трека к другому</string>
-    <string name="automix">Автомикс [БЕТА]</string>
+    <string name="automix">Автомикс ᴮᴱᵀᴬ</string>
     <string name="skip_silence">Пропускать тишину</string>
     <string name="skip_silence_subtitle">Обрезает паузы длиннее секунды</string>
     <string name="skip_silence_float_subtitle">Недоступно при 32-битном выводе с плавающей точкой</string>
@@ -1353,10 +1353,11 @@
     <string name="settings_category_downloads_subtitle">Offline music, files and cache</string>
     <string name="settings_category_performance_subtitle">Smoothness and advanced controls</string>
     <string name="settings_category_data_subtitle">Listening history and backups</string>
-    <string name="quality_best_available_description">Best available YouTube Music audio</string>
+    <string name="quality_best_available_description">Аудио высокого качества</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="lossless_beta">Lossless бета</string>
-    <string name="lossless_beta_subtitle">Попробуйте подходящие FLAC из Monochrome по Wi-Fi. Доступность зависит от трека; большие файлы расходуют больше данных. Запасной источник — YouTube. Jam и загрузки остаются на YouTube. Применяется при запуске новой очереди.</string>
-    <string name="lossless_beta_fallback_quality">Запасное качество YouTube: %1$s</string>
+    <string name="hi_res_lossless">Без потерь Hi-Res</string>
+    <string name="quality_lossless_description">24 бит · до 48 кГц</string>
+    <string name="quality_hi_res_description">Аудио более высокого разрешения</string>
+    <string name="automix_high_res_unavailable">Недоступно с аудио без потерь Hi-Res</string>
 </resources>

@@ -99,8 +99,9 @@ object LyricsPlus {
             .build()
 
         val body = lyricsGet(url.toString()) ?: return@withContext null
-        val response = runCatching { lyricsJson.decodeFromString<Response>(body) }.getOrNull()
+        val response = lyricsParse { lyricsJson.decodeFromString<Response>(body) }
             ?: return@withContext null
+        if (response.lyrics == null) LyricsRequestHealth.current.get()?.failure()
         parse(response).takeIf { it.isNotEmpty() }
     }
 

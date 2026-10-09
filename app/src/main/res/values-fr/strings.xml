@@ -197,7 +197,7 @@
     <string name="blocking">Bloquant</string>
     <string name="crossfade">Fondu enchaîné</string>
     <string name="crossfade_subtitle">Fond une piste dans la suivante</string>
-    <string name="automix">Automix [BÊTA]</string>
+    <string name="automix">Automix ᴮᴱᵀᴬ</string>
     <string name="skip_silence">Ignorer les silences</string>
     <string name="skip_silence_subtitle">Coupe les silences de plus d\'une seconde</string>
     <string name="skip_silence_float_subtitle">Indisponible avec la sortie flottante 32 bits</string>
@@ -1322,10 +1322,11 @@
     <string name="settings_category_downloads_subtitle">Offline music, files and cache</string>
     <string name="settings_category_performance_subtitle">Smoothness and advanced controls</string>
     <string name="settings_category_data_subtitle">Listening history and backups</string>
-    <string name="quality_best_available_description">Best available YouTube Music audio</string>
+    <string name="quality_best_available_description">Audio de haute qualité</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="lossless_beta">Sans perte bêta</string>
-    <string name="lossless_beta_subtitle">Essayez les FLAC correspondants de Monochrome en Wi-Fi. La disponibilité varie ; les gros fichiers utilisent plus de données. YouTube sert de secours. Jams et téléchargements restent sur YouTube. Applicable à une nouvelle file.</string>
-    <string name="lossless_beta_fallback_quality">Qualité de secours YouTube : %1$s</string>
+    <string name="hi_res_lossless">Sans perte haute résolution</string>
+    <string name="quality_lossless_description">24 bits · jusqu’à 48 kHz</string>
+    <string name="quality_hi_res_description">Audio de résolution supérieure</string>
+    <string name="automix_high_res_unavailable">Indisponible avec le sans perte haute résolution</string>
 </resources>

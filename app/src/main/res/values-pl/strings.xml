@@ -194,7 +194,7 @@
     <string name="blocking">Blokowanie</string>
     <string name="crossfade">Crossfade</string>
     <string name="crossfade_subtitle">Płynne przejścia między utworami</string>
-    <string name="automix">Automix [BETA]</string>
+    <string name="automix">Automix ᴮᴱᵀᴬ</string>
     <string name="skip_silence">Pomiń ciszę</string>
     <string name="skip_silence_subtitle">Przycinanie przerw dłuższych niż sekunda</string>
     <string name="skip_silence_float_subtitle">Niedostępne przy 32-bitowym wyjściu float</string>
@@ -1361,10 +1361,11 @@
     <string name="settings_category_downloads_subtitle">Offline music, files and cache</string>
     <string name="settings_category_performance_subtitle">Smoothness and advanced controls</string>
     <string name="settings_category_data_subtitle">Listening history and backups</string>
-    <string name="quality_best_available_description">Best available YouTube Music audio</string>
+    <string name="quality_best_available_description">Dźwięk wysokiej jakości</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="lossless_beta">Lossless beta</string>
-    <string name="lossless_beta_subtitle">Wypróbuj pasujące pliki FLAC z Monochrome przez Wi-Fi. Dostępność jest zmienna; większe pliki zużywają więcej danych. YouTube jest opcją zapasową. Jamy i pobieranie nadal korzystają z YouTube. Dotyczy nowej kolejki.</string>
-    <string name="lossless_beta_fallback_quality">Zapasowa jakość YouTube: %1$s</string>
+    <string name="hi_res_lossless">Bezstratna wysoka rozdzielczość</string>
+    <string name="quality_lossless_description">24 bitów · do 48 kHz</string>
+    <string name="quality_hi_res_description">Dźwięk o wyższej rozdzielczości</string>
+    <string name="automix_high_res_unavailable">Niedostępne dla bezstratnej wysokiej rozdzielczości</string>
 </resources>

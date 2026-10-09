@@ -331,9 +331,7 @@ object Genius {
             .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,application/json,*/*;q=0.8")
             .header("Accept-Language", "en-US,en;q=0.9")
             .build()
-        httpClient.newCall(request).execute().use { response ->
-            if (response.isSuccessful) response.body?.string() else null
-        }
+        httpClient.newCall(request).lyricsBody()
     }.getOrNull()
 
     private fun fetchHtml(url: String): String? = httpGet(url)

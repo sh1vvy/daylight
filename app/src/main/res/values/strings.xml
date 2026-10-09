@@ -249,7 +249,7 @@
     <string name="blocking">Blocking</string>
     <string name="crossfade">Crossfade</string>
     <string name="crossfade_subtitle">Blends one track into the next</string>
-    <string name="automix">Automix [BETA]</string>
+    <string name="automix">Automix ᴮᴱᵀᴬ</string>
     <string name="automix_performance">Automix performance</string>
     <string name="automix_performance_subtitle">Sets how much CPU background analysis may use</string>
     <string name="automix_performance_warning">Higher performance analyses tracks faster, but can use more battery and make the phone warmer.</string>
@@ -1158,10 +1158,11 @@
     <string name="settings_category_downloads_subtitle">Offline music, files and cache</string>
     <string name="settings_category_performance_subtitle">Smoothness and advanced controls</string>
     <string name="settings_category_data_subtitle">Listening history and backups</string>
-    <string name="quality_best_available_description">Best available YouTube Music audio</string>
+    <string name="quality_best_available_description">High quality audio</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="lossless_beta">Lossless beta</string>
-    <string name="lossless_beta_subtitle">Try matching FLAC from Monochrome on Wi-Fi. Availability varies; larger files use more data. YouTube is the fallback. Jams and downloads stay on YouTube. Applies when you start a new queue.</string>
-    <string name="lossless_beta_fallback_quality">YouTube fallback: %1$s</string>
+    <string name="hi_res_lossless">Hi-Res Lossless</string>
+    <string name="quality_lossless_description">24-bit · up to 48 kHz</string>
+    <string name="quality_hi_res_description">Higher resolution audio</string>
+    <string name="automix_high_res_unavailable">Unavailable with Hi-Res Lossless</string>
 </resources>

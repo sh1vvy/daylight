@@ -52,9 +52,7 @@ internal fun lyricsGet(url: String): String? = runCatching {
         .header("User-Agent", LYRICS_AGENT)
         .header("Accept", "application/json")
         .build()
-    client.newCall(request).execute().use { response ->
-        if (response.isSuccessful) response.body?.string() else null
-    }
+    client.newCall(request).lyricsBody()
 }.getOrNull()
 
 /** Body of an authenticated provider GET without service-specific browser headers. */
@@ -65,9 +63,7 @@ internal fun lyricsGetBearer(url: String, bearer: String): String? = runCatching
         .header("Accept", "application/json, text/plain, */*")
         .header("Authorization", "Bearer $bearer")
         .build()
-    authenticatedClient.newCall(request).execute().use { response ->
-        if (response.isSuccessful) response.body?.string() else null
-    }
+    authenticatedClient.newCall(request).lyricsBody()
 }.getOrNull()
 
 /**
@@ -83,14 +79,13 @@ internal fun lyricsGetAuthorized(url: String, bearer: String): String? = runCatc
         .header("Origin", "https://music.apple.com")
         .header("Referer", "https://music.apple.com/")
         .build()
-    client.newCall(request).execute().use { response ->
-        if (response.isSuccessful) response.body?.string() else null
-    }
+    client.newCall(request).lyricsBody()
 }.getOrNull()
 
 /** A cancellable catalogue request, so optional identification has a real deadline. */
 internal suspend fun lyricsGetCatalogue(url: String, bearer: String? = null): String? =
     suspendCancellableCoroutine { continuation ->
+        val health = LyricsRequestHealth.current.get()
         val request = Request.Builder().url(url)
             .header("User-Agent", LYRICS_AGENT)
             .header("Accept", "application/json")
@@ -105,12 +100,16 @@ internal suspend fun lyricsGetCatalogue(url: String, bearer: String? = null): St
         continuation.invokeOnCancellation { call.cancel() }
         call.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
+                health?.failure()
                 continuation.resume(null)
             }
 
             override fun onResponse(call: Call, response: Response) {
                 val body = runCatching {
-                    response.use { if (it.isSuccessful) it.body?.string() else null }
+                    response.use {
+                        health?.response(it.code)
+                        if (it.isSuccessful) it.body?.string() else null
+                    }
                 }.getOrNull()
                 continuation.resume(body)
             }

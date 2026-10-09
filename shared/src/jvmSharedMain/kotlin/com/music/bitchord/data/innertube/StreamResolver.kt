@@ -283,6 +283,16 @@ object StreamResolver {
     /** Per-track loudness, read once and kept for as long as the process runs. */
     private val loudness = ConcurrentHashMap<String, Double>()
 
+    // Reuse metadata returned by extraction; rows on Home often omit runtime.
+    // This lookup does not issue another request or infer timing from file size.
+    private val durations = ConcurrentHashMap<String, Int>()
+    fun durationSeconds(videoId: String): Int? = durations[videoId]
+    private fun rememberDuration(videoId: String, seconds: Long?) {
+        if (seconds == null || seconds !in 1..Int.MAX_VALUE.toLong()) return
+        if (durations.size >= MAX_REMEMBERED) durations.clear()
+        durations[videoId] = seconds.toInt()
+    }
+
     /**
      * YouTube's own normalization figure for [videoId], or null when it has
      * never resolved or never carried one.
@@ -502,6 +512,7 @@ object StreamResolver {
             } ?: return null
             val verdict = timed("$videoId InnerTubeX ${found.profileId} probe") { probe(found.url) }
             if (verdict == Probe.OK) {
+                rememberDuration(videoId, found.durationSeconds)
                 TrackLog.d(TAG, "resolved $videoId via InnerTubeX ${found.profileId} @ ${found.kbps}kbps")
                 return Stream(found.url, found.kbps, found.mimeType, found.loudnessDb)
             }
@@ -1003,6 +1014,7 @@ object StreamResolver {
                 "https://www.youtube.com/watch?v=$videoId",
             )
             extractor.fetchPage()
+            rememberDuration(videoId, extractor.length)
             val candidates = extractor.audioStreams
                 // Progressive only — DASH/HLS entries carry a manifest, not a URL.
                 .filter {

@@ -1303,4 +1303,5 @@
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
     <string name="lossless_beta">Lossless beta</string>
     <string name="lossless_beta_subtitle">Coba FLAC yang cocok dari Monochrome melalui Wi-Fi. Ketersediaan bervariasi; file besar memakai lebih banyak data. YouTube menjadi cadangan. Jam dan unduhan tetap memakai YouTube. Berlaku saat memulai antrean baru.</string>
+    <string name="lossless_beta_fallback_quality">Kualitas cadangan YouTube: %1$s</string>
 </resources>

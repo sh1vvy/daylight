@@ -220,4 +220,11 @@
     <string name="quality_best_available_description">Best available YouTube Music audio</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
+    <string name="lossless_beta_checking">בודק שמע ללא אובדן…</string>
+    <string name="lossless_beta_timeout">בטא ללא אובדן: זמן ההמתנה לספק הסתיים</string>
+    <string name="lossless_beta_no_match">בטא ללא אובדן: לא נמצאה הקלטה מאומתת</string>
+    <string name="lossless_beta_not_flac">בטא ללא אובדן: הקובץ המתאים אינו FLAC</string>
+    <string name="lossless_beta_missing_metadata">בטא ללא אובדן: משך המקור אינו זמין</string>
+    <string name="lossless_beta_ineligible">בטא ללא אובדן: נדרש שמע מחוץ ל-Jam דרך Wi-Fi</string>
+    <string name="lossless_beta_unavailable">בטא ללא אובדן: המקור אינו זמין</string>
 </resources>

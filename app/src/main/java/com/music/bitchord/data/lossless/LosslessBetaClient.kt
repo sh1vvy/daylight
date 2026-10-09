@@ -25,7 +25,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.abs
 
-/** No server is selected, contacted, or enabled by default. Not registered with playback yet. */
+/** The extra source is contacted only after an explicit opt-in. */
 data class LosslessBetaOptions(val enabled: Boolean = false, val serverUrl: String = "")
 
 data class LosslessRecording(
@@ -39,60 +39,86 @@ data class LosslessRecording(
 
 data class VerifiedLosslessStream(val url: String, val recordingId: String, val info: FlacStreamInfo)
 
+enum class LosslessFallbackReason {
+    INELIGIBLE, MISSING_METADATA, NO_MATCH, NOT_FLAC, UNAVAILABLE, TIMED_OUT;
+}
+
+data class LosslessBetaResult(
+    val stream: VerifiedLosslessStream? = null,
+    val fallback: LosslessFallbackReason? = null,
+)
+
 /**
  * Isolated Monochrome-compatible HTTP connector for an explicitly supplied endpoint.
  * There are no public host lists, background jobs, credentials, or playback mutations here.
- * A miss (including an AAC response advertised as lossless) lets a future caller retain YouTube.
+ * A miss (including an AAC response advertised as lossless) retains YouTube.
  */
 class LosslessBetaClient(
     client: OkHttpClient = OkHttpClient(),
-    private val budgetMs: Long = 1_500,
+    private val budgetMs: Long = 5_000,
 ) {
     private val http = client.newBuilder()
-        .connectTimeout(1, TimeUnit.SECONDS)
-        .readTimeout(1, TimeUnit.SECONDS)
-        .callTimeout(2, TimeUnit.SECONDS)
+        .connectTimeout(3, TimeUnit.SECONDS)
+        .readTimeout(3, TimeUnit.SECONDS)
+        .callTimeout(4, TimeUnit.SECONDS)
         // A supplied endpoint must answer for itself; don't follow a downgrade/login redirect.
         .followRedirects(false)
         .followSslRedirects(false)
         .build()
     private val json = Json { ignoreUnknownKeys = true }
 
-    suspend fun resolve(options: LosslessBetaOptions, wanted: LosslessRecording): VerifiedLosslessStream? {
-        if (!options.enabled || wanted.isVideo || wanted.title.isBlank() ||
+    suspend fun resolve(options: LosslessBetaOptions, wanted: LosslessRecording): VerifiedLosslessStream? =
+        resolveDetailed(options, wanted).stream
+
+    suspend fun resolveDetailed(options: LosslessBetaOptions, wanted: LosslessRecording): LosslessBetaResult {
+        if (!options.enabled || wanted.isVideo) return LosslessBetaResult(fallback = LosslessFallbackReason.INELIGIBLE)
+        if (wanted.title.isBlank() ||
             wanted.artists.none { it.isNotBlank() } || wanted.durationMs <= 0
-        ) return null
-        val base = endpoint(options.serverUrl) ?: return null
+        ) return LosslessBetaResult(fallback = LosslessFallbackReason.MISSING_METADATA)
+        val base = endpoint(options.serverUrl) ?: return LosslessBetaResult(fallback = LosslessFallbackReason.UNAVAILABLE)
         return withTimeoutOrNull(budgetMs) {
             try {
                 resolveFrom(base, wanted)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: IOException) {
-                null
+                LosslessBetaResult(fallback = LosslessFallbackReason.UNAVAILABLE)
             } catch (_: RuntimeException) {
-                null
+                LosslessBetaResult(fallback = LosslessFallbackReason.UNAVAILABLE)
             }
-        }
+        } ?: LosslessBetaResult(fallback = LosslessFallbackReason.TIMED_OUT)
     }
 
-    private suspend fun resolveFrom(base: HttpUrl, wanted: LosslessRecording): VerifiedLosslessStream? {
+    private suspend fun resolveFrom(base: HttpUrl, wanted: LosslessRecording): LosslessBetaResult {
         val searchUrl = base.newBuilder().addPathSegments("search/tracks")
             .addQueryParameter("q", "${wanted.title} ${wanted.artists.first { it.isNotBlank() }}")
             .addQueryParameter("limit", "20").build()
         val body = bytes(searchUrl, MAX_SEARCH_BYTES, prefixOnly = false)
-        val root = json.parseToJsonElement(body.decodeToString()) as? JsonObject ?: return null
+        val root = json.parseToJsonElement(body.decodeToString()) as? JsonObject
+            ?: return LosslessBetaResult(fallback = LosslessFallbackReason.UNAVAILABLE)
         val rows = (root["tracks"] as? JsonArray).orEmpty().take(20)
         val candidates = rows.mapNotNull { it as? JsonObject }.filter { matches(it, wanted) }
         val expectedIsrc = wanted.isrc?.takeIf { it.isNotBlank() }
         val selected = candidates.sortedByDescending {
             expectedIsrc != null && expectedIsrc.equals(it.text("isrc"), ignoreCase = true)
-        }.firstOrNull() ?: return null
-        val id = selected.text("id")?.takeIf { it.matches(Regex("[0-9]{1,30}")) } ?: return null
-        val url = base.newBuilder().addPathSegment("track").addPathSegment(id).build()
-        val info = FlacStreamInfo.read(bytes(url, FlacStreamInfo.HEADER_BYTES, prefixOnly = true)) ?: return null
-        if (abs(info.durationMs - wanted.durationMs) > MAX_DURATION_DELTA_MS) return null
-        return VerifiedLosslessStream(url.toString(), id, info)
+        }.distinctBy { it.text("id") }.take(3)
+        if (selected.isEmpty()) return LosslessBetaResult(fallback = LosslessFallbackReason.NO_MATCH)
+        var failure = LosslessFallbackReason.NO_MATCH
+        for (candidate in selected) {
+            val id = candidate.text("id")?.takeIf { it.matches(Regex("[0-9]{1,30}")) } ?: continue
+            val url = base.newBuilder().addPathSegment("track").addPathSegment(id).build()
+            val header = try {
+                bytes(url, FlacStreamInfo.HEADER_BYTES, prefixOnly = true)
+            } catch (_: IOException) {
+                failure = LosslessFallbackReason.UNAVAILABLE
+                continue
+            }
+            val info = FlacStreamInfo.read(header)
+            if (info == null) { failure = LosslessFallbackReason.NOT_FLAC; continue }
+            if (abs(info.durationMs - wanted.durationMs) > MAX_DURATION_DELTA_MS) continue
+            return LosslessBetaResult(stream = VerifiedLosslessStream(url.toString(), id, info))
+        }
+        return LosslessBetaResult(fallback = failure)
     }
 
     private fun matches(row: JsonObject, wanted: LosslessRecording): Boolean {
@@ -105,8 +131,9 @@ class LosslessBetaClient(
         if (expectedIsrc != null && gotIsrc != null) return expectedIsrc.equals(gotIsrc, ignoreCase = true)
         if (normalize(wanted.title) != normalize(row.text("title").orEmpty())) return false
         val artists = (row["artistNames"] as? JsonArray).orEmpty().mapNotNull { it.jsonPrimitive.contentOrNull }
+        val fullCredit = normalize(artists.joinToString(", "))
         return wanted.artists.filter { normalize(it).isNotBlank() }.any { name ->
-            artists.any { normalize(name) == normalize(it) }
+            normalize(name) == fullCredit || artists.any { normalize(name) == normalize(it) }
         }
     }
 

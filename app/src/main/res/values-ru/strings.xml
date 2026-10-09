@@ -1358,4 +1358,5 @@
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
     <string name="lossless_beta">Lossless бета</string>
     <string name="lossless_beta_subtitle">Попробуйте подходящие FLAC из Monochrome по Wi-Fi. Доступность зависит от трека; большие файлы расходуют больше данных. Запасной источник — YouTube. Jam и загрузки остаются на YouTube. Применяется при запуске новой очереди.</string>
+    <string name="lossless_beta_fallback_quality">Запасное качество YouTube: %1$s</string>
 </resources>

@@ -1283,4 +1283,5 @@
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
     <string name="lossless_beta">Kayıpsız beta</string>
     <string name="lossless_beta_subtitle">Wi-Fi üzerinden Monochrome ile eşleşen FLAC dosyalarını deneyin. Kullanılabilirlik değişir; büyük dosyalar daha fazla veri kullanır. YouTube yedek kaynaktır. Jam ve indirmeler YouTube kullanır. Yeni kuyruk başlatıldığında uygulanır.</string>
+    <string name="lossless_beta_fallback_quality">YouTube yedek kalitesi: %1$s</string>
 </resources>

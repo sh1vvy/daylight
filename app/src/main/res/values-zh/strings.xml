@@ -1303,4 +1303,5 @@
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
     <string name="lossless_beta">无损音质测试版</string>
     <string name="lossless_beta_subtitle">通过 Wi-Fi 尝试 Monochrome 的匹配 FLAC。可用性因歌曲而异，较大文件会消耗更多流量。未找到时使用 YouTube。Jam 和下载仍使用 YouTube。开始新队列时生效。</string>
+    <string name="lossless_beta_fallback_quality">YouTube 备用音质：%1$s</string>
 </resources>

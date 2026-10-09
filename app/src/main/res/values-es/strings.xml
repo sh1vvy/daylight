@@ -1298,4 +1298,5 @@
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
     <string name="lossless_beta">Sin pérdida beta</string>
     <string name="lossless_beta_subtitle">Prueba FLAC de Monochrome por Wi-Fi. La disponibilidad varía; los archivos grandes usan más datos. YouTube es la alternativa. Jams y descargas siguen en YouTube. Se aplica al iniciar una cola nueva.</string>
+    <string name="lossless_beta_fallback_quality">Calidad alternativa de YouTube: %1$s</string>
 </resources>

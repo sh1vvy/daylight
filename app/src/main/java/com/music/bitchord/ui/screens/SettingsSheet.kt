@@ -575,7 +575,8 @@ fun SettingsScreen(
                     icon = Icons.Rounded.Wifi,
                     title = onWifiTitle,
                     badge = stringResource(R.string.in_use).takeIf { metered == false },
-                    value = wifiQuality.localizedLabel(),
+                    value = if (losslessBeta) stringResource(R.string.lossless_beta) else wifiQuality.localizedLabel(),
+                    subtitle = if (losslessBeta) stringResource(R.string.lossless_beta_fallback_quality, wifiQuality.localizedLabel()) else null,
                     onClick = { picking = QualityTarget.WIFI },
                 )
             }
@@ -1457,17 +1458,19 @@ fun SettingsScreen(
                     QualityTarget.WIFI -> wifiQuality
                     QualityTarget.CELLULAR -> cellularQuality
                 },
-                // Writes the one ceiling that was being edited and nothing
-                // else. There used to be a `SourceRegistry.applyQualityPreset`
-                // call here that flipped the module and JioSaavn switches to
-                // match — which meant budgeting *mobile data* switched those
-                // sources off while sitting on Wi-Fi, and coming back to Wi-Fi
-                // never switched them on again. Which sources a rung consults
-                // is now read per stream off the connection in force; see
-                // [AudioQuality.permits].
+                losslessBeta = target == QualityTarget.WIFI && losslessBeta,
+                onSelectLossless = if (target == QualityTarget.WIFI) ({
+                    AppSettings.setLosslessBeta(true)
+                    picking = null
+                }) else null,
+                // Choosing a YouTube rung on Wi-Fi exits its beta mode.
+                // A cellular edit only changes the cellular fallback ceiling.
                 onSelect = { quality ->
                     when (target) {
-                        QualityTarget.WIFI -> AppSettings.setAudioQualityWifi(quality)
+                        QualityTarget.WIFI -> {
+                            AppSettings.setLosslessBeta(false)
+                            AppSettings.setAudioQualityWifi(quality)
+                        }
                         QualityTarget.CELLULAR -> AppSettings.setAudioQualityCellular(quality)
                     }
                     picking = null
@@ -1788,6 +1791,8 @@ private fun QualitySheet(
     target: QualityTarget,
     selected: AudioQuality,
     onSelect: (AudioQuality) -> Unit,
+    losslessBeta: Boolean,
+    onSelectLossless: (() -> Unit)?,
 ) {
     val haptics = LocalHapticFeedback.current
     Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
@@ -1820,9 +1825,25 @@ private fun QualitySheet(
         }
         HorizontalDivider(thickness = 0.5.dp, color = settingsOutlineColor())
 
+        if (onSelectLossless != null) {
+            Row(
+                Modifier.fillMaxWidth().clickable(onClick = onSelectLossless)
+                    .padding(horizontal = 22.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.lossless_beta), style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.lossless_beta_fallback_quality, selected.localizedLabel()),
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (losslessBeta) Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.selected),
+                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+            }
+        }
+
         // Best first — the option most people want shouldn't be last.
         AndroidOnlineQuality.streamingOptions.forEach { quality ->
-            val chosen = quality == AndroidOnlineQuality.streamingSelection(selected)
+            val chosen = !losslessBeta && quality == AndroidOnlineQuality.streamingSelection(selected)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

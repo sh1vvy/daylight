@@ -111,6 +111,14 @@ class LosslessBetaClientTest {
         assertNotNull(LosslessBetaClient().resolve(options(), recording.copy(isrc = null)))
     }
 
+    @Test fun `joined YouTube credits can match the same complete provider credit`() = runBlocking {
+        search("""{"id":"123","title":"Birds of a Feather","artistNames":["Billie Eilish","FINNEAS"],"duration":210000,"explicit":true,"playable":true}""")
+        audio(flacHeader())
+        assertNotNull(LosslessBetaClient().resolve(options(), recording.copy(isrc = null, artists = listOf("Billie Eilish, FINNEAS"))))
+        search("""{"id":"123","title":"Birds of a Feather","artistNames":["Billie Eilish Tribute Band"],"duration":210000,"explicit":true,"playable":true}""")
+        assertNull(LosslessBetaClient().resolve(options(), recording.copy(isrc = null, artists = listOf("Billie Eilish, FINNEAS"))))
+    }
+
     @Test fun `header duration independently rejects mislabeled recording`() = runBlocking {
         search(); audio(flacHeader(seconds = 240))
         assertNull(LosslessBetaClient().resolve(options(), recording))
@@ -150,6 +158,38 @@ class LosslessBetaClientTest {
         assertNotNull(server.takeRequest(1, TimeUnit.SECONDS))
         job.cancelAndJoin()
         assertTrue(job.isCancelled)
+    }
+
+    @Test fun `normal search and verification latency fits the production budget`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{\"tracks\":[${validRow()}]}").setHeadersDelay(1_100, TimeUnit.MILLISECONDS))
+        server.enqueue(MockResponse().setBody(Buffer().write(flacHeader())).setHeadersDelay(1_100, TimeUnit.MILLISECONDS))
+        assertNotNull(LosslessBetaClient().resolve(options(), recording))
+    }
+
+    @Test fun `AAC first candidate does not hide another verified edition`() = runBlocking {
+        val second = validRow().toString().replace("\"123\"", "\"456\"")
+        server.enqueue(MockResponse().setBody("{\"tracks\":[${validRow()},$second]}"))
+        audio(ByteArray(42))
+        audio(flacHeader())
+        assertEquals("456", LosslessBetaClient().resolve(options(), recording)?.recordingId)
+        assertEquals(3, server.requestCount)
+    }
+
+    @Test fun `candidate probes are bounded and report the fallback reason`() = runBlocking {
+        val rows = (1..10).joinToString(",") { validRow().toString().replace("\"123\"", "\"$it\"") }
+        server.enqueue(MockResponse().setBody("{\"tracks\":[$rows]}"))
+        repeat(3) { audio(ByteArray(42)) }
+        assertEquals(LosslessFallbackReason.NOT_FLAC, LosslessBetaClient().resolveDetailed(options(), recording).fallback)
+        assertEquals(4, server.requestCount)
+    }
+
+    @Test fun `diagnostics distinguish timeout missing metadata and no match`() = runBlocking {
+        val client = LosslessBetaClient(budgetMs = 100)
+        assertEquals(LosslessFallbackReason.MISSING_METADATA, client.resolveDetailed(options(), recording.copy(durationMs = 0)).fallback)
+        server.enqueue(MockResponse().setBody("{\"tracks\":[]}"))
+        assertEquals(LosslessFallbackReason.NO_MATCH, client.resolveDetailed(options(), recording).fallback)
+        server.enqueue(MockResponse().setBody("{}").setHeadersDelay(2, TimeUnit.SECONDS))
+        assertEquals(LosslessFallbackReason.TIMED_OUT, client.resolveDetailed(options(), recording).fallback)
     }
 
     private fun options(path: String = "/") = LosslessBetaOptions(true, server.url(path).toString())

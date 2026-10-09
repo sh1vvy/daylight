@@ -1304,4 +1304,5 @@
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
     <string name="lossless_beta">ロスレス・ベータ</string>
     <string name="lossless_beta_subtitle">Wi-FiでMonochromeの一致するFLACを試します。提供状況は曲によって異なり、大きなファイルは通信量が増えます。見つからない場合はYouTubeを使用します。Jamとダウンロードは引き続きYouTubeです。新しいキューの開始時に適用されます。</string>
+    <string name="lossless_beta_fallback_quality">YouTubeの代替音質：%1$s</string>
 </resources>

@@ -52,6 +52,7 @@ object InnerTubeXResolver {
         /** InnerTubeX's catalog id for the exact client variant; what exclusions key on. */
         val profileId: String,
         val headers: Map<String, String>,
+        val durationSeconds: Long? = null,
     )
 
     /**
@@ -246,6 +247,7 @@ object InnerTubeXResolver {
             clientName = stream.clientName,
             profileId = stream.profileId,
             headers = stream.headers,
+            durationSeconds = stream.mediaMetadata?.durationSeconds?.takeIf { it > 0 },
         )
         if (minted.size >= MAX_REMEMBERED) minted.clear()
         minted[extracted.url] = extracted

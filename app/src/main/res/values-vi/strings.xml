@@ -1243,4 +1243,5 @@
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
     <string name="lossless_beta">Lossless beta</string>
     <string name="lossless_beta_subtitle">Thử FLAC phù hợp từ Monochrome qua Wi-Fi. Khả dụng tùy bài; tệp lớn dùng nhiều dữ liệu hơn. YouTube là nguồn dự phòng. Jam và tải xuống vẫn dùng YouTube. Áp dụng khi bắt đầu hàng đợi mới.</string>
+    <string name="lossless_beta_fallback_quality">Chất lượng YouTube dự phòng: %1$s</string>
 </resources>

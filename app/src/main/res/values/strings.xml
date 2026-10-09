@@ -1163,4 +1163,5 @@
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
     <string name="lossless_beta">Lossless beta</string>
     <string name="lossless_beta_subtitle">Try matching FLAC from Monochrome on Wi-Fi. Availability varies; larger files use more data. YouTube is the fallback. Jams and downloads stay on YouTube. Applies when you start a new queue.</string>
+    <string name="lossless_beta_fallback_quality">YouTube fallback: %1$s</string>
 </resources>

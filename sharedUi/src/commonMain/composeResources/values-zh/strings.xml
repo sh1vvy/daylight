@@ -220,4 +220,11 @@
     <string name="quality_best_available_description">Best available YouTube Music audio</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
+    <string name="lossless_beta_checking">正在检查无损音频…</string>
+    <string name="lossless_beta_timeout">无损测试版：提供方响应超时</string>
+    <string name="lossless_beta_no_match">无损测试版：没有已验证的匹配录音</string>
+    <string name="lossless_beta_not_flac">无损测试版：匹配文件不是 FLAC</string>
+    <string name="lossless_beta_missing_metadata">无损测试版：无法获取原始时长</string>
+    <string name="lossless_beta_ineligible">无损测试版：需要通过 Wi-Fi 在 Jam 外播放音频</string>
+    <string name="lossless_beta_unavailable">无损测试版：音源不可用</string>
 </resources>

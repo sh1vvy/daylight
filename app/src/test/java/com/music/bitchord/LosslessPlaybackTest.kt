@@ -2,6 +2,7 @@ package com.music.bitchord
 
 import com.music.bitchord.data.lossless.LosslessBetaClient
 import com.music.bitchord.data.lossless.flacHeader
+import com.music.bitchord.data.NerdStats
 import com.music.bitchord.data.sources.SourceStream
 import com.music.bitchord.data.sources.TrackMatcher
 import com.music.bitchord.playback.LosslessPlayback
@@ -112,4 +113,62 @@ class LosslessPlaybackTest {
     }
 
     private fun target() = TrackMatcher.Target("Lover", "Taylor Swift", 221)
+
+    @Test fun `home row without duration uses original extraction timing before matching`() = runBlocking {
+        val server = MockWebServer(); server.start()
+        try {
+            server.enqueue(MockResponse().setBody("""{"tracks":[{"id":"123","title":"Lover","artistNames":["Taylor Swift"],"duration":221000,"playable":true}]}"""))
+            server.enqueue(MockResponse().setBody(Buffer().write(flacHeader(seconds = 221))))
+            val statuses = mutableListOf<NerdStats.LosslessBetaStatus>()
+            var durationCalls = 0
+            val playback = LosslessPlayback(endpoint = server.url("/").toString())
+            val result = playback.resolve("home", target().copy(durationSec = null), true, false, false,
+                durationSeconds = { durationCalls++; 221 }, onStatus = statuses::add) { error("unexpected fallback") }
+            assertEquals("flac", result.format.codec)
+            assertEquals(1, durationCalls)
+            assertEquals(listOf(NerdStats.LosslessBetaStatus.CHECKING, NerdStats.LosslessBetaStatus.VERIFIED), statuses)
+            playback.resolve("home", target().copy(durationSec = null), true, false, false,
+                durationSeconds = { error("seek must keep timing and rendition") }) { error("unexpected fallback") }
+            assertEquals(2, server.requestCount)
+        } finally { server.shutdown() }
+    }
+
+    @Test fun `missing or mismatched original timing never relaxes recording checks`() = runBlocking {
+        val server = MockWebServer(); server.start()
+        try {
+            val statuses = mutableListOf<NerdStats.LosslessBetaStatus>()
+            val playback = LosslessPlayback(endpoint = server.url("/").toString())
+            val result = playback.resolve("unknown", target().copy(durationSec = null), true, false, false,
+                durationSeconds = { null }, onStatus = statuses::add) { SourceStream("https://youtube.example/audio") }
+            assertNull(result.format.isLossless)
+            assertEquals(NerdStats.LosslessBetaStatus.MISSING_METADATA, statuses.last())
+            assertEquals(0, server.requestCount)
+            server.enqueue(MockResponse().setBody("""{"tracks":[{"id":"123","title":"Lover","artistNames":["Taylor Swift"],"duration":221000,"playable":true}]}"""))
+            playback.resolve("wrong", target().copy(durationSec = null), true, false, false,
+                durationSeconds = { 240 }, onStatus = statuses::add) { SourceStream("https://youtube.example/audio") }
+            assertEquals(NerdStats.LosslessBetaStatus.NO_MATCH, statuses.last())
+            assertEquals(1, server.requestCount)
+        } finally { server.shutdown() }
+    }
+
+    @Test fun `off metered and Jam paths do not enrich timing`() = runBlocking {
+        val playback = LosslessPlayback()
+        for ((index, flags) in listOf(Triple(false, false, false), Triple(true, true, false), Triple(true, false, true)).withIndex()) {
+            playback.resolve("skip-$index", target().copy(durationSec = null), flags.first, flags.second, flags.third,
+                durationSeconds = { error("extra work on excluded path") }) { SourceStream("https://youtube.example/audio") }
+        }
+    }
+
+    @Test fun `disabling beta during duration recovery prevents community requests`() = runBlocking {
+        val server = MockWebServer(); server.start()
+        try {
+            var enabled = true
+            val playback = LosslessPlayback(endpoint = server.url("/").toString())
+            playback.resolve("changed", target().copy(durationSec = null), true, false, false,
+                stillEligible = { enabled }, durationSeconds = { enabled = false; 221 }) {
+                SourceStream("https://youtube.example/audio")
+            }
+            assertEquals(0, server.requestCount)
+        } finally { server.shutdown() }
+    }
 }

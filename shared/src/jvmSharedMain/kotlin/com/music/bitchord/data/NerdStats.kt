@@ -225,6 +225,23 @@ object NerdStats {
 
     val current = MutableStateFlow<Snapshot?>(null)
 
+    enum class LosslessBetaStatus {
+        CHECKING, VERIFIED, INELIGIBLE, MISSING_METADATA, NO_MATCH, NOT_FLAC, UNAVAILABLE, TIMED_OUT, STREAM_FAILED;
+        val isFallback get() = this != CHECKING && this != VERIFIED
+    }
+
+    /** Track-scoped diagnostics; a next-track lookup must not label the audible track. */
+    val losslessBetaStatus = MutableStateFlow<Map<String, LosslessBetaStatus>>(emptyMap())
+    fun onLosslessBetaStatus(mediaId: String, status: LosslessBetaStatus) {
+        losslessBetaStatus.update { old ->
+            val bounded = if (mediaId !in old && old.size >= MAX_REMEMBERED) old - old.keys.first() else old
+            bounded + (mediaId to status)
+        }
+    }
+    fun clearLosslessBetaStatus(mediaId: String) {
+        losslessBetaStatus.update { it - mediaId }
+    }
+
     /**
      * YouTube video ids with a module lookup racing YouTube's own resolve
      * for the stream to actually play — see
@@ -306,7 +323,9 @@ object NerdStats {
             ?: SourceTrackKeys.parse(key)?.second?.let { sources[it] }
     }
 
-    fun pickedBitrateKbps(videoId: String?): Int? = videoId?.let { picked[it] }
+    /** A YouTube warm-up's bitrate cannot describe a subsequently selected FLAC. */
+    fun pickedBitrateKbps(videoId: String?, playingMimeType: String? = null): Int? =
+        if (isLosslessMime(playingMimeType)) null else videoId?.let { picked[it] }
 
     /**
      * Undoes [onSourceStream] for [trackId].
@@ -374,6 +393,7 @@ object NerdStats {
     fun forgetLastSession() {
         current.value = null
         racingLossless.value = emptySet()
+        losslessBetaStatus.value = emptyMap()
         picked.clear()
         declared.clear()
         sources.clear()

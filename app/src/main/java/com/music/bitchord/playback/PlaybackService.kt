@@ -1364,6 +1364,15 @@ class PlaybackService : MediaLibraryService() {
                             inParty = ListenTogether.state.value.inParty,
                             stillEligible = { LosslessPlayback.eligible(AppSettings.losslessBeta.value,
                                 AppSettings.meteredConnection.value != false, ListenTogether.state.value.inParty, false) },
+                            durationSeconds = {
+                                StreamResolver.durationSeconds(videoId) ?: run {
+                                    // The existing warm-up/extraction returns original recording timing.
+                                    // Reuse its URL for fallback rather than requesting a separate watch page.
+                                    StreamResolver.resolve(videoId)
+                                    StreamResolver.durationSeconds(videoId)
+                                }
+                            },
+                            onStatus = { NerdStats.onLosslessBetaStatus(videoId, it) },
                             youtube = {
                                 val url = StreamResolver.resolve(videoId)
                                 SourceStream(url, headers = StreamResolver.mediaHeadersFor(url))
@@ -1372,7 +1381,7 @@ class PlaybackService : MediaLibraryService() {
                     }
                 }
                 val sourceName = if (stream.sourceConfigId == LosslessPlayback.SOURCE_ID) "Lossless beta" else "YouTube"
-                TrackLog.d("LOSSLESS", "$videoId -> $sourceName ${stream.format.summary}", about = videoId)
+                TrackLog.d("LOSSLESS", "$videoId -> $sourceName ${stream.format.summary} (${NerdStats.losslessBetaStatus.value[videoId]})", about = videoId)
                 if (stream.format != StreamFormat()) NerdStats.onSourceStream(videoId, stream.format, sourceName)
                 else NerdStats.clearDeclared(videoId)
                 NerdStats.recordSource(videoId, sourceName)
@@ -3018,6 +3027,13 @@ class PlaybackService : MediaLibraryService() {
         // race against the decoder's correction.
         NerdStats.current.value = null
 
+        mediaItem?.let { item ->
+            val uri = item.localConfiguration?.uri
+            if (!LosslessPlayback.isTagged(uri.toString()) && uri?.getQueryParameter(DIRECT_YOUTUBE_PARAMETER) != "1") {
+                NerdStats.clearLosslessBetaStatus(item.mediaId)
+            }
+        }
+
         // Discord: the whole of "live updating" for a card whose bar Discord
         // draws itself. Only a track change needs a new presence; the countdown
         // in between is Discord's own arithmetic.
@@ -3388,6 +3404,9 @@ class PlaybackService : MediaLibraryService() {
         val fallback = item.toYouTubeFallbackMediaItem() ?: return false
         val mediaId = item.mediaId
 
+        if (LosslessPlayback.isTagged(playbackUri.toString())) {
+            NerdStats.onLosslessBetaStatus(mediaId, NerdStats.LosslessBetaStatus.STREAM_FAILED)
+        }
         QualityUpgrade.forget(mediaId)
         QualityUpgrade.refuseUpgrades(mediaId)
         videoId?.let {
@@ -5114,6 +5133,7 @@ class PlaybackService : MediaLibraryService() {
         val isLossless = dsd != null || NerdStats.isLosslessMime(format?.sampleMimeType)
         val isRawPcm = NerdStats.isRawPcm(format?.sampleMimeType)
         val pcmDataRate = measured?.pcmBitrateKbps
+        val pickedBitrate = NerdStats.pickedBitrateKbps(mediaId, format?.sampleMimeType)
 
         val (bitrate, provenance) = when {
             format?.averageBitrate != null && format.averageBitrate > 0 ->
@@ -5124,8 +5144,8 @@ class PlaybackService : MediaLibraryService() {
                 Pair(localBitrateCache[mediaId], TelemetryProvenance.AUTHORITATIVE)
             NerdStats.declaredFormat(mediaId)?.kbps != null ->
                 Pair(NerdStats.declaredFormat(mediaId)?.kbps, TelemetryProvenance.AUTHORITATIVE)
-            NerdStats.pickedBitrateKbps(mediaId) != null ->
-                Pair(NerdStats.pickedBitrateKbps(mediaId), TelemetryProvenance.AUTHORITATIVE)
+            pickedBitrate != null ->
+                Pair(pickedBitrate, TelemetryProvenance.AUTHORITATIVE)
             dsd == null && isRawPcm && pcmDataRate != null ->
                 Pair(pcmDataRate, TelemetryProvenance.DERIVED)
             else ->

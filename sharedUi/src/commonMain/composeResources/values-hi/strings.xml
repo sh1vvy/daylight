@@ -220,4 +220,11 @@
     <string name="quality_best_available_description">Best available YouTube Music audio</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
+    <string name="lossless_beta_checking">लॉसलेस ऑडियो की जाँच…</string>
+    <string name="lossless_beta_timeout">लॉसलेस बीटा: स्रोत ने बहुत समय लिया</string>
+    <string name="lossless_beta_no_match">लॉसलेस बीटा: सत्यापित रिकॉर्डिंग नहीं मिली</string>
+    <string name="lossless_beta_not_flac">लॉसलेस बीटा: मिली फ़ाइल FLAC नहीं है</string>
+    <string name="lossless_beta_missing_metadata">लॉसलेस बीटा: मूल अवधि उपलब्ध नहीं है</string>
+    <string name="lossless_beta_ineligible">लॉसलेस बीटा: Wi-Fi पर Jam के बाहर ऑडियो चाहिए</string>
+    <string name="lossless_beta_unavailable">लॉसलेस बीटा: स्रोत उपलब्ध नहीं है</string>
 </resources>

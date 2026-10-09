@@ -184,6 +184,7 @@ class AudioPipelineTest {
     fun `forgetLastSession clears all recorded sources and snapshots`() {
         NerdStats.recordSource("track-1", "YouTube")
         NerdStats.recordSource("track-2", "JioSaavn")
+        NerdStats.onLosslessBetaStatus("track-1", NerdStats.LosslessBetaStatus.NO_MATCH)
         NerdStats.current.value = NerdStats.Snapshot(
             mimeType = "audio/flac",
             bitrateKbps = 1411,
@@ -197,6 +198,23 @@ class AudioPipelineTest {
         assertNull(NerdStats.current.value)
         assertNull(NerdStats.sourceFor("track-1"))
         assertNull(NerdStats.sourceFor("track-2"))
+        assertTrue(NerdStats.losslessBetaStatus.value.isEmpty())
+    }
+
+    @Test fun `YouTube warmup bitrate does not leak into a different lossless rendition`() {
+        NerdStats.onStreamPicked("track-1", 141)
+        assertEquals(141, NerdStats.pickedBitrateKbps("track-1", "audio/opus"))
+        assertNull(NerdStats.pickedBitrateKbps("track-1", "audio/flac"))
+        assertNull(NerdStats.pickedBitrateKbps("track-1", "audio/alac"))
+    }
+
+    @Test fun `beta diagnostics stay bounded and isolated from next-track lookups`() {
+        NerdStats.onLosslessBetaStatus("playing", NerdStats.LosslessBetaStatus.VERIFIED)
+        NerdStats.onLosslessBetaStatus("next", NerdStats.LosslessBetaStatus.TIMED_OUT)
+        assertEquals(NerdStats.LosslessBetaStatus.VERIFIED, NerdStats.losslessBetaStatus.value["playing"])
+        repeat(200) { NerdStats.onLosslessBetaStatus("track-$it", NerdStats.LosslessBetaStatus.NO_MATCH) }
+        assertEquals(64, NerdStats.losslessBetaStatus.value.size)
+        assertEquals(NerdStats.LosslessBetaStatus.NO_MATCH, NerdStats.losslessBetaStatus.value["track-199"])
     }
 
     // ── Dynamic Source Transition & Leak Prevention ────────────────────────

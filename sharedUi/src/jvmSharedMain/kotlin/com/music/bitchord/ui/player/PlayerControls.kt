@@ -304,12 +304,14 @@ internal fun PlaybackQualityLabel(
     // should keep saying "loading" through that stretch rather than going
     // blank only to possibly say "loading" again a moment later.
     val racingLossless by NerdStats.racingLossless.collectAsStateWithLifecycle()
+    val betaStatuses by NerdStats.losslessBetaStatus.collectAsStateWithLifecycle()
     LosslessOrStats(
         isLoading = isLoading,
         stillRacing = song.videoId in racingLossless,
         losslessRequested = effectiveQuality == AudioQuality.LOSSLESS,
         effectiveQuality = effectiveQuality,
         nerdStats = nerdStats,
+        betaStatus = betaStatuses[song.videoId],
         modifier = modifier,
     )
 }
@@ -323,6 +325,7 @@ internal fun SleeveNerdStats(song: Song, modifier: Modifier = Modifier) {
     val showNerdStats by PlayerSettings.showNerdStats.collectAsStateWithLifecycle()
     if (!showNerdStats) return
     val nerdStats by NerdStats.current.collectAsStateWithLifecycle()
+    val betaStatuses by NerdStats.losslessBetaStatus.collectAsStateWithLifecycle()
     val smartFadeOn by PlayerSettings.smartFadeEnabled.collectAsStateWithLifecycle()
     val smartAnalysis by PlayerSettings.smartAnalysis.collectAsStateWithLifecycle()
     // A party doesn't mix, and doesn't analyse for one either — see
@@ -359,6 +362,22 @@ internal fun SleeveNerdStats(song: Song, modifier: Modifier = Modifier) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
+            )
+        }
+        betaStatuses[song.videoId]?.takeIf { it.isFallback }?.let { status ->
+            Text(
+                text = stringResource(when (status) {
+                    NerdStats.LosslessBetaStatus.TIMED_OUT -> Res.string.lossless_beta_timeout
+                    NerdStats.LosslessBetaStatus.NO_MATCH -> Res.string.lossless_beta_no_match
+                    NerdStats.LosslessBetaStatus.NOT_FLAC -> Res.string.lossless_beta_not_flac
+                    NerdStats.LosslessBetaStatus.MISSING_METADATA -> Res.string.lossless_beta_missing_metadata
+                    NerdStats.LosslessBetaStatus.INELIGIBLE -> Res.string.lossless_beta_ineligible
+                    else -> Res.string.lossless_beta_unavailable
+                }),
+                style = nerdStyle,
+                color = Color.White.copy(alpha = 0.65f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         // Only when Automix is actually switched on: otherwise this would
@@ -1420,9 +1439,16 @@ private fun LosslessOrStats(
     losslessRequested: Boolean,
     effectiveQuality: AudioQuality,
     nerdStats: NerdStats.Snapshot?,
+    betaStatus: NerdStats.LosslessBetaStatus?,
     modifier: Modifier = Modifier,
 ) {
     when {
+        (betaStatus == NerdStats.LosslessBetaStatus.CHECKING && nerdStats?.isLossless != true) ||
+            (betaStatus == NerdStats.LosslessBetaStatus.VERIFIED && nerdStats?.mimeType == null) -> LosslessLabel(
+            text = stringResource(Res.string.lossless_beta_checking),
+            animated = false,
+            modifier = modifier,
+        )
         // Still resolving — either the player itself is buffering, or a
         // module is still racing YouTube for this track in the background
         // (see [NerdStats.racingLossless]) even though YouTube already won
@@ -1484,6 +1510,11 @@ private fun LosslessOrStats(
             text = "Dolby Atmos",
             animated = true,
             iconPainter = painterResource(Res.drawable.ic_dolby_atmos),
+            modifier = modifier,
+        )
+        betaFallbackIsVisible(betaStatus, nerdStats) -> LosslessLabel(
+            text = "YouTube · ${NerdStats.codecLabel(nerdStats?.mimeType)}",
+            animated = false,
             modifier = modifier,
         )
         // Lossy, but the good end of lossy — a module's 320kbps tier, which

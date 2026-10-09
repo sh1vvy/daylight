@@ -1366,4 +1366,5 @@
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
     <string name="lossless_beta">Lossless beta</string>
     <string name="lossless_beta_subtitle">Wypróbuj pasujące pliki FLAC z Monochrome przez Wi-Fi. Dostępność jest zmienna; większe pliki zużywają więcej danych. YouTube jest opcją zapasową. Jamy i pobieranie nadal korzystają z YouTube. Dotyczy nowej kolejki.</string>
+    <string name="lossless_beta_fallback_quality">Zapasowa jakość YouTube: %1$s</string>
 </resources>

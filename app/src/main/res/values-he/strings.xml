@@ -1331,4 +1331,5 @@
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
     <string name="lossless_beta">בטא ללא אובדן</string>
     <string name="lossless_beta_subtitle">ניסיון לנגן FLAC תואם מ-Monochrome ב-Wi-Fi. הזמינות משתנה וקבצים גדולים צורכים יותר נתונים. YouTube הוא הגיבוי. Jams והורדות נשארים ב-YouTube. חל כשמתחילים תור חדש.</string>
+    <string name="lossless_beta_fallback_quality">איכות גיבוי של YouTube: %1$s</string>
 </resources>

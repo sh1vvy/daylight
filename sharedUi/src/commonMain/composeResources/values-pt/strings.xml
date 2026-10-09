@@ -220,4 +220,11 @@
     <string name="quality_best_available_description">Best available YouTube Music audio</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
+    <string name="lossless_beta_checking">Verificando áudio sem perdas…</string>
+    <string name="lossless_beta_timeout">Beta sem perdas: tempo do provedor esgotado</string>
+    <string name="lossless_beta_no_match">Beta sem perdas: nenhuma gravação verificada</string>
+    <string name="lossless_beta_not_flac">Beta sem perdas: arquivo correspondente não é FLAC</string>
+    <string name="lossless_beta_missing_metadata">Beta sem perdas: duração original indisponível</string>
+    <string name="lossless_beta_ineligible">Beta sem perdas: requer áudio fora do Jam por Wi-Fi</string>
+    <string name="lossless_beta_unavailable">Beta sem perdas: fonte indisponível</string>
 </resources>

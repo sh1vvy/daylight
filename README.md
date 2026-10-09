@@ -38,7 +38,7 @@
 | **Find your next favorite** | Search and play music from YouTube Music. Browse albums, artists, and playlists, with optional sign-in for personalized recommendations. |
 | **Keep your music close** | Play local audio, organize your library, and download tracks for offline listening. |
 | **Feel every line** | Follow synchronized lyrics with clear Inter typography, a spacious reading view, and source credits tucked at the bottom. |
-| **Make it feel like you** | Choose light or dark mode, glass controls, and player colors drawn from the artwork. |
+| **Make it feel like you** | Choose light, dark, or Pink Cloud, glass controls, and player colors drawn from the artwork. |
 | **Let the music flow** | Shape playback with crossfade, Automix, an equalizer, queue controls, and a sleep timer. |
 | **Share the moment** | Start a Jam, send a link or code, and listen in sync with your people. |
 | **Little comforts** | Cached artwork, less repeated playlist loading, and update prompts right inside the app. |
@@ -57,9 +57,9 @@ Some music, lyrics, and audio options depend on the provider and your device.
 
 **Android 8.0 or newer.** Download the signed **[daylight.apk](https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk)** from the latest release, then open it to install. Android may ask you to allow installation from your browser.
 
-Already using **Daylight Dev**? Keep that installation and use its in-app update popup, or download the matching **[daylight-dev.apk](https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.3/daylight-dev.apk)**.
+Already using **Daylight Dev**? Keep that installation and use its in-app update popup, or download the matching **[daylight-dev.apk](https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.4/daylight-dev.apk)**.
 
-**New in Dev:** Material 3 Expressive, adaptive Android widgets, and explicit-recording matching for synced lyrics. Explore the new theme in **Settings → Appearance → Theme**. [See the update →](https://github.com/sh1vvy/daylight/releases/tag/v0.2.2-dev.3)
+**New in Dev:** An optional lossless beta, adaptive Android widgets, and explicit-recording matching for synced lyrics. Try **Settings → Playback → Lossless beta**, then start a new queue. It uses verified FLAC on Wi-Fi when available, with YouTube as the fallback. [See the update →](https://github.com/sh1vvy/daylight/releases/tag/v0.2.2-dev.4)
 
 For future updates, fully close and reopen the app. When a newer release is available, Daylight offers a download and opens Android's installer for your confirmation. Android may first ask you to allow installs from Daylight; return to the app and tap Install again afterward.
 
@@ -67,7 +67,7 @@ For future updates, fully close and reopen the app. When a newer release is avai
 
 Want to build, contribute, or see what happens under the covers?
 
-[Development guide](docs/DEVELOPMENT.md) · [Release guide](docs/ANDROID_RELEASES.md) · [Performance notes](docs/PERFORMANCE.md) · [Jam server](cloudflare-jam/README.md)
+[Development guide](docs/DEVELOPMENT.md) · [Release guide](docs/ANDROID_RELEASES.md) · [Performance notes](docs/PERFORMANCE.md) · [Lossless beta notes](docs/LOSSLESS_BETA.md) · [Jam server](cloudflare-jam/README.md)
 
 ## Credits & license
 

@@ -657,7 +657,7 @@ fun Modifier.hangIntoGutter(outset: Dp): Modifier = layout { measurable, constra
 
 /** The accent a current song's title takes in lists that mark it with [SearchPlayingBars]. */
 val PlayingAccent: Color
-    @Composable get() = if (com.music.bitchord.ui.theme.LocalPinkCloud.current || com.music.bitchord.ui.theme.LocalMaterialExpressive.current) MaterialTheme.colorScheme.primary else Color(0xFFFB4A62)
+    @Composable get() = if (com.music.bitchord.ui.theme.LocalPinkCloud.current) MaterialTheme.colorScheme.primary else Color(0xFFFB4A62)
 
 @Composable
 fun SearchPlayingBars(modifier: Modifier = Modifier) {

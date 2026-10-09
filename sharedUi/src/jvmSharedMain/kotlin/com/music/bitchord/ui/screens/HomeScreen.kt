@@ -60,7 +60,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.ui.theme.HomeAtmosphere
 import com.music.bitchord.ui.theme.daylightHomeColorScheme
-import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import com.music.bitchord.ui.theme.LocalPinkCloud
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cached
@@ -154,7 +153,7 @@ fun HomeScreen(
     val shelfKeys = remember(shelves) { homeShelfKeys(shelves) }
     val recentsPending = recentlyPlayedLoading && shelves.none { it.title.equals(RECENTS_TITLE, ignoreCase = true) }
 
-    MaterialTheme(colorScheme = daylightHomeColorScheme(MaterialTheme.colorScheme, LocalPinkCloud.current, LocalMaterialExpressive.current)) {
+    MaterialTheme(colorScheme = daylightHomeColorScheme(MaterialTheme.colorScheme, LocalPinkCloud.current)) {
         Box(modifier = modifier.fillMaxSize()) {
             HomeAtmosphere(Modifier.matchParentSize())
             PullToRefresh(

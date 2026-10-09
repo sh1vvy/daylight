@@ -1,28 +1,15 @@
 package com.music.bitchord.ui.theme
 
 import android.app.Activity
-import android.os.Build
-import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.animation.core.snap
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MotionScheme
-import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.compose.ui.text.TextStyle
@@ -30,11 +17,8 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.R
 import com.music.bitchord.ui.player.LocalLyricsFontFamily
-import com.music.bitchord.data.settings.AppSettings
 
 // Daylight’s warm sunrise accent; the name is retained for shared callers.
 val AccentRed = Color(0xFFB94F10)
@@ -103,61 +87,6 @@ internal val PinkCloudColors = lightColorScheme(
     surfaceContainerLowest = Color(0xFFFFFCFD),
 )
 
-/** A calm jade seed for devices without wallpaper colors. Every elevation has a tonal role. */
-internal val MaterialExpressiveLightColors = lightColorScheme(
-    primary = Color(0xFF006A62), onPrimary = Color.White,
-    primaryContainer = Color(0xFF9EF2E5), onPrimaryContainer = Color(0xFF00201D),
-    secondary = Color(0xFF49645F), onSecondary = Color.White,
-    secondaryContainer = Color(0xFFCCE8E0), onSecondaryContainer = Color(0xFF05201B),
-    tertiary = Color(0xFF765A2F), onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFFFDEAC), onTertiaryContainer = Color(0xFF291800),
-    background = Color(0xFFF4FBF7), onBackground = Color(0xFF171D1B),
-    surface = Color(0xFFF4FBF7), onSurface = Color(0xFF171D1B),
-    surfaceVariant = Color(0xFFDAE5DF), onSurfaceVariant = Color(0xFF3F4945),
-    outline = Color(0xFF6F7974), outlineVariant = Color(0xFFBEC9C3),
-    surfaceTint = Color(0xFF006A62), inverseSurface = Color(0xFF2B322F),
-    inverseOnSurface = Color(0xFFECF2EE), inversePrimary = Color(0xFF81D5C9),
-    surfaceBright = Color(0xFFF4FBF7), surfaceDim = Color(0xFFD5DDD8),
-    surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFEFF5F1),
-    surfaceContainer = Color(0xFFE9EFEB), surfaceContainerHigh = Color(0xFFE3EAE5),
-    surfaceContainerHighest = Color(0xFFDEE4E0),
-)
-
-internal val MaterialExpressiveDarkColors = darkColorScheme(
-    primary = Color(0xFF81D5C9), onPrimary = Color(0xFF003731),
-    primaryContainer = Color(0xFF005048), onPrimaryContainer = Color(0xFF9EF2E5),
-    secondary = Color(0xFFB0CCC4), onSecondary = Color(0xFF1B3530),
-    secondaryContainer = Color(0xFF324B47), onSecondaryContainer = Color(0xFFCCE8E0),
-    tertiary = Color(0xFFE7C18C), onTertiary = Color(0xFF422C05),
-    tertiaryContainer = Color(0xFF5C421B), onTertiaryContainer = Color(0xFFFFDEAC),
-    background = Color(0xFF0F1512), onBackground = Color(0xFFDEE4E0),
-    surface = Color(0xFF0F1512), onSurface = Color(0xFFDEE4E0),
-    surfaceVariant = Color(0xFF3F4945), onSurfaceVariant = Color(0xFFBEC9C3),
-    outline = Color(0xFF89938E), outlineVariant = Color(0xFF3F4945),
-    surfaceTint = Color(0xFF81D5C9), inverseSurface = Color(0xFFDEE4E0),
-    inverseOnSurface = Color(0xFF2B322F), inversePrimary = Color(0xFF006A62),
-    surfaceBright = Color(0xFF353C38), surfaceDim = Color(0xFF0F1512),
-    surfaceContainerLowest = Color(0xFF0A100D), surfaceContainerLow = Color(0xFF171D1A),
-    surfaceContainer = Color(0xFF1B211E), surfaceContainerHigh = Color(0xFF252B28),
-    surfaceContainerHighest = Color(0xFF303633),
-)
-
-private val MaterialExpressiveShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp), small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(20.dp), large = RoundedCornerShape(28.dp),
-    extraLarge = RoundedCornerShape(36.dp),
-)
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-private object ReducedMaterialMotion : MotionScheme {
-    override fun <T> defaultSpatialSpec(): FiniteAnimationSpec<T> = snap()
-    override fun <T> fastSpatialSpec(): FiniteAnimationSpec<T> = snap()
-    override fun <T> slowSpatialSpec(): FiniteAnimationSpec<T> = snap()
-    override fun <T> defaultEffectsSpec(): FiniteAnimationSpec<T> = snap()
-    override fun <T> fastEffectsSpec(): FiniteAnimationSpec<T> = snap()
-    override fun <T> slowEffectsSpec(): FiniteAnimationSpec<T> = snap()
-}
-
 /** Inter 4.1, with its text-size spacing for controls and longer passages. */
 val DaylightFont = FontFamily(
     Font(R.font.inter_regular, FontWeight.Normal),
@@ -203,7 +132,6 @@ private val DaylightTypography = Typography(
 }
 
 /** Applies [family] to every style in the scale, including dialogs and captions. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 private fun Typography.withFamily(family: FontFamily) = Typography(
     displayLarge = displayLarge.copy(fontFamily = family),
     displayMedium = displayMedium.copy(fontFamily = family),
@@ -220,70 +148,27 @@ private fun Typography.withFamily(family: FontFamily) = Typography(
     labelLarge = labelLarge.copy(fontFamily = family),
     labelMedium = labelMedium.copy(fontFamily = family),
     labelSmall = labelSmall.copy(fontFamily = family),
-    displayLargeEmphasized = displayLargeEmphasized.copy(fontFamily = family),
-    displayMediumEmphasized = displayMediumEmphasized.copy(fontFamily = family),
-    displaySmallEmphasized = displaySmallEmphasized.copy(fontFamily = family),
-    headlineLargeEmphasized = headlineLargeEmphasized.copy(fontFamily = family),
-    headlineMediumEmphasized = headlineMediumEmphasized.copy(fontFamily = family),
-    headlineSmallEmphasized = headlineSmallEmphasized.copy(fontFamily = family),
-    titleLargeEmphasized = titleLargeEmphasized.copy(fontFamily = family),
-    titleMediumEmphasized = titleMediumEmphasized.copy(fontFamily = family),
-    titleSmallEmphasized = titleSmallEmphasized.copy(fontFamily = family),
-    bodyLargeEmphasized = bodyLargeEmphasized.copy(fontFamily = family),
-    bodyMediumEmphasized = bodyMediumEmphasized.copy(fontFamily = family),
-    bodySmallEmphasized = bodySmallEmphasized.copy(fontFamily = family),
-    labelLargeEmphasized = labelLargeEmphasized.copy(fontFamily = family),
-    labelMediumEmphasized = labelMediumEmphasized.copy(fontFamily = family),
-    labelSmallEmphasized = labelSmallEmphasized.copy(fontFamily = family),
 )
 
-// Keep Google's standard and emphasized Expressive scales, with Daylight's bundled Inter.
-private val MaterialExpressiveTypography = Typography().withFamily(DaylightFont)
-
-@Composable
-private fun materialExpressiveColors(darkTheme: Boolean): ColorScheme {
-    val context = LocalContext.current
-    return when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && darkTheme -> dynamicDarkColorScheme(context)
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> dynamicLightColorScheme(context)
-        darkTheme -> MaterialExpressiveDarkColors
-        else -> MaterialExpressiveLightColors
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BitChordTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     pinkCloud: Boolean = false,
-    materialExpressive: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val reduceAnimation by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
     CompositionLocalProvider(
         LocalLyricsFontFamily provides DaylightLyricsFont,
         LocalPinkCloud provides pinkCloud,
-        LocalMaterialExpressive provides materialExpressive,
     ) {
-        if (materialExpressive) {
-            MaterialExpressiveTheme(
-                colorScheme = materialExpressiveColors(darkTheme),
-                typography = MaterialExpressiveTypography,
-                shapes = MaterialExpressiveShapes,
-                motionScheme = if (reduceAnimation) ReducedMaterialMotion else MotionScheme.expressive(),
-                content = content,
-            )
-        } else {
-            MaterialTheme(
-                colorScheme = when {
-                    pinkCloud -> PinkCloudColors
-                    darkTheme -> DarkColors
-                    else -> LightColors
-                },
-                typography = DaylightTypography,
-                content = content,
-            )
-        }
+        MaterialTheme(
+            colorScheme = when {
+                pinkCloud -> PinkCloudColors
+                darkTheme -> DarkColors
+                else -> LightColors
+            },
+            typography = DaylightTypography,
+            content = content,
+        )
     }
 }
 

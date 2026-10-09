@@ -1324,7 +1324,6 @@
     <string name="quality_best_available_description">Best available YouTube Music audio</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="material_expressive_theme_name">Material Expressive · बीटा</string>
-    <string name="material_expressive_theme_description">आपके वॉलपेपर के रंग, एक्सप्रेसिव कंट्रोल और सिस्टम के अनुसार लाइट या डार्क मोड।</string>
-    <string name="material_expressive_glass_description">Material Expressive में ठोस सतहों पर रंगों के अलग-अलग शेड इस्तेमाल होते हैं।</string>
+    <string name="lossless_beta">लॉसलेस बीटा</string>
+    <string name="lossless_beta_subtitle">Wi-Fi पर Monochrome से मिलते हुए FLAC आज़माएँ। उपलब्धता बदल सकती है; बड़ी फ़ाइलें अधिक डेटा लेती हैं। विकल्प न मिलने पर YouTube चलेगा। Jam और डाउनलोड YouTube पर रहेंगे। नई कतार शुरू करने पर लागू होगा।</string>
 </resources>

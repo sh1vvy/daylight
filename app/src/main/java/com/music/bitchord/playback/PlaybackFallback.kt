@@ -20,7 +20,7 @@ internal object PlaybackFallback {
         if (parameter(uri, DIRECT_YOUTUBE_PARAMETER) == "1") return false
         if (uri.substringBefore('?').substringBefore('#') == "bitchord://source") return true
         val rendition = parameter(uri, QualityUpgrade.MARKER)
-        return substitutedYouTube || rendition == "hifi" || rendition?.startsWith("hifi-") == true
+        return substitutedYouTube || LosslessPlayback.isTagged(uri) || rendition == "hifi" || rendition?.startsWith("hifi-") == true
     }
 
     /**
@@ -40,6 +40,7 @@ internal object PlaybackFallback {
                     val key = part.substringBefore('=')
                     key != DIRECT_YOUTUBE_PARAMETER &&
                         key != QualityUpgrade.MARKER &&
+                        key != LosslessPlayback.PARAMETER &&
                         key != MANIFEST_REOPEN_PARAMETER
                 }
                 .filter { it.isNotBlank() }

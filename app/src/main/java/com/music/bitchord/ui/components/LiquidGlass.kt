@@ -25,7 +25,6 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import com.music.bitchord.ui.theme.LocalPinkCloud
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
@@ -128,7 +127,7 @@ internal val GLASS_EDGE_COLOR = Color.White.copy(alpha = 0.10f)
  */
 @Composable
 fun glassContentColor(): Color =
-    if (LocalPinkCloud.current || LocalMaterialExpressive.current) MaterialTheme.colorScheme.onSurface
+    if (LocalPinkCloud.current) MaterialTheme.colorScheme.onSurface
     else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color.Black else Color.White
 
 /**
@@ -136,8 +135,7 @@ fun glassContentColor(): Color =
  */
 @Composable
 fun glassIndicatorColor(): Color =
-    if (LocalMaterialExpressive.current) MaterialTheme.colorScheme.primaryContainer
-    else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color.White.copy(alpha = 0.55f)
+    if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color.White.copy(alpha = 0.55f)
     else Color.White.copy(alpha = 0.14f)
 
 /**
@@ -201,7 +199,6 @@ fun Modifier.lightweightLiquidGlass(
  */
 @Composable
 fun Modifier.liquidGlass(shape: CornerBasedShape): Modifier {
-    if (LocalMaterialExpressive.current) return background(MaterialTheme.colorScheme.surfaceContainerHigh, shape)
     if (!isGlassSupported()) return this
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     if (reduceDynamicBlur) {

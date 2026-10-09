@@ -15,7 +15,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.settings.AppSettings
-import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeProgressive
@@ -112,7 +111,7 @@ fun TopFadeBlur(
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     // The bar fills itself solid instead when blur is reduced, so this has
     // nothing left to do.
-    if (reduceDynamicBlur || LocalMaterialExpressive.current) return
+    if (reduceDynamicBlur) return
 
     val height = topBarHeight() + FADE_RUN
     Box(
@@ -202,7 +201,7 @@ fun TopBarBlur(
 ) {
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     // FrostedTopBar supplies the solid surface when dynamic blur is reduced.
-    if (reduceDynamicBlur || LocalMaterialExpressive.current) return
+    if (reduceDynamicBlur) return
 
     Box(
         modifier = modifier

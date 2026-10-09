@@ -224,7 +224,6 @@ internal fun InlineQueue(
     onHidePlayer: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    val playerInk = playerContentColor()
     val listState = rememberLazyListState()
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }.collect(onScrollingChange)
@@ -267,7 +266,7 @@ internal fun InlineQueue(
             Text(
                 text = stringResource(Res.string.queue),
                 style = MaterialTheme.typography.titleLarge,
-                color = playerInk,
+                color = Color.White,
                 modifier = Modifier.weight(1f),
             )
             if (tracks.user.isNotEmpty()) {
@@ -402,12 +401,11 @@ private fun QueueHeading(
     modifier: Modifier = Modifier,
     trailing: @Composable () -> Unit = {},
 ) {
-    val playerInk = playerContentColor()
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            color = playerInk.copy(alpha = 0.75f),
+            color = Color.White.copy(alpha = 0.75f),
             modifier = Modifier.weight(1f),
         )
         trailing()
@@ -416,11 +414,10 @@ private fun QueueHeading(
 
 @Composable
 private fun QueueClearButton(style: TextStyle, locked: Boolean, onClear: () -> Unit) {
-    val playerInk = playerContentColor()
     Text(
         text = stringResource(Res.string.clear),
         style = style,
-        color = playerInk.copy(alpha = if (locked) 0.25f else 0.75f),
+        color = Color.White.copy(alpha = if (locked) 0.25f else 0.75f),
         modifier = Modifier
             .clip(RoundedCornerShape(percent = 50))
             .clickable(enabled = !locked, onClick = onClear)
@@ -430,8 +427,6 @@ private fun QueueClearButton(style: TextStyle, locked: Boolean, onClear: () -> U
 
 @Composable
 private fun AutoplayHeading(hasTracks: Boolean, modifier: Modifier = Modifier) {
-    val playerSecondaryInk = playerSecondaryContentColor()
-    val playerInk = playerContentColor()
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -441,7 +436,7 @@ private fun AutoplayHeading(hasTracks: Boolean, modifier: Modifier = Modifier) {
         Icon(
             BitChordIcons.Infinity,
             contentDescription = null,
-            tint = playerInk.copy(alpha = 0.75f),
+            tint = Color.White.copy(alpha = 0.75f),
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(8.dp))
@@ -449,14 +444,14 @@ private fun AutoplayHeading(hasTracks: Boolean, modifier: Modifier = Modifier) {
             Text(
                 text = stringResource(Res.string.autoplay),
                 style = MaterialTheme.typography.titleMedium,
-                color = playerInk,
+                color = Color.White,
             )
             Text(
                 text = stringResource(
                     if (hasTracks) Res.string.autoplay_queue_description else Res.string.autoplay_empty_description,
                 ),
                 style = MaterialTheme.typography.bodyMedium,
-                color = playerSecondaryInk,
+                color = Color.White.copy(alpha = 0.55f),
             )
         }
     }
@@ -708,13 +703,11 @@ private fun InlineQueueRow(
     onDrag: (Float) -> Unit = {},
     onDragEnd: () -> Unit = {},
 ) {
-    val playerSecondaryInk = playerSecondaryContentColor()
-    val playerInk = playerContentColor()
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(if (lifted) playerInk.copy(alpha = 0.06f) else Color.Transparent)
+            .background(if (lifted) Color.White.copy(alpha = 0.06f) else Color.Transparent)
             // Disabled rather than ignored: a tap that ripples and then does
             // nothing reads as the app having missed it.
             .clickable(enabled = !locked, onClick = onClick)
@@ -725,7 +718,7 @@ private fun InlineQueueRow(
             Icon(
                 Icons.Rounded.DragHandle,
                 contentDescription = stringResource(Res.string.drag_to_reorder),
-                tint = playerInk.copy(alpha = 0.4f),
+                tint = Color.White.copy(alpha = 0.4f),
                 modifier = Modifier
                     .size(20.dp)
                     // The glyph sits well inset in its own box; this pulls it
@@ -752,19 +745,19 @@ private fun InlineQueueRow(
                 .size(44.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .thumbnailBorder(RoundedCornerShape(6.dp))
-                .background(playerInk.copy(alpha = 0.08f)),
+                .background(Color.White.copy(alpha = 0.08f)),
         )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             ExplicitSongTitle(
                 song = song,
                 style = MaterialTheme.typography.titleMedium,
-                color = if (isCurrent) playerInk else playerInk.copy(alpha = 0.92f),
+                color = if (isCurrent) Color.White else Color.White.copy(alpha = 0.92f),
             )
             Text(
                 text = song.artist,
                 style = MaterialTheme.typography.bodyMedium,
-                color = playerSecondaryInk,
+                color = Color.White.copy(alpha = 0.55f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -773,7 +766,7 @@ private fun InlineQueueRow(
             Icon(
                 Icons.Rounded.GraphicEq,
                 contentDescription = stringResource(Res.string.now_playing),
-                tint = playerInk,
+                tint = Color.White,
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(10.dp))
@@ -789,7 +782,7 @@ private fun InlineQueueRow(
                 Icon(
                     Icons.Rounded.Close,
                     contentDescription = stringResource(Res.string.remove_from_queue),
-                    tint = playerSecondaryInk,
+                    tint = Color.White.copy(alpha = 0.55f),
                     modifier = Modifier.size(18.dp),
                 )
             }

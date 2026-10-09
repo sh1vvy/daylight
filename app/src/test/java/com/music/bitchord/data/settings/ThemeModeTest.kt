@@ -17,8 +17,8 @@ class ThemeModeTest {
     }
 
     @Test
-    fun materialExpressiveRestoresWithoutChangingExistingThemes() {
-        assertEquals(ThemeMode.MATERIAL_EXPRESSIVE, ThemeMode.fromPersistedName("MATERIAL_EXPRESSIVE"))
+    fun retiredMaterialExpressiveMigratesToSystem() {
+        assertEquals(ThemeMode.SYSTEM, ThemeMode.fromPersistedName("MATERIAL_EXPRESSIVE"))
     }
 
     @Test

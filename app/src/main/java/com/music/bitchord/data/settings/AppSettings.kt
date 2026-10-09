@@ -96,13 +96,12 @@ enum class DownloadQuality(
 }
 
 enum class ThemeMode(val label: String) {
-    SYSTEM("System"), LIGHT("Light"), DARK("Dark"), PINK_CLOUD("Pink Cloud"),
-    MATERIAL_EXPRESSIVE("Material Expressive");
+    SYSTEM("System"), LIGHT("Light"), DARK("Dark"), PINK_CLOUD("Pink Cloud");
 
     companion object {
-        /** Existing installs and unknown future theme names retain the dark default. */
+        /** Retired Expressive installs migrate to System; unknown theme names retain Dark. */
         fun fromPersistedName(name: String?): ThemeMode =
-            entries.firstOrNull { it.name == name } ?: DARK
+            if (name == "MATERIAL_EXPRESSIVE") SYSTEM else entries.firstOrNull { it.name == name } ?: DARK
     }
 }
 
@@ -298,6 +297,7 @@ object AppSettings {
      * quietly rewriting itself.
      */
     val dolbyAtmos = MutableStateFlow(true)
+    val losslessBeta = MutableStateFlow(false)
 
     /**
      * Widens stereo output via [com.music.bitchord.playback.SpatialAudioProcessor],
@@ -789,6 +789,7 @@ object AppSettings {
         loudnessNormalization.value = prefs.getBoolean(KEY_LOUDNESS_NORMALIZATION, true)
         loudnessOffOnSpeaker.value = prefs.getBoolean(KEY_LOUDNESS_OFF_ON_SPEAKER, true)
         dolbyAtmos.value = prefs.getBoolean(KEY_DOLBY_ATMOS, true)
+        losslessBeta.value = prefs.getBoolean(KEY_LOSSLESS_BETA, false)
         spatialAudio.value = prefs.getBoolean(KEY_SPATIAL_AUDIO, false)
         equalizerEnabled.value = prefs.getBoolean(KEY_EQ_ENABLED, false)
         equalizerMode.value = runCatching {
@@ -801,7 +802,11 @@ object AppSettings {
         equalizerBands.value = readEqualizerBands()
         equalizerPreset.value = EqualizerPreset.matching(equalizerBands.value)
         playbackSpeed.value = prefs.getFloat(KEY_SPEED, 1.0f)
-        themeMode.value = ThemeMode.fromPersistedName(prefs.getString(KEY_THEME, null))
+        val savedTheme = prefs.getString(KEY_THEME, null)
+        themeMode.value = ThemeMode.fromPersistedName(savedTheme)
+        if (savedTheme == "MATERIAL_EXPRESSIVE") {
+            prefs.edit().putString(KEY_THEME, ThemeMode.SYSTEM.name).apply()
+        }
         autoplay.value = prefs.getBoolean(KEY_AUTOPLAY, true)
         shuffleEnabled.value = prefs.getBoolean(KEY_SHUFFLE_ENABLED, false)
         repeatMode.value = prefs.getInt(KEY_REPEAT_MODE, Player.REPEAT_MODE_OFF)
@@ -1072,6 +1077,11 @@ object AppSettings {
     fun setDolbyAtmos(value: Boolean) {
         dolbyAtmos.value = value
         prefs.edit().putBoolean(KEY_DOLBY_ATMOS, value).apply()
+    }
+
+    fun setLosslessBeta(value: Boolean) {
+        losslessBeta.value = value
+        prefs.edit().putBoolean(KEY_LOSSLESS_BETA, value).apply()
     }
 
     fun setSpatialAudio(value: Boolean) {
@@ -1888,6 +1898,7 @@ object AppSettings {
     private const val KEY_LOUDNESS_NORMALIZATION = "loudness_normalization"
     private const val KEY_LOUDNESS_OFF_ON_SPEAKER = "loudness_off_on_speaker"
     private const val KEY_DOLBY_ATMOS = "dolby_atmos"
+    private const val KEY_LOSSLESS_BETA = "lossless_beta"
     private const val KEY_SPATIAL_AUDIO = "spatial_audio"
     private const val KEY_EQ_ENABLED = "equalizer_enabled"
     private const val KEY_EQ_MODE = "equalizer_mode"

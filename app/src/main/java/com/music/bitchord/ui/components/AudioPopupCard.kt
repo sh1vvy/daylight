@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import com.music.bitchord.ui.theme.LocalPinkCloud
-import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,10 +40,6 @@ private val POPUP_SCRIM_COLOR = Color.Black.copy(alpha = 0.4f)
 private val POPUP_WIDTH = 320.dp
 private val POPUP_CONTENT_MAX_HEIGHT = 420.dp
 
-@Composable
-internal fun audioPopupContentColor(): Color =
-    if (LocalMaterialExpressive.current) MaterialTheme.colorScheme.onSurface else Color.White
-
 /**
  * The frosted card the output drawer's popups open into — the one
  * [AudioPipelineDialog] was drawn in, lifted out so the Cast picker is the same
@@ -52,7 +47,9 @@ internal fun audioPopupContentColor(): Color =
  *
  * A scrim that dismisses, a card that swallows the tap so touching it does not,
  * a centred title and subtitle, a scrolling body, and a full-width closing
- * action. Matches the player's artwork palette, or native tonal surfaces in Material Expressive.
+ * action. Fixed to the player's own dark palette rather than the theme-adaptive
+ * one the settings dialogs use, since everything on the player is white alphas
+ * whatever the app's light/dark theme is.
  *
  * [content] is the scrolling body, handed a [BoxScope] so a body can lay
  * something behind its rows — the pipeline draws its signal line there.
@@ -68,14 +65,8 @@ internal fun AudioPopupCard(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val playerInk = audioPopupContentColor()
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val materialExpressive = LocalMaterialExpressive.current
-    val popupColor = when {
-        materialExpressive -> MaterialTheme.colorScheme.surfaceContainerHigh
-        LocalPinkCloud.current -> Color(0xFF331C2B)
-        else -> Color(0xFF121212)
-    }
+    val popupColor = if (LocalPinkCloud.current) Color(0xFF331C2B) else Color(0xFF121212)
 
     Box(
         modifier = modifier
@@ -94,7 +85,7 @@ internal fun AudioPopupCard(
                 .width(POPUP_WIDTH)
                 .clip(POPUP_CARD_SHAPE)
                 .then(
-                    if (reduceDynamicBlur || materialExpressive) {
+                    if (reduceDynamicBlur) {
                         Modifier.background(popupColor)
                     } else {
                         Modifier
@@ -125,7 +116,7 @@ internal fun AudioPopupCard(
                         fontSize = 17.sp,
                         fontWeight = FontWeight.W600,
                     ),
-                    color = playerInk,
+                    color = Color.White,
                     textAlign = TextAlign.Center,
                 )
                 Text(
@@ -135,7 +126,7 @@ internal fun AudioPopupCard(
                         fontSize = 13.sp,
                         lineHeight = 17.sp,
                     ),
-                    color = playerInk.copy(alpha = 0.7f),
+                    color = Color.White.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
                 )
             }

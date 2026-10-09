@@ -1,10 +1,6 @@
 package com.music.bitchord.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import dev.chrisbanes.haze.ExperimentalHazeApi
 import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeInputScale
@@ -26,18 +22,11 @@ import dev.chrisbanes.haze.hazeEffect
  * for could not be seen either way. [block] can still override it per call site.
  */
 @OptIn(ExperimentalHazeApi::class)
-@Composable
 fun Modifier.optimizedHazeEffect(
     state: HazeState,
     style: HazeStyle = HazeStyle.Unspecified,
     block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier {
-    if (LocalMaterialExpressive.current) {
-        // An alpha-only backdrop is a scrim, not a card; preserve the visible page beneath it.
-        return if (block != null) this else background(MaterialTheme.colorScheme.surfaceContainerHigh)
-    }
-    return hazeEffect(state, style) {
-        inputScale = HazeInputScale.Fixed(0.33f)
-        block?.invoke(this)
-    }
+): Modifier = hazeEffect(state, style) {
+    inputScale = HazeInputScale.Fixed(0.33f)
+    block?.invoke(this)
 }

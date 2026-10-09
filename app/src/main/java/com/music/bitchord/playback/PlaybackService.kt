@@ -691,6 +691,7 @@ class PlaybackService : MediaLibraryService() {
      * [resolveForCast]. Null until [onCreate] has built it.
      */
     private var streamResolver: ResolvingDataSource.Resolver? = null
+    private val losslessPlayback = LosslessPlayback()
 
     /**
      * What plays on a Cast receiver, when the music is on one. The phone's
@@ -1352,6 +1353,32 @@ class PlaybackService : MediaLibraryService() {
                     .setHttpRequestHeaders(headers)
                     .build()
             }
+            if (LosslessPlayback.isTagged(dataSpec.uri.toString())) {
+                val stream = runBlocking(about) {
+                    withTimeout(RESOLVE_TIMEOUT_MS) {
+                        losslessPlayback.resolve(
+                            key = dataSpec.uri.toString(),
+                            target = SourceResolver.targetIn(dataSpec.uri),
+                            enabled = AppSettings.losslessBeta.value,
+                            metered = AppSettings.meteredConnection.value != false,
+                            inParty = ListenTogether.state.value.inParty,
+                            stillEligible = { LosslessPlayback.eligible(AppSettings.losslessBeta.value,
+                                AppSettings.meteredConnection.value != false, ListenTogether.state.value.inParty, false) },
+                            youtube = {
+                                val url = StreamResolver.resolve(videoId)
+                                SourceStream(url, headers = StreamResolver.mediaHeadersFor(url))
+                            },
+                        )
+                    }
+                }
+                val sourceName = if (stream.sourceConfigId == LosslessPlayback.SOURCE_ID) "Lossless beta" else "YouTube"
+                TrackLog.d("LOSSLESS", "$videoId -> $sourceName ${stream.format.summary}", about = videoId)
+                if (stream.format != StreamFormat()) NerdStats.onSourceStream(videoId, stream.format, sourceName)
+                else NerdStats.clearDeclared(videoId)
+                NerdStats.recordSource(videoId, sourceName)
+                return@Resolver dataSpec.buildUpon().setUri(Uri.parse(stream.url))
+                    .setHttpRequestHeaders(stream.headers).build()
+            }
             // An upgraded item carries a marker and its stream has already
             // been found — see [QualityUpgrade]. Answered before anything
             // else, and without re-resolving: this exact URL is what the
@@ -1622,6 +1649,32 @@ class PlaybackService : MediaLibraryService() {
         // After the player exists and before the session is built: the
         // session's wrapper reports the user's actions to it.
         partySync = PartySync(scope) { player }.also { it.start() }
+        scope.launch {
+            ListenTogether.state.map { it.inParty }.distinctUntilChanged().collect { inParty ->
+                if (!inParty) return@collect
+                val live = player ?: return@collect
+                val current = live.currentMediaItemIndex
+                val position = live.currentPosition
+                var reopened = false
+                for (index in 0 until live.mediaItemCount) {
+                    val item = live.getMediaItemAt(index)
+                    if (!LosslessPlayback.isTagged(item.localConfiguration?.uri.toString())) continue
+                    // Preserve metadata/queue identity without rechecking every song's local file.
+                    val youtube = item.buildUpon()
+                        .setUri(PlaybackFallback.directYouTubeSourceUri(item.localConfiguration!!.uri.toString()))
+                        .setMimeType(null).build()
+                    if (index == current) {
+                        swappingMediaId = item.mediaId
+                        reopened = true
+                    }
+                    live.replaceMediaItem(index, youtube)
+                }
+                if (reopened) {
+                    live.seekTo(current, position)
+                    live.prepare()
+                }
+            }
+        }
         // AutoPlay has one shared supplier in a party. The host supplies it
         // while connected; if they disappear, the lowest stable connected member
         // ID takes over. That election is deterministic on every phone, so two
@@ -1685,7 +1738,11 @@ class PlaybackService : MediaLibraryService() {
      * does, so the receiver is handed the URL the phone would have played.
      */
     private suspend fun resolveForCast(item: MediaItem): CastStream? = withContext(Dispatchers.IO) {
-        val uri = item.localConfiguration?.uri ?: return@withContext null
+        val originalUri = item.localConfiguration?.uri ?: return@withContext null
+        // Receiver formats/access have not been qualified for the beta; preserve existing Cast playback.
+        val uri = if (LosslessPlayback.isTagged(originalUri.toString())) {
+            item.toYouTubeFallbackMediaItem()?.localConfiguration?.uri ?: return@withContext null
+        } else originalUri
         val resolver = streamResolver ?: return@withContext null
         val resolved = resolver.resolveDataSpec(DataSpec(uri)).uri
         if (resolved.scheme != "http" && resolved.scheme != "https") {

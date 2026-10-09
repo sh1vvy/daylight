@@ -132,8 +132,6 @@ internal fun AudioOutputSheet(
  */
 @Composable
 private fun AudioPipelineRow(onClick: () -> Unit) {
-    val playerSecondaryInk = playerSecondaryContentColor()
-    val playerInk = playerContentColor()
     val haptics = rememberHaptics()
     val outputFormat by PlayerPlatform.host.outputFormat.collectAsStateWithLifecycle()
     val subtitle = outputFormat.summary
@@ -142,7 +140,7 @@ private fun AudioPipelineRow(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(ROW_SHAPE)
-            .background(playerInk.copy(alpha = 0.05f))
+            .background(Color.White.copy(alpha = 0.05f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -157,13 +155,13 @@ private fun AudioPipelineRow(onClick: () -> Unit) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(playerInk.copy(alpha = 0.08f)),
+                .background(Color.White.copy(alpha = 0.08f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Rounded.GraphicEq,
                 contentDescription = null,
-                tint = playerInk.copy(alpha = 0.7f),
+                tint = Color.White.copy(alpha = 0.7f),
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -172,7 +170,7 @@ private fun AudioPipelineRow(onClick: () -> Unit) {
             Text(
                 text = stringResource(Res.string.audio_pipeline),
                 style = MaterialTheme.typography.bodyLarge,
-                color = playerInk.copy(alpha = 0.85f),
+                color = Color.White.copy(alpha = 0.85f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -180,7 +178,7 @@ private fun AudioPipelineRow(onClick: () -> Unit) {
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.labelMedium,
-                color = playerSecondaryInk,
+                color = Color.White.copy(alpha = 0.55f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -188,7 +186,7 @@ private fun AudioPipelineRow(onClick: () -> Unit) {
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
             contentDescription = null,
-            tint = playerInk.copy(alpha = 0.35f),
+            tint = Color.White.copy(alpha = 0.35f),
             modifier = Modifier.size(20.dp),
         )
     }
@@ -201,15 +199,13 @@ private fun AudioPipelineRow(onClick: () -> Unit) {
  */
 @Composable
 private fun CastRow(cast: CastUi, onClick: () -> Unit) {
-    val playerSecondaryInk = playerSecondaryContentColor()
-    val playerInk = playerContentColor()
     val haptics = rememberHaptics()
     val casting = cast.connectedName != null
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(ROW_SHAPE)
-            .background(playerInk.copy(alpha = if (casting) 0.10f else 0.05f))
+            .background(Color.White.copy(alpha = if (casting) 0.10f else 0.05f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -224,13 +220,13 @@ private fun CastRow(cast: CastUi, onClick: () -> Unit) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(playerInk.copy(alpha = if (casting) 0.16f else 0.08f)),
+                .background(Color.White.copy(alpha = if (casting) 0.16f else 0.08f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = if (casting) Icons.Rounded.CastConnected else Icons.Rounded.Cast,
                 contentDescription = null,
-                tint = playerInk.copy(alpha = if (casting) 1f else 0.7f),
+                tint = Color.White.copy(alpha = if (casting) 1f else 0.7f),
                 modifier = Modifier.size(21.dp),
             )
         }
@@ -241,7 +237,7 @@ private fun CastRow(cast: CastUi, onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = if (casting) FontWeight.SemiBold else FontWeight.Normal,
                 ),
-                color = playerInk.copy(alpha = if (casting) 1f else 0.85f),
+                color = Color.White.copy(alpha = if (casting) 1f else 0.85f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -255,7 +251,7 @@ private fun CastRow(cast: CastUi, onClick: () -> Unit) {
                     },
                 ),
                 style = MaterialTheme.typography.labelMedium,
-                color = playerSecondaryInk,
+                color = Color.White.copy(alpha = 0.55f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -263,7 +259,7 @@ private fun CastRow(cast: CastUi, onClick: () -> Unit) {
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
             contentDescription = null,
-            tint = playerInk.copy(alpha = 0.35f),
+            tint = Color.White.copy(alpha = 0.35f),
             modifier = Modifier.size(20.dp),
         )
     }
@@ -279,15 +275,13 @@ private fun OutputRow(
     accountName: String?,
     onSelect: () -> Unit,
 ) {
-    val playerSecondaryInk = playerSecondaryContentColor()
-    val playerInk = playerContentColor()
     val haptics = rememberHaptics()
     val active = device.isActive
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(ROW_SHAPE)
-            .background(playerInk.copy(alpha = if (active) 0.10f else 0.05f))
+            .background(Color.White.copy(alpha = if (active) 0.10f else 0.05f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -303,13 +297,13 @@ private fun OutputRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(playerInk.copy(alpha = if (active) 0.16f else 0.08f)),
+                .background(Color.White.copy(alpha = if (active) 0.16f else 0.08f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = iconFor(device.kind),
                 contentDescription = null,
-                tint = playerInk.copy(alpha = if (active) 1f else 0.7f),
+                tint = Color.White.copy(alpha = if (active) 1f else 0.7f),
                 modifier = Modifier.size(21.dp),
             )
         }
@@ -320,7 +314,7 @@ private fun OutputRow(
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
                 ),
-                color = playerInk.copy(alpha = if (active) 1f else 0.85f),
+                color = Color.White.copy(alpha = if (active) 1f else 0.85f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -329,7 +323,7 @@ private fun OutputRow(
                 Text(
                     text = stringResource(Res.string.audio_output_playing),
                     style = MaterialTheme.typography.labelMedium,
-                    color = playerSecondaryInk,
+                    color = Color.White.copy(alpha = 0.55f),
                 )
             }
         }
@@ -337,7 +331,7 @@ private fun OutputRow(
             Icon(
                 imageVector = Icons.Rounded.Check,
                 contentDescription = null,
-                tint = playerInk,
+                tint = Color.White,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -360,7 +354,6 @@ private fun OutputRow(
  */
 @Composable
 private fun VolumeRow(routeKey: Any) {
-    val playerInk = playerContentColor()
     val system = PlayerPlatform.host.volume
     val systemLevel by system.level.collectAsStateWithLifecycle()
     var level by remember(system) { mutableFloatStateOf(systemLevel) }
@@ -384,14 +377,14 @@ private fun VolumeRow(routeKey: Any) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(ROW_SHAPE)
-            .background(playerInk.copy(alpha = 0.05f))
+            .background(Color.White.copy(alpha = 0.05f))
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = if (level > 0f) Icons.AutoMirrored.Rounded.VolumeUp else Icons.AutoMirrored.Rounded.VolumeOff,
             contentDescription = null,
-            tint = playerInk.copy(alpha = 0.6f),
+            tint = Color.White.copy(alpha = 0.6f),
             modifier = Modifier.size(20.dp),
         )
         Spacer(Modifier.width(12.dp))

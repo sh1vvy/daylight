@@ -1307,7 +1307,6 @@
     <string name="quality_best_available_description">Best available YouTube Music audio</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="material_expressive_theme_name">Material Expressive · เบต้า</string>
-    <string name="material_expressive_theme_description">สีจากวอลเปเปอร์ ปุ่มควบคุมที่มีชีวิตชีวา และโหมดสว่างหรือมืดตามระบบ</string>
-    <string name="material_expressive_glass_description">Material Expressive ใช้พื้นผิวทึบพร้อมเฉดสี</string>
+    <string name="lossless_beta">Lossless เบต้า</string>
+    <string name="lossless_beta_subtitle">ลอง FLAC ที่ตรงกันจาก Monochrome ผ่าน Wi-Fi เพลงอาจไม่มีในระบบและไฟล์ใหญ่ใช้ข้อมูลมากขึ้น โดยใช้ YouTube เป็นตัวสำรอง Jam และการดาวน์โหลดยังคงใช้ YouTube มีผลเมื่อเริ่มคิวใหม่</string>
 </resources>

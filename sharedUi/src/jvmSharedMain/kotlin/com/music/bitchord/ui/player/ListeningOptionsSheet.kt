@@ -84,15 +84,13 @@ private fun ListeningOptionRow(
     subtitle: String?,
     onClick: () -> Unit,
 ) {
-    val playerSecondaryInk = playerSecondaryContentColor()
-    val playerInk = playerContentColor()
     val haptics = rememberHaptics()
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .clip(ROW_SHAPE)
-            .background(playerInk.copy(alpha = 0.05f))
+            .background(Color.White.copy(alpha = 0.05f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -106,7 +104,7 @@ private fun ListeningOptionRow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = playerInk.copy(alpha = 0.85f),
+            tint = Color.White.copy(alpha = 0.85f),
             modifier = Modifier.size(24.dp),
         )
         Spacer(Modifier.width(16.dp))
@@ -114,7 +112,7 @@ private fun ListeningOptionRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = playerInk,
+                color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -123,7 +121,7 @@ private fun ListeningOptionRow(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = playerSecondaryInk,
+                    color = Color.White.copy(alpha = 0.55f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -133,7 +131,7 @@ private fun ListeningOptionRow(
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
             contentDescription = null,
-            tint = playerInk.copy(alpha = 0.45f),
+            tint = Color.White.copy(alpha = 0.45f),
             modifier = Modifier.size(24.dp),
         )
     }

@@ -101,7 +101,6 @@ private fun LyricsProviderRow(
     current: Boolean,
     onClick: () -> Unit,
 ) {
-    val playerInk = playerContentColor()
     val haptics = rememberHaptics()
     // A running automatic request can still be selected: it is marked as the
     // requested source and applied when that same in-flight call completes.
@@ -118,7 +117,7 @@ private fun LyricsProviderRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(ROW_SHAPE)
-            .background(playerInk.copy(alpha = if (current) 0.10f else 0.05f))
+            .background(Color.White.copy(alpha = if (current) 0.10f else 0.05f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -134,31 +133,31 @@ private fun LyricsProviderRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(playerInk.copy(alpha = if (current) 0.16f else 0.08f)),
+                .background(Color.White.copy(alpha = if (current) 0.16f else 0.08f)),
             contentAlignment = Alignment.Center,
         ) {
             when {
                 state == LyricsProviderState.FETCHING -> CircularProgressIndicator(
-                    color = playerInk.copy(alpha = 0.8f),
+                    color = Color.White.copy(alpha = 0.8f),
                     strokeWidth = 2.dp,
                     modifier = Modifier.size(20.dp),
                 )
                 current || state == LyricsProviderState.FOUND -> Icon(
                     imageVector = Icons.Rounded.Check,
                     contentDescription = null,
-                    tint = playerInk.copy(alpha = if (current) 1f else 0.75f),
+                    tint = Color.White.copy(alpha = if (current) 1f else 0.75f),
                     modifier = Modifier.size(21.dp),
                 )
                 state == LyricsProviderState.NOT_FOUND -> Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = null,
-                    tint = playerInk.copy(alpha = 0.4f),
+                    tint = Color.White.copy(alpha = 0.4f),
                     modifier = Modifier.size(20.dp),
                 )
                 else -> Icon(
                     imageVector = Icons.Rounded.Search,
                     contentDescription = null,
-                    tint = playerInk.copy(alpha = 0.7f),
+                    tint = Color.White.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -170,14 +169,14 @@ private fun LyricsProviderRow(
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = if (current) FontWeight.SemiBold else FontWeight.Normal,
                 ),
-                color = playerInk.copy(alpha = if (current) 1f else 0.85f),
+                color = Color.White.copy(alpha = if (current) 1f else 0.85f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = status,
                 style = MaterialTheme.typography.labelMedium,
-                color = playerInk.copy(alpha = if (current) 0.7f else 0.5f),
+                color = Color.White.copy(alpha = if (current) 0.7f else 0.5f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

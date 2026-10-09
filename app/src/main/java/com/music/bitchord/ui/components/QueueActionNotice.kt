@@ -24,7 +24,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.settings.AppSettings
-import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import com.music.bitchord.ui.theme.LocalPinkCloud
 
 /** A unique queue result, so repeating the same action restarts its lifetime. */
@@ -57,9 +56,9 @@ fun QueueActionNoticeHost(
     ) { current ->
         if (current != null) {
             Surface(
-                color = if (LocalPinkCloud.current || LocalMaterialExpressive.current) MaterialTheme.colorScheme.inverseSurface else Color(0xFF282828),
-                contentColor = if (LocalMaterialExpressive.current) MaterialTheme.colorScheme.inverseOnSurface else Color.White,
-                shape = if (LocalMaterialExpressive.current) MaterialTheme.shapes.medium else RoundedCornerShape(5.dp),
+                color = if (LocalPinkCloud.current) MaterialTheme.colorScheme.inverseSurface else Color(0xFF282828),
+                contentColor = Color.White,
+                shape = RoundedCornerShape(5.dp),
                 shadowElevation = 4.dp,
                 modifier = Modifier
                     .fillMaxWidth()

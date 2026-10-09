@@ -106,18 +106,6 @@ fun rememberArtworkPalette(
     keyColors: ArtworkKeyColors? = null,
 ): ArtworkPalette {
     val scheme = MaterialTheme.colorScheme
-    if (LocalMaterialExpressive.current) {
-        // Native Material roles remain consistent across covers; no palette decode is needed.
-        return ArtworkPalette(
-            background = scheme.background,
-            wash = scheme.surfaceContainerLow,
-            elevated = scheme.surfaceContainerHigh,
-            accent = scheme.primary,
-            onBackground = scheme.onSurface,
-            onBackgroundVariant = scheme.onSurfaceVariant,
-            divider = scheme.outlineVariant,
-        )
-    }
     val pinkCloud = LocalPinkCloud.current
     val reduceAnimation by PlayerPlatform.host.settings.reduceAnimation.collectAsStateWithLifecycle()
     // Always asked, so the composable call is unconditional; handed nothing to

@@ -60,7 +60,6 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 import com.music.bitchord.ui.theme.LocalPinkCloud
-import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import kotlin.math.roundToInt
 
 internal val DRAWER_SHAPE = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
@@ -110,15 +109,9 @@ fun PlayerDrawer(
     titleGap: Dp = 14.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val playerInk = playerContentColor()
     val reduceDynamicBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val pinkCloud = LocalPinkCloud.current
-    val materialExpressive = LocalMaterialExpressive.current
-    val drawerColor = when {
-        materialExpressive -> MaterialTheme.colorScheme.surfaceContainerLow
-        pinkCloud -> PinkCloudPlayerStyle.drawer
-        else -> Color(0xFF121212)
-    }
+    val drawerColor = if (pinkCloud) PinkCloudPlayerStyle.drawer else Color(0xFF121212)
     val hazeColor = if (pinkCloud) PinkCloudPlayerStyle.drawer else Color(0xFF141414)
     val drawerScrim = if (pinkCloud) PinkCloudPlayerStyle.scrim.copy(alpha = 0.5f) else SCRIM_COLOR
 
@@ -221,7 +214,7 @@ fun PlayerDrawer(
                 .offset { IntOffset(0, offset.roundToInt()) }
                 .clip(DRAWER_SHAPE)
                 .then(
-                    if (reduceDynamicBlur || materialExpressive) {
+                    if (reduceDynamicBlur) {
                         Modifier.background(drawerColor)
                     } else {
                         Modifier
@@ -262,7 +255,7 @@ fun PlayerDrawer(
                     .padding(bottom = 12.dp)
                     .size(width = 36.dp, height = 4.dp)
                     .clip(CircleShape)
-                    .background(playerInk.copy(alpha = 0.25f)),
+                    .background(Color.White.copy(alpha = 0.25f)),
             )
             Text(
                 text = title,
@@ -270,7 +263,7 @@ fun PlayerDrawer(
                     fontSize = 19.sp,
                     fontWeight = FontWeight.Bold,
                 ),
-                color = playerInk,
+                color = Color.White,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 4.dp, bottom = titleGap),

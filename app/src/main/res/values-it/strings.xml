@@ -1263,7 +1263,6 @@
     <string name="quality_best_available_description">Best available YouTube Music audio</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="material_expressive_theme_name">Material Expressive · beta</string>
-    <string name="material_expressive_theme_description">Colori dello sfondo, controlli espressivi e modalità chiara o scura del sistema.</string>
-    <string name="material_expressive_glass_description">Material Expressive usa superfici opache con tonalità di colore.</string>
+    <string name="lossless_beta">Lossless beta</string>
+    <string name="lossless_beta_subtitle">Prova FLAC corrispondenti da Monochrome via Wi-Fi. La disponibilità varia; file più grandi usano più dati. YouTube è la riserva. Jam e download restano su YouTube. Si applica avviando una nuova coda.</string>
 </resources>

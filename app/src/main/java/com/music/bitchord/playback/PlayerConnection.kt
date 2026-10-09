@@ -31,6 +31,8 @@ import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.artworkAt
 import com.music.bitchord.data.sources.SourceRegistry
 import com.music.bitchord.data.sources.TrackMatcher
+import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.data.listentogether.ListenTogether
 import com.music.bitchord.download.Downloads
 import com.music.bitchord.ui.rememberIsForeground
 import kotlinx.coroutines.Dispatchers
@@ -598,7 +600,12 @@ fun Song.toMediaItem(): MediaItem {
         // resolves it — see [SourceResolver.substituteForYouTube] — and that
         // match is made on them, which the loader thread has no other way to
         // reach.
-        else -> "bitchord://watch?v=$videoId${matchQuery()}"
+        else -> "bitchord://watch?v=$videoId${matchQuery()}".let { uri ->
+            if (LosslessPlayback.eligible(AppSettings.losslessBeta.value,
+                    AppSettings.meteredConnection.value != false, ListenTogether.state.value.inParty, isVideoOrigin)) {
+                LosslessPlayback.tag(uri)
+            } else uri
+        }
     }
     return MediaItem.Builder()
         .setMediaId(videoId)

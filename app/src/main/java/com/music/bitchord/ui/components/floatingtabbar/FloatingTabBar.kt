@@ -78,7 +78,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import com.music.bitchord.ui.theme.LocalMaterialExpressive
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -508,11 +507,6 @@ private fun SharedTransitionScope.InlineTab(
             )
             .clip(shapes.tabBarShape)
             .then(tabBarContentModifier())
-            .then(
-                if (LocalMaterialExpressive.current) {
-                    Modifier.background(MaterialTheme.colorScheme.primaryContainer, shapes.tabBarShape)
-                } else Modifier,
-            )
             .clickable(
                 onClick = {
                     onInlineTabClick()

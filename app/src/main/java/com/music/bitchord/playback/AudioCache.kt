@@ -277,6 +277,7 @@ object AudioCache {
      * Call it off the main thread.
      */
     fun discard(uri: Uri) {
+        if (LosslessPlayback.isTagged(uri.toString())) return // This rendition never entered the disk cache.
         val exact = keyFactory.buildCacheKey(DataSpec(uri))
         val about = mediaIdIn(uri)
         val family = uri.getQueryParameter("v")?.let { videoId ->
@@ -797,7 +798,8 @@ object AudioCache {
 
             override fun open(dataSpec: DataSpec): Long {
                 val scheme = dataSpec.uri.scheme
-                activeDs = if (scheme == "file" || scheme == "content") {
+                activeDs = if (scheme == "file" || scheme == "content" ||
+                    LosslessPlayback.isTagged(dataSpec.uri.toString())) {
                     upstreamDs
                 } else {
                     cacheDs
@@ -961,7 +963,11 @@ object AudioCache {
                 // Safe to fill for the same reason in both cases: either nothing
                 // outranks YouTube and read-ahead is the only writer, or a
                 // source has been pinned and every writer now resolves to it.
-                val cacheBytes = (!substitutable || warmed != null) && !pinnedToYouTube
+                val betaActive = LosslessPlayback.eligible(AppSettings.losslessBeta.value,
+                    AppSettings.meteredConnection.value != false,
+                    com.music.bitchord.data.listentogether.ListenTogether.state.value.inParty,
+                    target?.isVideo == true)
+                val cacheBytes = (!substitutable || warmed != null) && !pinnedToYouTube && !betaActive
                 if (cacheBytes) {
                     launch(TrackLog.about(next)) {
                         delay(PREFETCH_DELAY_MS)

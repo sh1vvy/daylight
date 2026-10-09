@@ -122,13 +122,12 @@ private fun CastDeviceRow(
     connected: Boolean,
     onClick: () -> Unit,
 ) {
-    val playerInk = audioPopupContentColor()
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (pressed) playerInk.copy(alpha = 0.09f) else Color.Transparent)
+            .background(if (pressed) Color.White.copy(alpha = 0.09f) else Color.Transparent)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -137,7 +136,7 @@ private fun CastDeviceRow(
             Icon(
                 imageVector = if (connected) Icons.Rounded.CastConnected else Icons.Rounded.Cast,
                 contentDescription = null,
-                tint = playerInk.copy(alpha = if (connected) 1f else 0.8f),
+                tint = Color.White.copy(alpha = if (connected) 1f else 0.8f),
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -149,7 +148,7 @@ private fun CastDeviceRow(
                     fontSize = 15.sp,
                     fontWeight = if (connected) FontWeight.W600 else FontWeight.Normal,
                 ),
-                color = playerInk,
+                color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -160,20 +159,20 @@ private fun CastDeviceRow(
                     ),
                     modifier = Modifier.padding(top = 1.dp),
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
-                    color = playerInk.copy(alpha = 0.6f),
+                    color = Color.White.copy(alpha = 0.6f),
                 )
             }
         }
         when {
             connecting -> CircularProgressIndicator(
                 modifier = Modifier.size(16.dp),
-                color = playerInk.copy(alpha = 0.8f),
+                color = Color.White.copy(alpha = 0.8f),
                 strokeWidth = 1.75.dp,
             )
             connected -> Icon(
                 imageVector = Icons.Rounded.Check,
                 contentDescription = null,
-                tint = playerInk,
+                tint = Color.White,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -183,7 +182,6 @@ private fun CastDeviceRow(
 /** Shown until the first receiver turns up; it is also what an empty network looks like. */
 @Composable
 private fun SearchingRow() {
-    val playerInk = audioPopupContentColor()
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -192,20 +190,20 @@ private fun SearchingRow() {
     ) {
         CircularProgressIndicator(
             modifier = Modifier.size(20.dp),
-            color = playerInk.copy(alpha = 0.7f),
+            color = Color.White.copy(alpha = 0.7f),
             strokeWidth = 2.dp,
         )
         Spacer(Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.cast_searching),
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
-            color = playerInk,
+            color = Color.White,
         )
         Text(
             text = stringResource(R.string.cast_searching_hint),
             modifier = Modifier.padding(top = 4.dp),
             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, lineHeight = 17.sp),
-            color = playerInk.copy(alpha = 0.6f),
+            color = Color.White.copy(alpha = 0.6f),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
     }
@@ -213,13 +211,12 @@ private fun SearchingRow() {
 
 @Composable
 private fun CastActionRow(label: String, onClick: () -> Unit) {
-    val playerInk = audioPopupContentColor()
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (pressed) playerInk.copy(alpha = 0.09f) else Color.Transparent)
+            .background(if (pressed) Color.White.copy(alpha = 0.09f) else Color.Transparent)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         contentAlignment = Alignment.CenterStart,

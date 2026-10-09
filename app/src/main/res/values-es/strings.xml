@@ -1296,7 +1296,6 @@
     <string name="quality_best_available_description">Best available YouTube Music audio</string>
     <string name="quality_data_saver_description">Use less data while listening</string>
     <string name="quality_smaller_download_description">Smaller files for more offline music</string>
-    <string name="material_expressive_theme_name">Material Expressive · beta</string>
-    <string name="material_expressive_theme_description">Colores de tu fondo de pantalla, controles expresivos y el modo claro u oscuro del sistema.</string>
-    <string name="material_expressive_glass_description">Material Expressive usa superficies sólidas con tonos de color.</string>
+    <string name="lossless_beta">Sin pérdida beta</string>
+    <string name="lossless_beta_subtitle">Prueba FLAC de Monochrome por Wi-Fi. La disponibilidad varía; los archivos grandes usan más datos. YouTube es la alternativa. Jams y descargas siguen en YouTube. Se aplica al iniciar una cola nueva.</string>
 </resources>

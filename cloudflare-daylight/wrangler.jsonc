@@ -1,0 +1,12 @@
+{
+  "$schema": "../cloudflare-jam/node_modules/wrangler/config-schema.json",
+  "name": "daylight-landing",
+  "compatibility_date": "2026-10-08",
+  "workers_dev": false,
+  "assets": {
+    "directory": "./public",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "routes": [{ "pattern": "daylight.sh1vvy.com", "custom_domain": true }]
+}

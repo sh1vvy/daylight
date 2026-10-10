@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 520" role="img" aria-labelledby="title desc">
+<title id="title">Feel every line</title>
+<desc id="desc">A softly layered lyrics card with original words, a highlighted line, and a warm music waveform.</desc>
+<metadata>Original illustration for Daylight. Butterfly mark adapted from © art by 11 (_artbyeleven on IG).</metadata>
+<defs>
+ <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff8ee"/><stop offset=".7" stop-color="#f8e7d9"/><stop offset="1" stop-color="#eedde8"/></linearGradient>
+ <linearGradient id="sun" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f9deae"/><stop offset="1" stop-color="#e8a48d"/></linearGradient>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="175%"><feDropShadow dx="0" dy="13" stdDeviation="16" flood-color="#775c55" flood-opacity=".12"/></filter>
+</defs>
+<circle cx="300" cy="259" r="216" fill="#eadeee" opacity=".3"/>
+<path d="M58 331C-4 143 167 36 272 67" fill="none" stroke="#ccaca0" stroke-width="1.4" stroke-dasharray="4 10" stroke-linecap="round"/>
+<rect x="119" y="97" width="412" height="343" rx="26" fill="#e6d8e9" transform="rotate(8 325 269)"/>
+<g transform="rotate(-5 304 251)" filter="url(#shadow)">
+ <rect x="74" y="70" width="452" height="367" rx="27" fill="url(#paper)" stroke="#e4cec1"/>
+ <circle cx="123" cy="119" r="22" fill="url(#sun)"/>
+ <path d="M105 126q15-13 36-1v15h-36Z" fill="#b95743" opacity=".7"/>
+ <text x="159" y="117" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="600" fill="#675046">A little daylight</text>
+ <text x="159" y="135" font-family="Inter,Arial,sans-serif" font-size="10" fill="#a28679">WORDS TO STAY WITH</text>
+ <g fill="#a98e83" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="600" letter-spacing="-.5">
+  <text x="108" y="200" opacity=".55">Let the morning in,</text>
+  <text x="108" y="239" opacity=".7">let the whole world wait.</text>
+ </g>
+ <rect x="97" y="254" width="370" height="49" rx="13" fill="#a94f3e" fill-opacity=".08"/>
+ <text x="108" y="287" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="600" letter-spacing="-.5" fill="#a94f3e">A little light, a little closer.</text>
+ <text x="108" y="336" font-family="Inter,Arial,sans-serif" font-size="25" font-weight="600" letter-spacing="-.5" fill="#a98e83" opacity=".5">Another song to stay.</text>
+ <g stroke="#b95743" stroke-width="3" stroke-linecap="round">
+  <path d="M108 381.0v8" opacity="0.35"/><path d="M119 378.5v13" opacity="0.35"/><path d="M130 381.0v8" opacity="0.35"/><path d="M141 375.5v19" opacity="0.35"/><path d="M152 372.0v26" opacity="0.35"/><path d="M163 378.0v14" opacity="0.8"/><path d="M174 369.5v31" opacity="0.8"/><path d="M185 365.5v39" opacity="0.8"/><path d="M196 375.5v19" opacity="0.8"/><path d="M207 371.5v27" opacity="0.8"/><path d="M218 378.5v13" opacity="0.8"/><path d="M229 368.5v33" opacity="0.8"/><path d="M240 363.0v44" opacity="0.8"/><path d="M251 372.5v25" opacity="0.8"/><path d="M262 377.0v16" opacity="0.8"/><path d="M273 367.5v35" opacity="0.8"/><path d="M284 363.5v43" opacity="0.8"/><path d="M295 373.5v23" opacity="0.8"/><path d="M306 379.0v12" opacity="0.8"/><path d="M317 372.5v25" opacity="0.8"/><path d="M328 368.0v34" opacity="0.8"/><path d="M339 376.0v18" opacity="0.8"/><path d="M350 371.0v28" opacity="0.8"/><path d="M361 365.5v39" opacity="0.8"/><path d="M372 377.5v15" opacity="0.8"/><path d="M383 374.5v21" opacity="0.35"/><path d="M394 370.0v30" opacity="0.35"/><path d="M405 378.0v14" opacity="0.35"/><path d="M416 373.5v23" opacity="0.35"/><path d="M427 379.5v11" opacity="0.35"/><path d="M438 381.5v7" opacity="0.35"/>
+ </g>
+ <circle cx="468" cy="385" r="16" fill="#a94f3e"/><path d="M464 380v10m8-10v10" stroke="#fff5e8" stroke-width="2.5" stroke-linecap="round"/>
+</g>
+<g transform="translate(488 56) rotate(15) scale(.54)"><g fill="#b95743"><path d="M48.7,38.4 C39.1,24.7 22.5,5.4 8.5,1.8 C3.7,0.3 2,1.7 2.5,7.3 C3.6,16.8 7,24.4 10.8,32.8 C12.2,36.7 15.4,37.9 20.2,38.3 L46.8,41.4 Z M38,32 C31,24 23,22 16,24 C14.7,24.4 14.7,25.9 15.7,26.7 C22,31.1 28.4,32.2 38,33.8 Z M29,20 C26.5,14.9 20.1,10.8 17.1,11.3 C15.7,11.5 15.9,13.1 16.6,14.1 C20.2,17.7 23.7,19.4 29,21.2 Z M24.5,22.3 C20.8,19.2 16.3,17.9 13.4,19 C12,19.5 12.1,21 13.1,21.5 C16.5,23.3 19.7,23.5 24.5,23.7 Z" fill-rule="evenodd"/>
+<path d="M47.7,41.9 C38,39.6 26.7,38.6 20.1,39.5 C13.1,40.2 10.9,45.8 14.1,52.6 C17.4,60.2 24.7,67.3 30,69.5 C35.6,71.9 40,68.3 42.7,62.6 C45.2,57.3 48.9,49.3 49.4,44.2 Z M44,43 C37,41.7 25.1,41.8 20.3,43.2 C18.4,43.8 18.8,45.3 20.4,45.4 C29,46.4 34.4,46.6 44,43.9 Z M44.9,44.7 C37.8,46.9 29.1,48.5 22.9,52.5 C21.5,53.5 22.2,55.3 23.7,55.2 C31.3,53.2 37.4,50.5 45.3,45.6 Z M45.5,46.8 C41.2,51.4 35.5,58.8 31.4,63.4 C30.2,64.8 31.1,66.7 32.7,66.4 C37.6,63.1 43.6,54.1 46.4,47.3 Z" fill-rule="evenodd"/><g transform="translate(100 0) scale(-1 1)"><path d="M48.7,38.4 C39.1,24.7 22.5,5.4 8.5,1.8 C3.7,0.3 2,1.7 2.5,7.3 C3.6,16.8 7,24.4 10.8,32.8 C12.2,36.7 15.4,37.9 20.2,38.3 L46.8,41.4 Z M38,32 C31,24 23,22 16,24 C14.7,24.4 14.7,25.9 15.7,26.7 C22,31.1 28.4,32.2 38,33.8 Z M29,20 C26.5,14.9 20.1,10.8 17.1,11.3 C15.7,11.5 15.9,13.1 16.6,14.1 C20.2,17.7 23.7,19.4 29,21.2 Z M24.5,22.3 C20.8,19.2 16.3,17.9 13.4,19 C12,19.5 12.1,21 13.1,21.5 C16.5,23.3 19.7,23.5 24.5,23.7 Z" fill-rule="evenodd"/>
+<path d="M47.7,41.9 C38,39.6 26.7,38.6 20.1,39.5 C13.1,40.2 10.9,45.8 14.1,52.6 C17.4,60.2 24.7,67.3 30,69.5 C35.6,71.9 40,68.3 42.7,62.6 C45.2,57.3 48.9,49.3 49.4,44.2 Z M44,43 C37,41.7 25.1,41.8 20.3,43.2 C18.4,43.8 18.8,45.3 20.4,45.4 C29,46.4 34.4,46.6 44,43.9 Z M44.9,44.7 C37.8,46.9 29.1,48.5 22.9,52.5 C21.5,53.5 22.2,55.3 23.7,55.2 C31.3,53.2 37.4,50.5 45.3,45.6 Z M45.5,46.8 C41.2,51.4 35.5,58.8 31.4,63.4 C30.2,64.8 31.1,66.7 32.7,66.4 C37.6,63.1 43.6,54.1 46.4,47.3 Z" fill-rule="evenodd"/></g><path d="M50,27.8 C48.3,27.8 47.8,29.4 48.2,31.1 C47.3,33.1 46.9,35.8 47.4,40.4 C47.8,45.2 48.2,51.4 48.6,59.8 C48.7,63.4 49.2,65.5 50,65.5 C50.8,65.5 51.3,63.4 51.4,59.8 C51.8,51.4 52.2,45.2 52.6,40.4 C53.1,35.8 52.7,33.1 51.8,31.1 C52.2,29.4 51.7,27.8 50,27.8 Z"/></g><path d="M49.1,29 L47.1,25.5 M50.9,29 L52.9,25.5" fill="none" stroke="#b95743" stroke-width="1.4" stroke-linecap="round"/></g>
+<path d="M549 345v18m-9-9h18M56 106v14m-7-7h14" fill="none" stroke="#b95743" stroke-width="1.5" stroke-linecap="round" opacity=".65"/>
+</svg>

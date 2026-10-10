@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/daylight-cover.svg" alt="Daylight — Android music player" width="100%" />
+<img src="docs/assets/daylight-banner.png" alt="Daylight — Android music player" width="100%" />
 
 <p><strong>An open-source Android music player.</strong><br />YouTube Music streaming, optional lossless audio, synced lyrics and shared listening.</p>
 

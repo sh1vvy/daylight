@@ -1,0 +1,13 @@
+{
+  "name": "daylight-landing",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0",
+  "scripts": {
+    "dev": "../cloudflare-jam/node_modules/.bin/wrangler dev --port 8789",
+    "test": "node --test test/*.test.js",
+    "check": "../cloudflare-jam/node_modules/.bin/wrangler deploy --dry-run --autoconfig=false",
+    "deploy": "../cloudflare-jam/node_modules/.bin/wrangler deploy --autoconfig=false"
+  }
+}

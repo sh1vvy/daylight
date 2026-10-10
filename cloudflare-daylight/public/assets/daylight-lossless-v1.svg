@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 520" role="img" aria-labelledby="title desc">
+<title id="title">Every detail, a little closer</title>
+<desc id="desc">Warm studio headphones surrounded by delicate sound rings and balanced waveforms, representing detailed lossless listening.</desc>
+<defs>
+ <linearGradient id="band" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d79677"/><stop offset=".48" stop-color="#b5664d"/><stop offset="1" stop-color="#8d4236"/></linearGradient>
+ <linearGradient id="housing" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff6e9"/><stop offset=".65" stop-color="#efcbb5"/><stop offset="1" stop-color="#d6a48d"/></linearGradient>
+ <linearGradient id="cushion" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#4d4143"/><stop offset=".55" stop-color="#332f31"/><stop offset="1" stop-color="#4b3b3c"/></linearGradient>
+ <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#efcbb5"/><stop offset=".5" stop-color="#d8c9dd"/><stop offset="1" stop-color="#dce0ca"/></linearGradient>
+ <filter id="shadow" x="-40%" y="-35%" width="180%" height="180%"><feDropShadow dx="0" dy="13" stdDeviation="12" flood-color="#716059" flood-opacity=".12"/></filter>
+</defs>
+<circle cx="320" cy="243" r="181" fill="#dce0ca" opacity=".42"/>
+<circle cx="320" cy="243" r="213" stroke="url(#ring)" stroke-width="1.1" fill="none"/>
+<circle cx="320" cy="243" r="195" stroke="#d2c2b5" stroke-opacity=".62" stroke-dasharray="2 7" stroke-linecap="round" fill="none"/>
+<path d="M129 148a215 215 0 0 1 171-115M510 341a215 215 0 0 1-151 117" stroke="#a24635" stroke-width="2" stroke-linecap="round" fill="none"/>
+<circle cx="299" cy="32" r="4" fill="#a24635"/><circle cx="359" cy="459" r="4" fill="#a24635"/>
+<ellipse cx="320" cy="433" rx="153" ry="17" fill="#c8b4a5" opacity=".16"/>
+<g transform="rotate(-9 320 250)" filter="url(#shadow)">
+ <path d="M172 292V228c0-93 64-157 148-157s148 64 148 157v64h-27v-64c0-80-53-130-121-130s-121 50-121 130v64Z" fill="url(#band)" stroke="#b9755e" stroke-width="1"/>
+ <path d="M187 235c0-88 57-149 133-149s133 61 133 149" stroke="#f0cbb1" stroke-width="3" stroke-opacity=".6" stroke-linecap="round" fill="none"/>
+ <path d="M216 129c27-25 62-39 104-39s77 14 104 39" stroke="#332f31" stroke-width="14" stroke-linecap="round" fill="none"/>
+ <path d="M215 126c28-25 63-38 105-38s77 13 105 38" stroke="#615052" stroke-width="3" stroke-linecap="round" fill="none"/>
+ <rect x="171" y="227" width="31" height="97" rx="12" fill="#c8b9a9" stroke="#ac9685" stroke-width="1"/>
+ <rect x="438" y="227" width="31" height="97" rx="12" fill="#c8b9a9" stroke="#ac9685" stroke-width="1"/>
+ <path d="M180 237v41m279-41v41" stroke="#fff5e8" stroke-width="4" stroke-linecap="round" opacity=".85"/>
+ <g transform="rotate(-5 193 339)">
+  <rect x="143" y="265" width="105" height="151" rx="39" fill="url(#housing)" stroke="#cfac96" stroke-width="1.2"/>
+  <rect x="161" y="274" width="76" height="134" rx="32" fill="url(#cushion)"/>
+  <rect x="167" y="280" width="64" height="122" rx="28" fill="none" stroke="#746064" stroke-width="1"/>
+  <rect x="180" y="296" width="34" height="91" rx="17" fill="#241f23" stroke="#3f3237"/>
+  <path d="M153 294v67" stroke="#fff6e9" stroke-opacity=".8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M151 371v8m0 5v4" stroke="#a24635" stroke-width="2" stroke-linecap="round"/>
+ </g>
+ <g transform="rotate(5 449 339)">
+  <rect x="393" y="265" width="105" height="151" rx="39" fill="url(#housing)" stroke="#cfac96" stroke-width="1.2"/>
+  <rect x="404" y="274" width="76" height="134" rx="32" fill="url(#cushion)"/>
+  <rect x="410" y="280" width="64" height="122" rx="28" fill="none" stroke="#746064" stroke-width="1"/>
+  <rect x="427" y="296" width="34" height="91" rx="17" fill="#241f23" stroke="#3f3237"/>
+  <path d="M488 294v67" stroke="#fff6e9" stroke-opacity=".8" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="489" cy="379" r="3" fill="#a24635"/>
+ </g>
+</g>
+<g stroke="#a24635" stroke-width="3" stroke-linecap="round" opacity=".8">
+ <path d="M59 230v17m11-26v35m11-54v71m11-92v109m11-68v44M537 217v44m11-76v108m11-88v64m11-46v21m11-32v42"/>
+</g>
+<g fill="none" stroke="#a24635" stroke-width="1.5" stroke-linecap="round">
+ <path d="M536 98v19m-9.5-9.5h19M85 368v14m-7-7h14"/>
+</g>
+<circle cx="135" cy="76" r="5" fill="#efcbb5"/><circle cx="535" cy="415" r="7" fill="#d8c9dd"/>
+</svg>

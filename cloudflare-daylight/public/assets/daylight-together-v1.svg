@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 520" role="img" aria-labelledby="title desc">
+<title id="title">Different places. Same song.</title>
+<desc id="desc">Two softly colored music players joined by a dotted path and a shared heart, representing Daylight Jam.</desc>
+<metadata>Original illustration for Daylight. Butterfly mark adapted from © art by 11 (_artbyeleven on IG).</metadata>
+<defs>
+ <linearGradient id="peach" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0df"/><stop offset="1" stop-color="#e9b3a5"/></linearGradient>
+ <linearGradient id="lilac" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f5ecf6"/><stop offset="1" stop-color="#cab8da"/></linearGradient>
+ <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f3d3a4"/><stop offset="1" stop-color="#d98976"/></linearGradient>
+ <filter id="shadow" x="-35%" y="-35%" width="180%" height="190%"><feDropShadow dx="0" dy="14" stdDeviation="13" flood-color="#655155" flood-opacity=".12"/></filter>
+ <clipPath id="album"><rect width="150" height="150" rx="18"/></clipPath>
+ <g id="album-art"><rect width="150" height="150" rx="18" fill="url(#sky)"/><g clip-path="url(#album)"><circle cx="75" cy="65" r="35" fill="#fff0c6"/><path d="M-9 105Q31 70 69 99T163 89V161H-9Z" fill="#b96455"/><path d="M-9 122Q40 91 84 122T163 115V161H-9Z" fill="#904640"/></g></g>
+</defs>
+<circle cx="193" cy="240" r="180" fill="#f3ddca" opacity=".32"/>
+<circle cx="449" cy="298" r="165" fill="#e7dcef" opacity=".42"/>
+<path d="M139 91C276-29 436 29 489 125M122 379C281 516 449 491 528 367" fill="none" stroke="#cda998" stroke-width="1.4" stroke-dasharray="4 9" stroke-linecap="round"/>
+<g transform="translate(57 69) rotate(-9 112 187)" filter="url(#shadow)">
+ <rect width="224" height="376" rx="38" fill="#f9f3ea" stroke="#d4bdb0" stroke-width="1.5"/>
+ <rect x="8" y="8" width="208" height="360" rx="31" fill="url(#peach)"/>
+ <rect x="77" y="17" width="70" height="6" rx="3" fill="#84615d" opacity=".35"/>
+ <circle cx="35" cy="45" r="3" fill="#a94f3e"/><text x="47" y="49" font-family="Inter,Arial,sans-serif" font-size="9" letter-spacing="1.5" fill="#82463d">LISTENING TOGETHER</text>
+ <use href="#album-art" x="37" y="69"/>
+ <text x="112" y="247" text-anchor="middle" fill="#663b35" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="600">A little closer</text>
+ <text x="112" y="267" text-anchor="middle" fill="#966659" font-family="Inter,Arial,sans-serif" font-size="10">Same song, same moment.</text>
+ <rect x="36" y="284" width="152" height="3" rx="1.5" fill="#e3b5a0"/><rect x="36" y="284" width="68" height="3" rx="1.5" fill="#a94f3e"/><circle cx="104" cy="285.5" r="4" fill="#a94f3e"/>
+ <circle cx="112" cy="321" r="23" fill="#a94f3e"/><path d="M106 314v14m12-14v14" stroke="#fff5e8" stroke-width="4" stroke-linecap="round"/>
+ <path d="M64 315v12m14-12-10 6 10 6ZM160 315v12m-14-12 10 6-10 6Z" stroke="#985d50" stroke-width="2" fill="none" stroke-linejoin="round"/>
+ <rect x="83" y="353" width="58" height="3" rx="1.5" fill="#c49988"/>
+</g>
+<g transform="translate(353 106) rotate(9 112 187)" filter="url(#shadow)">
+ <rect width="224" height="376" rx="38" fill="#fbf6f0" stroke="#d4bfcb" stroke-width="1.5"/>
+ <rect x="8" y="8" width="208" height="360" rx="31" fill="url(#lilac)"/>
+ <rect x="77" y="17" width="70" height="6" rx="3" fill="#796078" opacity=".3"/>
+ <circle cx="35" cy="45" r="3" fill="#a94f3e"/><text x="47" y="49" font-family="Inter,Arial,sans-serif" font-size="9" letter-spacing="1.5" fill="#765768">LISTENING TOGETHER</text>
+ <use href="#album-art" x="37" y="69"/>
+ <text x="112" y="247" text-anchor="middle" fill="#533a51" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="600">A little closer</text>
+ <text x="112" y="267" text-anchor="middle" fill="#88718b" font-family="Inter,Arial,sans-serif" font-size="10">Same song, same moment.</text>
+ <rect x="36" y="284" width="152" height="3" rx="1.5" fill="#cdbad2"/><rect x="36" y="284" width="68" height="3" rx="1.5" fill="#a94f3e"/><circle cx="104" cy="285.5" r="4" fill="#a94f3e"/>
+ <circle cx="112" cy="321" r="23" fill="#a94f3e"/><path d="M106 314v14m12-14v14" stroke="#fff5e8" stroke-width="4" stroke-linecap="round"/>
+ <path d="M64 315v12m14-12-10 6 10 6ZM160 315v12m-14-12 10 6-10 6Z" stroke="#81637f" stroke-width="2" fill="none" stroke-linejoin="round"/>
+ <rect x="83" y="353" width="58" height="3" rx="1.5" fill="#ac93b1"/>
+</g>
+<path d="M244 208C274 167 348 167 389 229" fill="none" stroke="#b95743" stroke-width="2" stroke-dasharray="3 8" stroke-linecap="round"/>
+<circle cx="318" cy="199" r="29" fill="#fff9ef" stroke="#e1c9bb" stroke-width="1"/>
+<path d="M318 209c-3-3-14-9-14-17 0-9 10-11 14-4 4-7 14-5 14 4 0 8-11 14-14 17Z" fill="#b95743"/>
+<g transform="translate(486 40) rotate(17) scale(.45)"><g fill="#b95743"><path d="M48.7,38.4 C39.1,24.7 22.5,5.4 8.5,1.8 C3.7,0.3 2,1.7 2.5,7.3 C3.6,16.8 7,24.4 10.8,32.8 C12.2,36.7 15.4,37.9 20.2,38.3 L46.8,41.4 Z M38,32 C31,24 23,22 16,24 C14.7,24.4 14.7,25.9 15.7,26.7 C22,31.1 28.4,32.2 38,33.8 Z M29,20 C26.5,14.9 20.1,10.8 17.1,11.3 C15.7,11.5 15.9,13.1 16.6,14.1 C20.2,17.7 23.7,19.4 29,21.2 Z M24.5,22.3 C20.8,19.2 16.3,17.9 13.4,19 C12,19.5 12.1,21 13.1,21.5 C16.5,23.3 19.7,23.5 24.5,23.7 Z" fill-rule="evenodd"/>
+<path d="M47.7,41.9 C38,39.6 26.7,38.6 20.1,39.5 C13.1,40.2 10.9,45.8 14.1,52.6 C17.4,60.2 24.7,67.3 30,69.5 C35.6,71.9 40,68.3 42.7,62.6 C45.2,57.3 48.9,49.3 49.4,44.2 Z M44,43 C37,41.7 25.1,41.8 20.3,43.2 C18.4,43.8 18.8,45.3 20.4,45.4 C29,46.4 34.4,46.6 44,43.9 Z M44.9,44.7 C37.8,46.9 29.1,48.5 22.9,52.5 C21.5,53.5 22.2,55.3 23.7,55.2 C31.3,53.2 37.4,50.5 45.3,45.6 Z M45.5,46.8 C41.2,51.4 35.5,58.8 31.4,63.4 C30.2,64.8 31.1,66.7 32.7,66.4 C37.6,63.1 43.6,54.1 46.4,47.3 Z" fill-rule="evenodd"/><g transform="translate(100 0) scale(-1 1)"><path d="M48.7,38.4 C39.1,24.7 22.5,5.4 8.5,1.8 C3.7,0.3 2,1.7 2.5,7.3 C3.6,16.8 7,24.4 10.8,32.8 C12.2,36.7 15.4,37.9 20.2,38.3 L46.8,41.4 Z M38,32 C31,24 23,22 16,24 C14.7,24.4 14.7,25.9 15.7,26.7 C22,31.1 28.4,32.2 38,33.8 Z M29,20 C26.5,14.9 20.1,10.8 17.1,11.3 C15.7,11.5 15.9,13.1 16.6,14.1 C20.2,17.7 23.7,19.4 29,21.2 Z M24.5,22.3 C20.8,19.2 16.3,17.9 13.4,19 C12,19.5 12.1,21 13.1,21.5 C16.5,23.3 19.7,23.5 24.5,23.7 Z" fill-rule="evenodd"/>
+<path d="M47.7,41.9 C38,39.6 26.7,38.6 20.1,39.5 C13.1,40.2 10.9,45.8 14.1,52.6 C17.4,60.2 24.7,67.3 30,69.5 C35.6,71.9 40,68.3 42.7,62.6 C45.2,57.3 48.9,49.3 49.4,44.2 Z M44,43 C37,41.7 25.1,41.8 20.3,43.2 C18.4,43.8 18.8,45.3 20.4,45.4 C29,46.4 34.4,46.6 44,43.9 Z M44.9,44.7 C37.8,46.9 29.1,48.5 22.9,52.5 C21.5,53.5 22.2,55.3 23.7,55.2 C31.3,53.2 37.4,50.5 45.3,45.6 Z M45.5,46.8 C41.2,51.4 35.5,58.8 31.4,63.4 C30.2,64.8 31.1,66.7 32.7,66.4 C37.6,63.1 43.6,54.1 46.4,47.3 Z" fill-rule="evenodd"/></g><path d="M50,27.8 C48.3,27.8 47.8,29.4 48.2,31.1 C47.3,33.1 46.9,35.8 47.4,40.4 C47.8,45.2 48.2,51.4 48.6,59.8 C48.7,63.4 49.2,65.5 50,65.5 C50.8,65.5 51.3,63.4 51.4,59.8 C51.8,51.4 52.2,45.2 52.6,40.4 C53.1,35.8 52.7,33.1 51.8,31.1 C52.2,29.4 51.7,27.8 50,27.8 Z"/></g><path d="M49.1,29 L47.1,25.5 M50.9,29 L52.9,25.5" fill="none" stroke="#b95743" stroke-width="1.4" stroke-linecap="round"/></g>
+<path d="M323 371v16m-8-8h16M39 337v12m-6-6h12" fill="none" stroke="#b95743" stroke-width="1.3" stroke-linecap="round" opacity=".6"/>
+</svg>

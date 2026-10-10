@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://daylight.sh1vvy.com/sitemap.xml

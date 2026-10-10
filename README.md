@@ -1,93 +1,123 @@
 <div align="center">
 
-<img src="docs/assets/daylight-cover.svg" alt="Daylight — Your music. A little brighter." width="100%" />
+<img src="docs/assets/daylight-cover.svg" alt="Daylight — Android music player" width="100%" />
 
-# Daylight
-
-**Your music. A little brighter.**
-
-<p>A music player for Android, made for your favorite songs and the people you share them with.<br />Warm colors. Beautiful lyrics. A little room to breathe.</p>
+<p><strong>An open-source Android music player.</strong><br />YouTube Music streaming, optional lossless audio, synced lyrics and shared listening.</p>
 
 <p>
-<a href="https://github.com/sh1vvy/daylight/releases/latest"><img src="docs/assets/release-badge.svg" alt="Latest release" /></a>
-<a href="https://github.com/sh1vvy/daylight/releases/latest"><img src="docs/assets/android-badge.svg" alt="Android 8.0 or newer" /></a>
+<a href="https://github.com/sh1vvy/daylight/releases/latest"><img src="docs/assets/release-badge.svg" alt="Latest stable release" /></a>
+<img src="docs/assets/android-badge.svg" alt="Android 8.0 or newer" />
 <a href="LICENSE"><img src="docs/assets/license-badge.svg" alt="GPL-3.0 license" /></a>
 </p>
 
-<br />
+<p>
+<a href="https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk"><img src="docs/assets/download-android.svg" alt="Download Daylight Stable for Android" width="260" /></a>
+<a href="https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.8/daylight-dev.apk"><img src="docs/assets/download-dev.svg" alt="Download Daylight Dev for Android" width="260" /></a>
+</p>
 
-<a href="https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk"><img src="docs/assets/download-android.svg" alt="Download Daylight for Android" width="260" /></a>
+**Stable 0.2.1** · **Dev 0.2.2-dev.8**
 
-[Release notes](https://github.com/sh1vvy/daylight/releases/latest) · [Listen together](https://jam.sh1vvy.com) · [Report an issue](https://github.com/sh1vvy/daylight/issues)
+[Website](https://daylight.sh1vvy.com) · [Release notes](https://github.com/sh1vvy/daylight/releases) · [Daylight Jam](https://jam.sh1vvy.com) · [Report an issue](https://github.com/sh1vvy/daylight/issues)
 
 </div>
 
-## A little look inside
+## Screenshots
 
 <p align="center">
-  <a href="docs/screenshots/home.png"><img src="docs/screenshots/home.png" alt="Daylight's home screen with warm peach and lilac colors" width="31%" /></a>
-  <a href="docs/screenshots/player.png"><img src="docs/screenshots/player.png" alt="Daylight's player with artwork colors and a spacious layout" width="31%" /></a>
-  <a href="docs/screenshots/playlists.png"><img src="docs/screenshots/playlists.png" alt="A playlist in Daylight with search, sorting, and playback controls" width="31%" /></a>
+<a href="docs/screenshots/home-dev8.webp"><img src="docs/screenshots/home-dev8.webp" alt="Daylight Home with Quick picks, Play my mix and the Discover navigation tab" width="31%" /></a>
+<a href="docs/screenshots/player-dev8.webp"><img src="docs/screenshots/player-dev8.webp" alt="Now playing with full-screen artwork, synced lyric preview and verified Lossless playback" width="31%" /></a>
+<a href="docs/screenshots/library-dev8.webp"><img src="docs/screenshots/library-dev8.webp" alt="Library with Liked songs, Replay, downloads, Spotify and a two-row playlist layout" width="31%" /></a>
 </p>
-<p align="center"><sub>Home · Now playing · Playlists<br />Captured in the Android app. Tap a screenshot for a closer look.</sub></p>
+<p align="center"><sub>Home · Now playing · Library<br />Captured in Dev.8 on Android. Tap any screenshot to view it at full size.</sub></p>
 
-## Made for the way you listen
+## Features
 
-| Made for | What you get |
+| Feature | Details |
 | :--- | :--- |
-| **Find your next favorite** | Search and play music from YouTube Music. Browse albums, artists, and playlists, with optional sign-in for personalized recommendations. |
-| **Keep your music close** | Play local audio, organize your library, and download tracks for offline listening. |
-| **Feel every line** | Follow synchronized lyrics with clear Inter typography, a spacious reading view, and source credits tucked at the bottom. |
-| **Make it feel like you** | Choose light, dark, or Pink Cloud, glass controls, and player colors drawn from the artwork. |
-| **Let the music flow** | Shape playback with crossfade, Automix, an equalizer, queue controls, and a sleep timer. |
-| **Share the moment** | Start a Jam, send a link or code, and listen in sync with your people. |
-| **Little comforts** | Cached artwork, less repeated playlist loading, and update prompts right inside the app. |
+| **YouTube Music** | Search songs, videos, albums, artists and playlists. Sign in for your library and personalized recommendations. |
+| **Lossless audio <sup>BETA</sup>** | Optional verified FLAC playback, with Lossless and Hi-Res Lossless quality tiers. The player labels the format actually playing. |
+| **Listen together** | Create or join a Jam, share an invite link and listen in sync with a shared queue. |
+| **Automix <sup>BETA</sup>** | Beat-aware transitions with a subtle progress glow and a blend between the current and next cover. |
+| **Quick picks and Play my mix** | Start with familiar tracks and recommendations, or build an ongoing personal mix with one tap. Tune recommendation languages in settings. |
+| **Synced lyrics** | Follow timed lyrics, with optional translation and romanization. |
+| **Library and playlists** | Open your cached Liked songs list immediately. Edit playlist names and covers, and find recently used playlists first. |
+| **Spotify playlists** | Play connected Spotify playlists through matched YouTube Music tracks. Played playlists appear in Library and Listen again. |
+| **Themes and artwork** | Dark, Light and Pink Clouding themes, optional liquid glass, full-screen artwork and animated covers. |
+| **Playback tools** | Offline downloads, local audio, equalizer, crossfade, sleep timer and queue controls. Disliked tracks stay out of automatic playback. |
+| **Replay and integrations** | Listening statistics, Android home-screen widgets, Last.fm scrobbling and Discord presence. |
 
-Some music, lyrics, and audio options depend on the provider and your device.
+These features describe the current development build. Lossless availability depends on the track and connection; Jams use YouTube Music audio. Automix supports normal and Lossless audio, with Hi-Res excluded.
 
-## Different places. Same song.
+## Feature previews
 
-**Daylight Jam** is for the songs you send each other. Create a party in the app, share your invite, and settle into the same soundtrack.
+<table>
+<tr>
+<th width="50%">Automix <sup>BETA</sup></th>
+<th width="50%">Synced lyrics</th>
+</tr>
+<tr>
+<td align="center"><a href="https://daylight.sh1vvy.com/#automix"><img src="docs/previews/automix.gif" alt="Recorded Daylight Automix transition between two tracks" width="300" /></a></td>
+<td align="center"><a href="https://daylight.sh1vvy.com/#lyrics"><img src="docs/previews/synced-lyrics.gif" alt="Recorded lyrics scrolling and highlighting in sync with playback" width="300" /></a></td>
+</tr>
+</table>
 
-[Start with Daylight Jam →](https://jam.sh1vvy.com)
+<p align="center"><sub>Recorded in the app. Select a preview to open its section on the website.</sub></p>
 
-<a href="https://jam.sh1vvy.com"><img src="docs/screenshots/jam.png" alt="Daylight Jam's warm landing page, with an Android download badge and invite-code form" width="100%" /></a>
+### Liquid glass
 
-## Get Daylight
+<p align="center">
+<a href="https://daylight.sh1vvy.com/#glass"><img src="docs/previews/liquid-glass.gif" alt="Daylight's glass navigation refracting the artwork as the home feed scrolls" width="720" /></a>
+</p>
 
-**Android 8.0 or newer.** Download the signed **[daylight.apk](https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk)** from the latest release, then open it to install. Android may ask you to allow installation from your browser.
+Glass controls are optional on Android 12 and newer. Navigation and the compact player also work with glass disabled.
 
-Already using **Daylight Dev**? Keep that installation and use its in-app update popup, or download the matching **[daylight-dev.apk](https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.8/daylight-dev.apk)**. Coming from an internal Canary? Install this APK manually once, without uninstalling, to return to public Dev updates.
+## Themes
 
-**New in Dev:** Smoother scrolling, a ready-to-open Liked songs list, played Spotify playlists in your library, fluid Automix cover transitions, larger Jam queues, a compact player menu and the new Discover tab. [See the changelog →](https://github.com/sh1vvy/daylight/releases/tag/v0.2.2-dev.8)
-
-For future updates, fully close and reopen the app. When a newer release is available, Daylight offers a download and opens Android's installer for your confirmation. Android may first ask you to allow installs from Daylight; return to the app and tap Install again afterward.
-
-## For the curious
-
-Want to build, contribute, or see what happens under the covers?
-
-[Development guide](docs/DEVELOPMENT.md) · [Release guide](docs/ANDROID_RELEASES.md) · [Performance notes](docs/PERFORMANCE.md) · [Lossless beta notes](docs/LOSSLESS_BETA.md) · [Jam server](cloudflare-jam/README.md)
-
-## Credits & license
-
-Made with care by **[sh1vvy](https://sh1vvy.com)**. Daylight is free and open source under the **[GNU GPL v3.0](LICENSE)**; original copyright notices and corresponding source remain available.
-
-Based on **BitChord**.
-
-**© art by 11 ([_artbyeleven on IG](https://www.instagram.com/_artbyeleven/))** — butterfly artwork and the mark adapted from it.
-
-**[Inter](https://rsms.me/inter/)** by Rasmus Andersson — typography, under the [SIL Open Font License](docs/licenses/Inter-OFL.txt).
+<p align="center">
+<a href="docs/screenshots/home-dev8.webp"><img src="docs/screenshots/home-dev8.webp" alt="Dark theme" width="31%" /></a>
+<a href="docs/screenshots/theme-light-dev8.webp"><img src="docs/screenshots/theme-light-dev8.webp" alt="Light theme" width="31%" /></a>
+<a href="docs/screenshots/theme-pink-dev8.webp"><img src="docs/screenshots/theme-pink-dev8.webp" alt="Pink Clouding theme" width="31%" /></a>
+</p>
+<p align="center"><sub>Dark · Light · Pink Clouding <sup>BETA</sup><br />Follow the system theme or choose one in Appearance settings.</sub></p>
 
 <details>
-<summary>Service names and artwork</summary>
+<summary><strong>Discover and the player menu</strong></summary>
 
-Daylight is not affiliated with YouTube, Google, Spotify, Discord, or other service providers. Their names identify integrations. Music artwork shown in screenshots belongs to its respective owners.
+<p align="center">
+<a href="docs/screenshots/discover-dev8.webp"><img src="docs/screenshots/discover-dev8.webp" alt="Discover with new releases, moods and genres" width="42%" /></a>
+<a href="docs/screenshots/player-menu-dev8.webp"><img src="docs/screenshots/player-menu-dev8.webp" alt="Compact player menu with playlist, queue, sharing and dislike actions" width="42%" /></a>
+</p>
 
 </details>
 
-<div align="center">
+## Download and install
 
-<sub>A shared moment. A little daylight.</sub>
+Requires **Android 8.0 or newer**. Download the APK for your channel, open it and approve installation when Android asks.
 
-</div>
+| Channel | Version | Download |
+| :--- | :--- | :--- |
+| **Stable** | 0.2.1 | [daylight.apk](https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk) |
+| **Dev** | 0.2.2-dev.8 | [daylight-dev.apk](https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.8/daylight-dev.apk) |
+
+Stable and Dev install separately. Keep the same channel when updating to preserve its data. Public builds offer an in-app update prompt; Android still asks you to confirm installation. From an internal Canary, install the matching Dev APK manually once to resume public Dev updates.
+
+Sign in to YouTube Music for personalized recommendations, your online library, **Play my mix** and **Jams**. General search and playback also work without sign-in.
+
+## Build and contribute
+
+Daylight currently supports Android. Start with the [development guide](docs/DEVELOPMENT.md) for requirements, builds and tests. Report reproducible problems in [Issues](https://github.com/sh1vvy/daylight/issues), including your app version, Android version and device model.
+
+[Release guide](docs/ANDROID_RELEASES.md) · [Performance notes](docs/PERFORMANCE.md) · [Lossless notes](docs/LOSSLESS_BETA.md) · [Jam service](cloudflare-jam/README.md)
+
+## Credits and license
+
+Developed by **[sh1vvy](https://sh1vvy.com)**. Licensed under **[GNU GPL v3.0](LICENSE)**. Original copyright notices and corresponding source are retained.
+
+Based on **BitChord**.
+
+- **Butterfly artwork:** © art by 11 ([_artbyeleven on IG](https://www.instagram.com/_artbyeleven/)).
+- **Wordmark:** [vector artwork](docs/assets/daylight-wordmark.svg) supplied by sh1vvy.
+- **Typography:** [Inter](https://rsms.me/inter/) by Rasmus Andersson, under the [SIL Open Font License](docs/licenses/Inter-OFL.txt).
+- **Discover icon:** [M Yudi Maulana / Noun Project](app/src/main/assets/credits/Discover.txt), under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+
+<sub>Daylight is not affiliated with YouTube, Google, Spotify, Last.fm or other integrated services. Music artwork in screenshots belongs to its respective owners.</sub>

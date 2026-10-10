@@ -19,11 +19,16 @@ import com.music.bitchord.data.LikeState
 import com.music.bitchord.data.YtMusicRepository
 import com.music.bitchord.data.model.SPOTIFY_MISSING_PREFIX
 import com.music.bitchord.data.model.SPOTIFY_PENDING_PREFIX
+import com.music.bitchord.data.model.isUnresolvedSpotify
 import com.music.bitchord.data.spotify.SPOTIFY_PAGE_PREFIX
 import com.music.bitchord.data.spotify.SpotifyImporter
 import com.music.bitchord.data.spotify.SpotifyLibrary
 import com.music.bitchord.data.spotify.LocalPlaylistStore
 import com.music.bitchord.data.spotify.SpotifyTrack
+import com.music.bitchord.data.library.CollectionMetadataStore
+import com.music.bitchord.data.library.CollectionSnapshot
+import com.music.bitchord.data.library.likedMetadataScope
+import com.music.bitchord.data.library.spotifyMetadataScope
 import com.music.bitchord.data.lyrics.EmbeddedLyrics
 import com.music.bitchord.data.lyrics.LyricLine
 import com.music.bitchord.data.lyrics.LyricsRepository
@@ -600,6 +605,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _library = MutableStateFlow<UiState<LibraryPage>>(UiState.Loading)
     val library: StateFlow<UiState<LibraryPage>> = _library.asStateFlow()
     private val latestLibraryRequest = LatestLibraryRequest()
+    private var likedSnapshot: CollectionSnapshot? = null
+    private var likedRevision = 0L
+    val playedSpotifyCollections = combine(AppSettings.spotifySpdcToken, CollectionMetadataStore.changes) { cookie, _ ->
+        val scope = spotifyMetadataScope(cookie)
+        scope to CollectionMetadataStore.read(scope).filter { it.lastPlayedAt > 0 }.sortedByDescending { it.lastPlayedAt }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null to emptyList())
 
     /** In-memory cache is partitioned by account and profile; it is never shared. */
     private data class ListenerSnapshot(
@@ -691,13 +702,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * registered, and people tap again.
      */
     fun setLike(videoId: String, status: LikeStatus) {
-        if (!requireSignIn()) return
         val previous = likeStatusOf(videoId)
+        val localDislikeChange = status == LikeStatus.DISLIKE || previous == LikeStatus.DISLIKE
+        if (!localDislikeChange && !requireSignIn()) return
+        val identity = listenerKey()
         if (previous == status) return
         LikeState.set(videoId, status)
+        // Dislike is a local playback preference too, including when signed out.
+        // An unavailable network must not bring a rejected song back into the mix.
+        if (!_signedIn.value || videoId.startsWith("local:")) return
         viewModelScope.launch {
             YtMusicRepository.rate(videoId, status).fold(
                 onSuccess = {
+                    if (identity != listenerKey()) return@fold
+                    likedRevision++
+                    likedSyncJob?.cancel()
+                    likedSnapshot = likedSnapshot?.copy(updatedAt = 0)
+                    likedSnapshot?.let { CollectionMetadataStore.save(likedMetadataScope(identity), it) }
                     // Liked Music is now out of date either way.
                     libraryStale = true
                     if (status != LikeStatus.LIKE) dropFromLikedLists(videoId)
@@ -708,7 +729,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     if (unliked) forgetFromLibrary(videoId)
                 },
                 onFailure = {
-                    LikeState.set(videoId, previous)
+                    if (identity == listenerKey() && !localDislikeChange) LikeState.set(videoId, previous)
                 },
             )
         }
@@ -754,6 +775,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * into a list that YouTube orders for itself; the next fetch places it.
      */
     private fun dropFromLikedLists(videoId: String) {
+        likedRevision++
+        likedSyncJob?.cancel()
+        val identity = listenerKey()
+        likedSnapshot?.let { saved ->
+            val changed = saved.copy(songs = saved.songs.filterNot { it.videoId == videoId }, updatedAt = 0)
+            likedSnapshot = changed
+            viewModelScope.launch { CollectionMetadataStore.save(likedMetadataScope(identity), changed) }
+        }
         com.music.bitchord.playback.DaylightMixRepository.remove(videoId)
         val library = (_library.value as? UiState.Success)?.data
         if (library != null && library.likedSongs.any { it.videoId == videoId }) {
@@ -779,7 +808,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** As [toggleLike], for the thumb-down. */
     fun toggleDislike(videoId: String): LikeStatus? {
-        if (!requireSignIn()) return null
         val previous = likeStatusOf(videoId)
         setLike(
             videoId,
@@ -916,12 +944,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val playlistsLoading: StateFlow<Boolean> = _playlistsLoading.asStateFlow()
 
     /** Re-fetched rather than cached for the session: playlists are edited here. */
-    fun loadPlaylists() {
+    fun loadPlaylists(videoId: String? = null) {
         if (!_signedIn.value || _playlistsLoading.value) return
         val identity = listenerKey()
         _playlistsLoading.value = true
         viewModelScope.launch {
-            YtMusicRepository.userPlaylists().onSuccess {
+            YtMusicRepository.userPlaylists(videoId).onSuccess {
                 if (identity == listenerKey()) _playlists.value = pendingPlaylistCreations.mergeOwnPlaylists(identity, it)
             }
             if (identity == listenerKey()) _playlistsLoading.value = false
@@ -1593,7 +1621,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             when (feed) {
                 Feed.HOME -> refreshHome(identity)
                 Feed.EXPLORE -> fetchExplore()
-                Feed.LIBRARY -> fetchLibrary(identity)
+                Feed.LIBRARY -> fetchLibrary(identity, forceLiked = true)
             }
             _refreshing.value = _refreshing.value - feed
         }
@@ -1847,13 +1875,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun loadLibrary() {
         if (!_signedIn.value) return
         val identity = listenerKey()
-        _library.value = UiState.Loading
+        if (_library.value !is UiState.Success) _library.value = UiState.Loading
         viewModelScope.launch { fetchLibrary(identity) }
     }
 
-    private suspend fun fetchLibrary(identity: String?) {
+    private suspend fun fetchLibrary(identity: String?, forceLiked: Boolean = false) {
         if (identity != listenerKey()) return
         val request = latestLibraryRequest.begin()
+        restoreLikedSnapshot(identity)
+        if (identity != listenerKey() || !latestLibraryRequest.isCurrent(request)) return
         val response = YtMusicRepository.library()
         // Check before merging: an obsolete response must not acknowledge
         // pending creates, start a liked-song sync, or overwrite newer state.
@@ -1865,40 +1895,72 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     page.likedSongs + page.librarySongs,
                     page.shelves.flatMap { it.items }.mapNotNull { it.browseId?.takeIf { id -> id.startsWith("VL") && id != "VLLM" } },
                 )
-                // Liked Music is published with just its first page on the tab;
-                // the rest of the collection is synced into LikeState here, in
-                // this ViewModel's scope, so it is cancelled with the screen and
-                // a liked track past the first page still reads as liked.
-                page.likedContinuation?.let { token -> syncLikedMusic(identity, token) }
-                if (merged.isEmpty) UiState.Error(text(R.string.library_empty))
-                else UiState.Success(merged.copy(likedContinuation = null))
+                if (page.likedLoaded) syncLikedMusic(identity, page.likedSongs, page.likedContinuation, forceLiked)
+                val retained = merged.copy(likedSongs = likedSnapshot?.songs ?: merged.likedSongs, likedContinuation = null)
+                if (retained.isEmpty) UiState.Error(text(R.string.library_empty)) else UiState.Success(retained)
             },
-            onFailure = { UiState.Error(it.friendly()) },
+            onFailure = { (_library.value as? UiState.Success) ?: UiState.Error(it.friendly()) },
         )
         if (identity == listenerKey() && latestLibraryRequest.isCurrent(request)) _library.value = next
     }
 
-    /**
-     * Follows Liked Music's continuation chain to exhaustion, seeding each
-     * page's ids into [LikeState] so every liked track reads as liked.
-     *
-     * Scoped to [viewModelScope] — a re-fetch of the library cancels and
-     * replaces it, and it dies with the screen. It only ever seeds ids, never
-     * retaining the full pages. The mix keeps a bounded sample of their tracks.
-     *
-     * [identity] is the listener this token belongs to, checked before every
-     * page: [LikeState] is a single shared map, not scoped per account, so a
-     * sync still in flight when the listener switches must stop rather than
-     * go on seeding the old account's likes into the new one's session.
-     */
-    private fun syncLikedMusic(identity: String?, token: String) {
+    private suspend fun restoreLikedSnapshot(identity: String?) {
+        if (likedSnapshot != null || identity == null) return
+        val saved = CollectionMetadataStore.read(likedMetadataScope(identity))
+            .firstOrNull { it.browseId == YtMusicRepository.LIKED_MUSIC } ?: return
+        if (identity != listenerKey() || likedSnapshot != null) return
+        publishLikedSnapshot(saved)
+        if (_library.value is UiState.Loading) _library.value = UiState.Success(LibraryPage(saved.songs, emptyList(), emptyList()))
+    }
+
+    private fun publishLikedSnapshot(snapshot: CollectionSnapshot) {
+        likedSnapshot = snapshot
+        LikeState.seedLiked(snapshot.songs.mapTo(HashSet()) { it.videoId })
+        val library = (_library.value as? UiState.Success)?.data
+        if (library != null) _library.value = UiState.Success(library.copy(likedSongs = snapshot.songs))
+        _detailStack.value = _detailStack.value.map { page ->
+            if (page.browseId == YtMusicRepository.LIKED_MUSIC) page.copy(
+                songs = UiState.Success(snapshot.songs), thumbnailUrl = snapshot.thumbnailUrl ?: page.thumbnailUrl,
+                creator = snapshot.creator ?: page.creator,
+            ) else page
+        }
+    }
+
+    /** Reuse the existing sequential liked sync, retaining metadata instead of discarding it. */
+    private fun syncLikedMusic(identity: String?, first: List<Song>, token: String?, force: Boolean = false) {
+        val saved = likedSnapshot
+        if (!force && saved?.isFresh() == true && first.map { it.videoId } == saved.songs.take(first.size).map { it.videoId } &&
+            (token != null || first.size == saved.songs.size)) return
         likedSyncJob?.cancel()
+        val revision = likedRevision
+        val requestScope = Innertube.responseCacheScope
         likedSyncJob = viewModelScope.launch {
-            YtMusicRepository.syncLikedMusic(token) { next ->
-                if (identity != listenerKey()) null else YtMusicRepository.moreSongs(next).getOrNull()?.also { page ->
-                    if (identity == listenerKey()) com.music.bitchord.playback.DaylightMixRepository.prime(page.songs)
-                }
+            fun current() = isActive && identity == listenerKey() && revision == likedRevision && requestScope == Innertube.responseCacheScope
+            val header = YtMusicRepository.cachedBrowseSongs(YtMusicRepository.LIKED_MUSIC)
+            val base = CollectionSnapshot(YtMusicRepository.LIKED_MUSIC, text(R.string.auto_liked),
+                thumbnailUrl = header?.header?.thumbnailUrl ?: saved?.thumbnailUrl,
+                creator = header?.creator ?: saved?.creator, songs = first,
+                complete = token == null, updatedAt = System.currentTimeMillis())
+            if (saved == null && current()) {
+                publishLikedSnapshot(base)
+                CollectionMetadataStore.save(likedMetadataScope(identity), base)
             }
+            val songs = first.toMutableList()
+            val known = first.mapTo(HashSet()) { it.setVideoId ?: it.videoId }
+            val seen = HashSet<String>()
+            var next = token
+            while (next != null && seen.add(next) && current()) {
+                val page = YtMusicRepository.moreSongs(next).getOrNull() ?: return@launch
+                if (!current()) return@launch
+                LikeState.seedLiked(page.songs.mapTo(HashSet()) { it.videoId })
+                com.music.bitchord.playback.DaylightMixRepository.prime(page.songs)
+                songs += page.songs.filter { known.add(it.setVideoId ?: it.videoId) }
+                next = page.continuation
+            }
+            if (next != null || !current()) return@launch // Failed/looping partial refresh never replaces the complete saved list.
+            val snapshot = base.copy(songs = songs.filter { LikeState.overrides.value[it.videoId]?.let { status -> status != LikeStatus.LIKE } != true }, complete = true)
+            publishLikedSnapshot(snapshot)
+            CollectionMetadataStore.save(likedMetadataScope(identity), snapshot)
         }
     }
 
@@ -2449,6 +2511,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
          */
 
         fun browseTypeOf(browseId: String, fallback: BrowseType = BrowseType.OTHER): BrowseType = when {
+            browseId.startsWith(SPOTIFY_PAGE_PREFIX) -> BrowseType.PLAYLIST
             browseId.startsWith(Downloads.PLAYLIST_PREFIX) -> BrowseType.PLAYLIST
             browseId.startsWith("local:playlist:") -> BrowseType.PLAYLIST
             browseId.startsWith("UC") -> BrowseType.ARTIST
@@ -2479,21 +2542,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             openSpotifyPage(browseId, title, subtitle, thumbnailUrl)
             return
         }
+        if (browseId == YtMusicRepository.LIKED_MUSIC) {
+            openLikedPage(title, subtitle, thumbnailUrl)
+            return
+        }
         val resolved = browseTypeOf(browseId, type)
         val instanceId = detailInstanceIds.incrementAndGet()
-        // Library has already read the first liked page. Paint those same rows
-        // immediately; the existing bounded cache and pagination do the rest.
-        val warmLiked = if (browseId == YtMusicRepository.LIKED_MUSIC) {
-            YtMusicRepository.cachedBrowseSongs(browseId)
-        } else null
-        val initialSongs: UiState<List<Song>> = warmLiked?.songs?.takeIf { it.isNotEmpty() }
-            ?.let { UiState.Success(it) } ?: UiState.Loading
         _detailStack.value += DetailPage(
             browseId = browseId,
             title = title,
             subtitle = subtitle,
-            thumbnailUrl = thumbnailUrl ?: warmLiked?.header?.thumbnailUrl,
-            songs = initialSongs,
+            thumbnailUrl = thumbnailUrl,
+            songs = UiState.Loading,
             type = resolved,
             instanceId = instanceId,
         )
@@ -2655,7 +2715,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // failed or empty fetch leaves the downloaded tracks up.
             _detailStack.value = _detailStack.value.map {
                 if (it.instanceId == instanceId &&
-                    (it.songs === initialSongs || it.songs is UiState.Loading || (onDevice.isNotEmpty() && hasOnlineSongs))
+                    (it.songs is UiState.Loading || (onDevice.isNotEmpty() && hasOnlineSongs))
                 ) {
                     it.copy(
                         songs = state,
@@ -2681,6 +2741,41 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** A persistent full list is painted before any refresh, and stays usable on refresh failure. */
+    private fun openLikedPage(title: String, subtitle: String, thumbnailUrl: String?) {
+        val identity = listenerKey()
+        val saved = likedSnapshot ?: CollectionMetadataStore.peek(likedMetadataScope(identity), YtMusicRepository.LIKED_MUSIC)
+        val warm = YtMusicRepository.cachedBrowseSongs(YtMusicRepository.LIKED_MUSIC)
+        val rows = saved?.songs ?: warm?.songs
+        val instanceId = detailInstanceIds.incrementAndGet()
+        _detailStack.value += DetailPage(
+            browseId = YtMusicRepository.LIKED_MUSIC, title = title, subtitle = subtitle,
+            thumbnailUrl = thumbnailUrl ?: saved?.thumbnailUrl ?: warm?.header?.thumbnailUrl,
+            songs = rows?.let { UiState.Success(it) } ?: UiState.Loading,
+            type = BrowseType.PLAYLIST, instanceId = instanceId, creator = saved?.creator ?: warm?.creator,
+        )
+        detailJobs[instanceId] = viewModelScope.launch {
+            restoreLikedSnapshot(identity)
+            if (identity != listenerKey()) return@launch
+            if (likedSnapshot?.isFresh() == true) return@launch
+            if (likedSyncJob?.isActive == true) {
+                likedSyncJob?.join()
+                return@launch
+            }
+            YtMusicRepository.browseSongs(YtMusicRepository.LIKED_MUSIC).fold(
+                onSuccess = { page ->
+                    if (identity == listenerKey()) syncLikedMusic(identity, page.songs, page.continuation)
+                },
+                onFailure = { error ->
+                    if (identity != listenerKey()) return@fold
+                    _detailStack.value = _detailStack.value.map {
+                        if (it.instanceId == instanceId && it.songs is UiState.Loading) it.copy(songs = UiState.Error(error.friendly())) else it
+                    }
+                },
+            )
+        }
+    }
+
     /**
      * A Spotify playlist opened as an ordinary playlist page.
      *
@@ -2690,76 +2785,99 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * before the last song has been found.
      */
     private fun openSpotifyPage(browseId: String, title: String, subtitle: String, thumbnailUrl: String?) {
+        val cacheScope = spotifyMetadataScope(AppSettings.spotifySpdcToken.value)
+        val cached = CollectionMetadataStore.peek(cacheScope, browseId)
         val instanceId = detailInstanceIds.incrementAndGet()
         _detailStack.value += DetailPage(
-            browseId = browseId,
-            title = title,
-            subtitle = subtitle,
-            thumbnailUrl = thumbnailUrl,
-            songs = UiState.Loading,
-            type = BrowseType.PLAYLIST,
-            instanceId = instanceId,
-            creator = subtitle.trim().takeIf {
+            browseId = browseId, title = cached?.title ?: title,
+            subtitle = cached?.subtitle ?: subtitle, thumbnailUrl = cached?.thumbnailUrl ?: thumbnailUrl,
+            songs = cached?.songs?.let { UiState.Success(it) } ?: UiState.Loading,
+            type = BrowseType.PLAYLIST, instanceId = instanceId,
+            creator = cached?.creator ?: subtitle.trim().takeIf {
                 it.isNotBlank() && it != text(R.string.spotify) && browseId != SPOTIFY_PAGE_PREFIX + SpotifyLibrary.LIKED_ID
-            }?.let {
-                PlaylistCreator(it, provider = CreatorProvider.SPOTIFY)
-            },
+            }?.let { PlaylistCreator(it, provider = CreatorProvider.SPOTIFY) },
         )
         val identity = listenerKey()
         val requestScope = Innertube.responseCacheScope
         detailJobs[instanceId] = viewModelScope.launch {
             val playlistId = browseId.removePrefix(SPOTIFY_PAGE_PREFIX)
             fun open() = isActive && identity == listenerKey() && requestScope == Innertube.responseCacheScope &&
+                cacheScope == spotifyMetadataScope(AppSettings.spotifySpdcToken.value) &&
                 _detailStack.value.any { it.instanceId == instanceId }
-            fun setSongs(songs: UiState<List<Song>>) {
+            val saved = cached ?: CollectionMetadataStore.read(cacheScope).firstOrNull { it.browseId == browseId }
+            if (!open()) return@launch
+            if (saved != null) _detailStack.update { stack -> stack.map {
+                if (it.instanceId == instanceId) it.copy(songs = UiState.Success(saved.songs), title = saved.title,
+                    subtitle = saved.subtitle, thumbnailUrl = saved.thumbnailUrl ?: it.thumbnailUrl, creator = saved.creator ?: it.creator) else it
+            } }
+            if (saved?.isFresh() == true) return@launch
+            val started = System.currentTimeMillis()
+            val latest = java.util.concurrent.atomic.AtomicReference(saved ?: CollectionSnapshot(
+                browseId, title, subtitle, thumbnailUrl, songs = emptyList(), complete = false, updatedAt = started))
+            var changed = false
+            fun setSongs(songs: List<Song>, trackIds: List<String>, complete: Boolean = false) {
                 if (!open()) return
-                _detailStack.value = _detailStack.value.map {
-                    if (it.instanceId == instanceId) it.copy(songs = songs) else it
-                }
+                latest.updateAndGet { it.copy(songs = songs, trackIds = trackIds, complete = complete, updatedAt = started) }
+                changed = true
+                _detailStack.update { stack -> stack.map { if (it.instanceId == instanceId) it.copy(songs = UiState.Success(songs)) else it } }
             }
-            // The list only had a thumbnail; the full-size cover replaces it
-            // once this page has asked for it.
-            launch {
-                val metadata = runCatching { SpotifyLibrary.metadata(playlistId) }.getOrNull() ?: return@launch
+            fun failure(error: Throwable) {
+                if (!open() || saved != null) return
+                _detailStack.update { stack -> stack.map {
+                    if (it.instanceId == instanceId) it.copy(songs = UiState.Error(error.message ?: text(R.string.failed))) else it
+                } }
+            }
+            // Recording ids, rather than title or row index, preserve matches across reorders and duplicate entries.
+            val matches = saved?.trackIds.orEmpty().zip(saved?.songs.orEmpty()).filterNot { it.second.isUnresolvedSpotify }.toMap()
+            try {
+                val metadataJob = launch {
+                    val metadata = try { SpotifyLibrary.metadata(playlistId) }
+                    catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                    catch (_: Exception) { return@launch }
+                    if (!open()) return@launch
+                    latest.updateAndGet { it.copy(title = metadata.title ?: it.title, thumbnailUrl = metadata.coverUrl ?: it.thumbnailUrl, creator = metadata.creator ?: it.creator) }
+                    _detailStack.update { stack -> stack.map {
+                        if (it.instanceId == instanceId) it.copy(title = metadata.title ?: it.title, thumbnailUrl = metadata.coverUrl ?: it.thumbnailUrl, creator = metadata.creator ?: it.creator) else it
+                    } }
+                }
+                val tracks = try {
+                    SpotifyLibrary.tracks(playlistId) { soFar ->
+                        if (saved == null) setSongs(soFar.map { matches[it.id] ?: it.asPendingSong() }, soFar.map { it.id })
+                    }
+                } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                catch (error: Exception) { failure(error); return@launch }
                 if (!open()) return@launch
-                _detailStack.value = _detailStack.value.map {
-                    if (it.instanceId == instanceId) it.copy(
-                        thumbnailUrl = metadata.coverUrl ?: it.thumbnailUrl,
-                        creator = metadata.creator ?: it.creator,
-                    ) else it
-                }
-            }
-            val tracks = runCatching {
-                SpotifyLibrary.tracks(playlistId) { soFar ->
-                    setSongs(UiState.Success(soFar.map { it.asPendingSong() }))
-                }
-            }.getOrElse {
-                setSongs(UiState.Error(it.message ?: text(R.string.failed)))
-                return@launch
-            }
-            if (tracks.isEmpty()) {
-                setSongs(UiState.Error(text(R.string.spotify_empty_tracks)))
-                return@launch
-            }
-            val gate = Semaphore(SPOTIFY_MATCH_PARALLELISM)
-            coroutineScope {
-                tracks.forEachIndexed { index, track ->
-                    launch {
-                        gate.withPermit {
-                            if (!open()) return@withPermit
-                            val match = runCatching { SpotifyImporter.matchTrack(track) }.getOrNull()
-                            if (!open()) return@withPermit
-                            val found = match?.copy(thumbnailUrl = match.thumbnailUrl ?: track.imageUrl)
-                                ?: track.asPendingSong().let {
-                                    it.copy(videoId = SPOTIFY_MISSING_PREFIX + track.id)
-                                }
-                            _detailStack.value = _detailStack.value.map { page ->
-                                val list = (page.songs as? UiState.Success<List<Song>>)?.data
-                                if (page.instanceId == instanceId && list != null && index < list.size) {
-                                    page.copy(songs = UiState.Success(list.toMutableList().also { it[index] = found }))
-                                } else page
+                setSongs(tracks.map { matches[it.id] ?: it.asPendingSong() }, tracks.map { it.id })
+                // Save one initial listing before playback can mark its origin as listened to.
+                if (saved?.complete != true) CollectionMetadataStore.save(cacheScope, latest.get())
+                val gate = Semaphore(SPOTIFY_MATCH_PARALLELISM)
+                coroutineScope {
+                    tracks.forEachIndexed { index, track ->
+                        if (track.id !in matches) launch {
+                            gate.withPermit {
+                                if (!open()) return@withPermit
+                                val match = try { SpotifyImporter.matchTrack(track) }
+                                catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                                catch (_: Exception) { null }
+                                if (!open()) return@withPermit
+                                val found = match?.copy(thumbnailUrl = match.thumbnailUrl ?: track.imageUrl)
+                                    ?: track.asPendingSong().copy(videoId = SPOTIFY_MISSING_PREFIX + track.id)
+                                latest.updateAndGet { snapshot -> snapshot.copy(songs = snapshot.songs.toMutableList().also { it[index] = found }) }
+                                _detailStack.update { stack -> stack.map { page ->
+                                    if (page.instanceId == instanceId) page.copy(songs = UiState.Success(latest.get().songs)) else page
+                                } }
                             }
                         }
+                    }
+                }
+                metadataJob.join()
+                if (open()) latest.updateAndGet { it.copy(complete = true) }
+            } finally {
+                // Closing a partly matched page retains the matches already found. A partial/failed
+                // refresh cannot discard the last complete snapshot.
+                if (changed && (saved == null || latest.get().complete)) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                        CollectionMetadataStore.save(cacheScope, latest.get())
                     }
                 }
             }
@@ -2955,6 +3073,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val context = getApplication<Application>()
             val result = when {
+                browseId.startsWith(SPOTIFY_PAGE_PREFIX) -> runCatching {
+                    CollectionMetadataStore.read(spotifyMetadataScope(AppSettings.spotifySpdcToken.value))
+                        .firstOrNull { it.browseId == browseId }?.songs.orEmpty()
+                        .filterNot { it.isUnresolvedSpotify }.ifEmpty { error(text(R.string.spotify_empty_tracks)) }
+                }
+                browseId == YtMusicRepository.LIKED_MUSIC && likedSnapshot?.complete == true -> Result.success(likedSnapshot!!.songs)
                 Downloads.recordIdOf(browseId) != null -> runCatching {
                     downloadedPlaylist(browseId).ifEmpty {
                         error(text(R.string.downloaded_playlist_empty))
@@ -3233,7 +3357,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // Every resolver verdict and personalised page belongs to the
             // identity that was active before validation succeeded.
             StreamResolver.onSessionChanged()
-            if (wasSignedIn) clearListenerState() else clearSearchState()
+            if (wasSignedIn) clearListenerState() else {
+                LikeState.selectScope(listenerKey())
+                clearSearchState()
+            }
             reloadForAccount()
             loadChannels(force = true)
             onComplete(true)
@@ -3282,10 +3409,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun removeAccount(accountId: String) {
+        forgetAccountMetadata(accountId)
         val fallback = authStore.removeAccount(accountId)
         _googleAccounts.value = authStore.sessions
         if (fallback == null) { signOut(); return }
         selectProfile(fallback.accountId, fallback.activeProfileId ?: fallback.profiles.firstOrNull()?.profileId ?: return)
+    }
+
+    private fun forgetAccountMetadata(accountId: String?) {
+        val account = authStore.sessions.firstOrNull { it.accountId == accountId } ?: return
+        val scopes = account.profiles.map { likedMetadataScope("${account.accountId}:${it.profileId}") }
+        listenerCache.keys.removeAll { it.startsWith("${account.accountId}:") }
+        if (accountId == _activeAccountId.value) {
+            likedRevision++
+            likedSyncJob?.cancel()
+            likedSnapshot = null
+        }
+        viewModelScope.launch { scopes.forEach { CollectionMetadataStore.removeScope(it) } }
     }
 
     private fun persistDetectedProfiles(channels: List<AccountChannel>) {
@@ -3340,6 +3480,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun clearListenerState(restoreCached: Boolean = false) {
+        likedSnapshot = null
+        likedRevision++
         clearSearchState()
         homeRecommendationsJob?.cancel()
         homeRecommendationSeed = null
@@ -3351,7 +3493,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         YtMusicRepository.clearBrowseCache()
         _account.value = null
         likedSyncJob?.cancel()
-        LikeState.clear()
+        LikeState.selectScope(listenerKey())
         _playlistsLoading.value = false
         _playlists.value = emptyList()
         _playlistOwned.value = emptyMap()
@@ -3396,6 +3538,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             removeAccount(current)
             return
         }
+        forgetAccountMetadata(current)
+        likedSnapshot = null
+        likedRevision++
         authStore.signOut()
         clearSearchState()
         latestLibraryRequest.invalidate()
@@ -3420,7 +3565,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // Ratings and playlists belong to the account that just left; keeping
         // them would show the next signed-in user someone else's hearts.
         likedSyncJob?.cancel()
-        LikeState.clear()
+        LikeState.selectScope(listenerKey())
         _playlists.value = emptyList()
         _playlistOwned.value = emptyMap()
         ownershipInFlight.clear()

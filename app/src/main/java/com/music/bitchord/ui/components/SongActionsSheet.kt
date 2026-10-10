@@ -3,6 +3,16 @@ package com.music.bitchord.ui.components
 import com.music.bitchord.R
 
 import android.net.Uri
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -214,6 +224,96 @@ fun SongActionsSheet(
     // rate, save, queue into a playlist, fetch again, or share a link for.
     val isOffline = song.localUri != null
 
+    if (presentation == SongActionsPresentation.PlayerMenu) {
+        var page by remember(song.videoId) { mutableStateOf(0) }
+        val reduced by com.music.bitchord.data.settings.AppSettings.reduceAnimation.collectAsStateWithLifecycle()
+        CompositionLocalProvider(LocalActionRowStyle provides ActionRowStyle.Menu, LocalActionPalette provides palette) {
+            Box(modifier.fillMaxWidth()) {
+                ArtworkBackdrop(palette, song.thumbnailUrl, Modifier.matchParentSize(), washFraction = 1f, artPx = ROW_ART_PX)
+                AnimatedContent(
+                    targetState = page,
+                    transitionSpec = {
+                        (fadeIn(tween(if (reduced) 80 else 160)) togetherWith fadeOut(tween(if (reduced) 60 else 90))).using(
+                            SizeTransform { _, _ -> tween(if (reduced) 0 else 200) },
+                        )
+                    }, label = "playerMenuPage",
+                ) { shownPage ->
+                    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = 6.dp)) {
+                        if (shownPage != 0) {
+                            Row(Modifier.fillMaxWidth().padding(end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = { page = 0 }) {
+                                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = palette.onBackground)
+                                }
+                                Text(stringResource(when (shownPage) {
+                                    1 -> R.string.song_menu_go_to
+                                    3 -> R.string.sleep_timer
+                                    else -> R.string.song_menu_more
+                                }), style = MaterialTheme.typography.titleMedium, color = palette.onBackground,
+                                    modifier = Modifier.semantics { heading() })
+                            }
+                            HorizontalDivider(color = palette.divider)
+                        }
+                        when (shownPage) {
+                            0 -> {
+                                Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp)) {
+                                    if (signedIn && !isOffline) {
+                                        QuickMenuAction(
+                                            if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                                            stringResource(if (liked) R.string.remove_from_liked else R.string.like),
+                                            palette, Modifier.weight(1f), onToggleLike,
+                                        )
+                                    }
+                                    if (!isOffline && onShare != null) {
+                                        QuickMenuAction(Icons.Rounded.Share, stringResource(R.string.share), palette, Modifier.weight(1f), onShare)
+                                    }
+                                }
+                                HorizontalDivider(color = palette.divider)
+                                ActionRow(Icons.AutoMirrored.Rounded.PlaylistAdd, stringResource(R.string.add_to_playlist), onClick = onAddToPlaylist)
+                                ActionRow(Icons.AutoMirrored.Rounded.PlaylistPlay, stringResource(R.string.play_next), onClick = onPlayNext)
+                                ActionRow(Icons.Rounded.Radio, stringResource(R.string.start_radio), onClick = onStartRadio)
+                                if (song.albumId != null || song.artistId != null || resolvingLinks) {
+                                    ActionRow(Icons.AutoMirrored.Rounded.ArrowForward, stringResource(R.string.song_menu_go_to)) { page = 1 }
+                                }
+                                ActionRow(Icons.Rounded.MoreHoriz, stringResource(R.string.song_menu_more)) { page = 2 }
+                                HorizontalDivider(color = palette.divider)
+                                ActionRow(
+                                    if (disliked) Icons.Rounded.ThumbDown else Icons.Rounded.ThumbDownOffAlt,
+                                    stringResource(if (disliked) R.string.undo_dislike else R.string.dislike),
+                                    tint = if (disliked) palette.accent else null,
+                                    onClick = onToggleDislike,
+                                )
+                            }
+                            1 -> {
+                                song.albumId?.let { id -> ActionRow(Icons.Rounded.Album, stringResource(R.string.open_album)) { onOpenAlbum(id) } }
+                                    ?: if (resolvingLinks) LoadingActionRow(Icons.Rounded.Album, stringResource(R.string.open_album), palette) else Unit
+                                song.artistId?.let { id -> ActionRow(Icons.Rounded.Person, stringResource(R.string.open_artist)) { onOpenArtist(id) } }
+                                    ?: if (resolvingLinks) LoadingActionRow(Icons.Rounded.Person, stringResource(R.string.open_artist), palette) else Unit
+                            }
+                            2 -> {
+                                ActionRow(Icons.AutoMirrored.Rounded.QueueMusic, stringResource(R.string.add_to_queue), onClick = onAddToQueue)
+                                DownloadRow(song, palette, isOffline, onDownload)
+                                (onRollbackToOriginal ?: onUpgradeQuality)?.let { callback ->
+                                    ActionRow(if (onRollbackToOriginal != null) Icons.AutoMirrored.Rounded.Undo else Icons.Rounded.HighQuality,
+                                        stringResource(if (onRollbackToOriginal != null) R.string.revert_to_original else R.string.upgrade_quality),
+                                        enabled = onRollbackToOriginal != null || !upgradeQualityInProgress, onClick = callback)
+                                }
+                                onToggleAudioVersion?.let { callback ->
+                                    ActionRow(if (isAudioVersion) Icons.Rounded.Videocam else BitChordIcons.MusicNote,
+                                        stringResource(if (isAudioVersion) R.string.convert_to_video else R.string.convert_to_audio), onClick = callback)
+                                }
+                                onLyricsOffset?.let { callback -> ActionRow(Icons.Rounded.Tune, stringResource(R.string.lyrics_offset), onClick = callback) }
+                                if (showSleepTimer) ActionRow(Icons.Rounded.Bedtime, stringResource(R.string.sleep_timer), value = sleepTimerStatus()) { page = 3 }
+                                onCopyLog?.let { callback -> ActionRow(Icons.Rounded.BugReport, stringResource(R.string.copy_log), onClick = callback) }
+                            }
+                            3 -> SleepTimerPicker(palette) { page = 2 }
+                        }
+                    }
+                }
+            }
+        }
+        return
+    }
+
     val rows: @Composable ColumnScope.() -> Unit = {
         // Leads the list whenever it's available: which recording is playing
         // is the one question that has to be answered before any of the rows
@@ -225,6 +325,7 @@ fun SongActionsSheet(
         // and between them they are the whole of the choice, which is why they
         // sit in the same place under the same divider.
         if (onRollbackToOriginal != null || onUpgradeQuality != null || onToggleAudioVersion != null) {
+            ActionGroup(palette) {
             (onRollbackToOriginal ?: onUpgradeQuality)?.let {
                 ActionRow(
                     icon = if (onRollbackToOriginal != null) {
@@ -257,9 +358,11 @@ fun SongActionsSheet(
                     onClick = it,
                 )
             }
+            }
             GroupSeparator(palette)
         }
 
+        ActionGroup(palette) {
         ActionRow(
             icon = Icons.AutoMirrored.Rounded.PlaylistAdd,
             label = stringResource(R.string.add_to_playlist),
@@ -275,13 +378,6 @@ fun SongActionsSheet(
                 accent = palette.accent,
                 onClick = onToggleLike,
             )
-            ActionRow(
-                icon = if (disliked) Icons.Rounded.ThumbDown else Icons.Rounded.ThumbDownOffAlt,
-                label = if (disliked) stringResource(R.string.undo_dislike) else stringResource(R.string.dislike),
-                tint = if (disliked) palette.accent else null,
-                accent = palette.accent,
-                onClick = onToggleDislike,
-            )
             onRemoveFromPlaylist?.let {
                 ActionRow(
                     icon = Icons.Rounded.PlaylistRemove,
@@ -290,9 +386,18 @@ fun SongActionsSheet(
                     onClick = it,
                 )
             }
-            GroupSeparator(palette)
         }
+            ActionRow(
+                icon = if (disliked) Icons.Rounded.ThumbDown else Icons.Rounded.ThumbDownOffAlt,
+                label = if (disliked) stringResource(R.string.undo_dislike) else stringResource(R.string.dislike),
+                tint = if (disliked) palette.accent else null,
+                accent = palette.accent,
+                onClick = onToggleDislike,
+            )
+        }
+        GroupSeparator(palette)
 
+        ActionGroup(palette) {
         DownloadRow(song, palette, isOffline, onDownload)
         ActionRow(
             icon = Icons.Rounded.Radio,
@@ -312,6 +417,9 @@ fun SongActionsSheet(
             accent = palette.accent,
             onClick = onAddToQueue,
         )
+        }
+        GroupSeparator(palette)
+        ActionGroup(palette) {
         when (val id = song.albumId) {
             null -> if (resolvingLinks) {
                 LoadingActionRow(Icons.Rounded.Album, stringResource(R.string.open_album), palette)
@@ -363,6 +471,7 @@ fun SongActionsSheet(
         onCopyLog?.let {
             ActionRow(Icons.Rounded.BugReport, stringResource(R.string.copy_log), accent = palette.accent, onClick = it)
         }
+        }
     }
 
     if (menu) {
@@ -378,20 +487,33 @@ fun SongActionsSheet(
             return@TintedSheet
         }
 
-        SheetTrackHeader(song, subtitleColor = palette.onBackgroundVariant)
-        HorizontalDivider(thickness = 0.5.dp, color = palette.divider)
+        SheetTrackHeader(song, subtitleColor = palette.onBackgroundVariant, titleColor = palette.onBackground, large = true)
+        Spacer(Modifier.height(8.dp))
         rows()
         Spacer(Modifier.height(24.dp))
     }
 }
 
 /** How [SongActionsSheet] is being presented. */
-enum class SongActionsPresentation { Sheet, Menu }
+enum class SongActionsPresentation { Sheet, Menu, PlayerMenu }
 
 /** Row density and layout, set by whichever surface the rows are drawn on. */
 internal enum class ActionRowStyle { Sheet, Menu }
 
 internal val LocalActionRowStyle = staticCompositionLocalOf { ActionRowStyle.Sheet }
+private val LocalActionPalette = staticCompositionLocalOf<ArtworkPalette?> { null }
+
+@Composable
+private fun ActionGroup(palette: ArtworkPalette, content: @Composable ColumnScope.() -> Unit) {
+    if (LocalActionRowStyle.current == ActionRowStyle.Menu) {
+        Column(Modifier.fillMaxWidth(), content = content)
+    } else {
+        Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(palette.onBackground.copy(alpha = 0.065f))
+            .padding(vertical = 4.dp), content = content)
+    }
+}
 
 /**
  * The popup's colours: the theme's own, so the menu reads the same in light and
@@ -429,11 +551,7 @@ private fun GroupSeparator(palette: ArtworkPalette) {
                 .background(palette.divider),
         )
     } else {
-        HorizontalDivider(
-            modifier = Modifier.padding(vertical = 6.dp),
-            thickness = 0.5.dp,
-            color = palette.divider,
-        )
+        Spacer(Modifier.height(10.dp))
     }
 }
 
@@ -497,13 +615,14 @@ private fun TintedSheet(
                 Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
-                content = content,
-            )
+            ) {
+                CompositionLocalProvider(LocalActionPalette provides palette) { content() }
+            }
         }
     }
 }
 
-private val SHEET_SHAPE = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+private val SHEET_SHAPE = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
 
 /**
  * One row carrying the whole life of a download: start it, watch it, cancel it,
@@ -748,7 +867,7 @@ internal fun ActionRow(
     val menu = LocalActionRowStyle.current == ActionRowStyle.Menu
     // The popup sits on a surface rather than the page background, so its
     // text follows the surface's colour — the two differ in light mode.
-    val foreground = if (menu) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onBackground
+    val foreground = LocalActionPalette.current?.onBackground ?: if (menu) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onBackground
     val alpha = if (enabled) 1f else 0.4f
     val iconView: @Composable () -> Unit = {
         Icon(
@@ -764,9 +883,9 @@ internal fun ActionRow(
             .clickable(enabled = enabled, onClick = onClick)
             .then(
                 if (menu) {
-                    Modifier.heightIn(min = 46.dp).padding(horizontal = 18.dp, vertical = 11.dp)
+                    Modifier.heightIn(min = 48.dp).padding(horizontal = 18.dp, vertical = 11.dp)
                 } else {
-                    Modifier.padding(horizontal = 22.dp, vertical = 15.dp)
+                    Modifier.heightIn(min = 54.dp).padding(horizontal = 16.dp, vertical = 10.dp)
                 },
             ),
         verticalAlignment = Alignment.CenterVertically,
@@ -774,8 +893,9 @@ internal fun ActionRow(
         // A context menu reads label-first with the glyph at the far edge;
         // the sheet keeps the glyph leading, like every other list in the app.
         if (!menu) {
-            iconView()
-            Spacer(Modifier.width(18.dp))
+            Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp))
+                .background(foreground.copy(alpha = 0.07f)), contentAlignment = Alignment.Center) { iconView() }
+            Spacer(Modifier.width(14.dp))
         }
         Text(
             text = label,
@@ -815,9 +935,9 @@ private fun LoadingActionRow(icon: ImageVector, label: String, palette: ArtworkP
             .fillMaxWidth()
             .then(
                 if (menu) {
-                    Modifier.heightIn(min = 46.dp).padding(horizontal = 18.dp, vertical = 11.dp)
+                    Modifier.heightIn(min = 48.dp).padding(horizontal = 18.dp, vertical = 11.dp)
                 } else {
-                    Modifier.padding(horizontal = 22.dp, vertical = 15.dp)
+                    Modifier.heightIn(min = 54.dp).padding(horizontal = 16.dp, vertical = 10.dp)
                 },
             ),
         verticalAlignment = Alignment.CenterVertically,
@@ -857,20 +977,21 @@ internal fun SheetTrackHeader(
     song: Song,
     modifier: Modifier = Modifier,
     subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    titleColor: Color = MaterialTheme.colorScheme.onBackground,
+    large: Boolean = false,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(horizontal = 20.dp, vertical = if (large) 14.dp else 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AsyncImage(
             model = song.artworkAt(ROW_ART_PX),
             contentDescription = null,
             modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .thumbnailBorder(RoundedCornerShape(8.dp))
+                .size(if (large) 64.dp else 52.dp)
+                .clip(RoundedCornerShape(if (large) 14.dp else 8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
         )
         Spacer(Modifier.width(14.dp))
@@ -878,7 +999,7 @@ internal fun SheetTrackHeader(
             ExplicitSongTitle(
                 song = song,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = titleColor,
             )
             Text(
                 text = song.artist,
@@ -900,4 +1021,13 @@ internal fun SheetHeading(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 16.dp, bottom = 4.dp),
     )
+}
+
+@Composable
+private fun QuickMenuAction(icon: ImageVector, label: String, palette: ArtworkPalette, modifier: Modifier, onClick: () -> Unit) {
+    Column(modifier.clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(icon, null, tint = palette.onBackground, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.height(6.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = palette.onBackground, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
 }

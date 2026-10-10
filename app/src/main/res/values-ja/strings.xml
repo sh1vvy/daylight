@@ -1296,4 +1296,6 @@
     <plurals name="recommendation_languages_hidden"><item quantity="one">非表示の言語：%1$d</item><item quantity="other">非表示の言語：%1$d</item></plurals>
     <string name="recommendation_languages_hint">おすすめから言語を非表示にします。保存した音楽や検索は引き続き利用できます。</string>
     <string name="recommendation_languages_reset">すべての言語を表示</string>
+    <string name="song_menu_go_to">移動</string>
+    <string name="song_menu_more">その他のオプション</string>
 </resources>

@@ -34,6 +34,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.json.JsonObject
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
@@ -92,6 +94,7 @@ object YtMusicRepository {
         continuationPages.clear()
         homeRadio.clear()
         artistPreviews.clear()
+        editablePlaylistPages.clear()
     }
     private val moodGenreShelfCache = ConcurrentHashMap<String, List<HomeShelf>>()
     // Includes unchanged video fallbacks as well as successful matches. The
@@ -600,6 +603,7 @@ object YtMusicRepository {
                 librarySongs = emptyList(),
                 shelves = shelves,
                 likedContinuation = likedPage?.continuation,
+                likedLoaded = likedPage != null,
             )
         }
     }
@@ -997,8 +1001,23 @@ object YtMusicRepository {
      * playlist collections otherwise lose everything past YouTube's first
      * library-feed response.
      */
-    suspend fun userPlaylists(): Result<List<UserPlaylist>> = call("playlists") {
-        InnertubeParser.parseUserPlaylists(libraryItemsPaged(LIBRARY_PLAYLISTS))
+    private val editablePlaylistPages = BoundedRequestCache<BrowseKey, List<UserPlaylist>>(
+        browseScope, ttlMs = 60_000L, maxEntries = 4, maxWeight = 1_000, weightOf = { it.size },
+    )
+
+    suspend fun userPlaylists(videoId: String? = null): Result<List<UserPlaylist>> = call("playlists") {
+        editablePlaylistPages.get(BrowseKey(Innertube.responseCacheScope, Innertube.currentLanguage, "editable-playlists", false)) {
+            val options = try { InnertubeParser.parseEditablePlaylistOptions(Innertube.playlistOptions(videoId)) }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { null }
+            options ?: coroutineScope {
+                // Older response variants fall back to verified ownership; never expose saved strangers' lists.
+                val gate = Semaphore(4)
+                InnertubeParser.parseUserPlaylists(libraryItemsPaged(LIBRARY_PLAYLISTS)).map { candidate ->
+                    async { gate.withPermit { candidate.takeIf { playlistOwned(it.browseId).getOrNull() == true } } }
+                }.awaitAll().filterNotNull()
+            }
+        }
     }
 
     /** A fresh, short-circuiting check; failed continuation pages never mean "not present". */

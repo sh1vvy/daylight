@@ -451,6 +451,8 @@ data class LibraryPage(
      * [com.music.bitchord.data.LikeState]; never stored as page state.
      */
     val likedContinuation: String? = null,
+    /** Distinguish a verified empty collection from a failed liked-list request. */
+    val likedLoaded: Boolean = true,
 ) {
     val isEmpty: Boolean
         get() = likedSongs.isEmpty() && librarySongs.isEmpty() && shelves.isEmpty()

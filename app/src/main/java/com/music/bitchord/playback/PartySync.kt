@@ -756,11 +756,13 @@ class PartySync(
         // the full list is not — it parses a metadata bundle per track — and
         // this runs on every pause and every seek, on a queue that can be
         // hundreds long.
-        val localIndices = partyPublishQueueIndices(
+        val publishIndices = partyPublishQueueIndices(
             mediaIds = (0 until exo.mediaItemCount).map { exo.getMediaItemAt(it).mediaId },
             currentIndex = exo.currentMediaItemIndex,
             tierAt = { exo.getMediaItemAt(it).queueTier },
         )
+        val historyStart = (publishIndices.indexOf(exo.currentMediaItemIndex) - MAX_PARTY_HISTORY).coerceAtLeast(0)
+        val localIndices = publishIndices.drop(historyStart)
         val localItems = localIndices.map { exo.getMediaItemAt(it) }
 
         val localIds = localItems.map { it.mediaId }
@@ -1068,7 +1070,8 @@ class PartySync(
         const val INTENT_QUIET_MS = 4_500L
 
         /** Maximum upcoming tracks in a party queue excluding the currently playing one. */
-        const val MAX_PARTY_UPCOMING_QUEUE = 25
+        const val MAX_PARTY_UPCOMING_QUEUE = 2_000
+        const val MAX_PARTY_HISTORY = 100
 
         /** The server's own ceiling; publishing more would only be truncated. */
         const val MAX_PUBLISHED_QUEUE = 1 + MAX_PARTY_UPCOMING_QUEUE

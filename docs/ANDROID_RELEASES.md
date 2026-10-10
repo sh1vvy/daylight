@@ -16,13 +16,20 @@ existing package and signer so an in-place update preserves library and settings
 
 ## Internal canaries
 
-Public Dev updates resume with **0.2.2-dev.7**, Android code **27**, following
-eight internal canaries through **0.2.2-canary.8**, code **26**. This Dev release
-updates the same package and signer and restores public Dev update checks.
-Internal canaries disable their update checker and remain manually installed.
-Do not publish, tag or push a canary without the owner requesting it. Leave the
-stable release and website download badge unchanged. Future public Dev updates
-continue at **dev.8** with a code greater than every installed Dev or canary.
+The current public development release is **0.2.2-dev.8**, Android code **31**,
+following internal **canary.9–11** (codes 28–30). Build it with
+`:app:assembleDevCanary`: this optimized, non-debuggable runtime uses the existing
+Dev signer under `com.sh1vvy.daylight.dev`, despite the build type's internal name.
+Its visible label is Daylight Dev and its public Dev update checks are enabled.
+
+The universal GitHub asset is `daylight-dev.apk`; the arm64 APK can be used for
+local phone testing. Both update existing Dev/Canary installations in place.
+Canaries disable their checker and should manually install Dev.8 once without
+uninstalling. Stable remains **0.2.1**, code **12**. Its release and website badge
+are unchanged. The next public Dev release is **dev.9**, with a code above 31.
+
+Future internal canaries remain private and manually installed. Do not publish,
+tag or push a canary without the owner requesting it. See [internal checks](CANARY_TESTING.md).
 
 ## Development updates
 
@@ -37,7 +44,8 @@ the production version. Keep the existing development package and debug signer
 so users can install over Daylight Dev without losing library or settings.
 
 For each requested development update, run the Android/shared tests and build
-`:app:assembleDevDebug`. Publish a GitHub **prerelease**, explicitly **not latest**,
+`:app:assembleDevCanary`. Set the requested `0.2.2-dev.N` version independently
+of this optimized build type. Publish a GitHub **prerelease**, explicitly **not latest**,
 tagged `v0.2.2-dev.N`, containing only `daylight-dev.apk` and `SHA256SUMS.txt`.
 Update the README's direct Dev download link to that tag after verifying its assets.
 Do not replace the stable APKs or change the Jam website's public download badge.
@@ -82,7 +90,7 @@ Follow these steps only when a public release is explicitly requested.
    increment its code beyond the last Dev prerelease's code. The channels have
    independent Android version codes; never attach an older-code Dev APK or an
    APK whose version name differs from the release tag. Update the Jam badge.
-2. Run the Android/shared tests and build `:app:assembleDevDebug` and
+2. Run the Android/shared tests and build `:app:assembleDevCanary` and
    `:app:assembleProdRelease`. Verify the universal APKs’ package, version code
    and signing certificates with the Android build tools.
 3. Commit and push the source, then create the matching `vX.Y.Z` tag/release.

@@ -24,7 +24,7 @@
     <string name="library">Library</string>
     <string name="home">Home</string>
     <string name="play">Play</string>
-    <string name="explore">Explore</string>
+    <string name="explore">Discover</string>
     <string name="listen_now">Listen Now</string>
     <string name="downloads">Downloads</string>
     <string name="downloaded_songs">Downloaded songs</string>
@@ -479,7 +479,7 @@
     <string name="radio_started">%1$s radio started</string>
     <string name="saved_to_bitchord_folder">Saved to Music/Daylight</string>
     <string name="nothing_downloading">Nothing downloading</string>
-    <string name="nothing_to_explore">Nothing to explore right now</string>
+    <string name="nothing_to_explore">Nothing to discover right now</string>
     <string name="no_youtube_music_results">No results from YouTube Music</string>
     <string name="library_empty">Nothing in your library yet</string>
     <string name="history_sign_in_required">Sign in to see what you have been listening to</string>
@@ -549,7 +549,7 @@
         <item quantity="other">Added to %1$d playlists</item>
     </plurals>
     <string name="party_queue_full">Queue is full (maximum %d songs in party)</string>
-    <string name="party_playlist_queue_limited">Jam has room for 25 upcoming songs. The rest of this playlist wasn\'t added.</string>
+    <string name="party_playlist_queue_limited">Jam has room for 2,000 upcoming songs. The rest of this playlist wasn\'t added.</string>
     <plurals name="log_copied_line_count">
         <item quantity="one">Log copied · %1$d line</item>
         <item quantity="other">Log copied · %1$d lines</item>
@@ -1157,4 +1157,6 @@
     <string name="recommendation_languages_hint">Hide languages from recommendations. Your saved music and search stay available.</string>
     <string name="search_languages">Search languages</string>
     <string name="recommendation_languages_reset">Show all languages</string>
+    <string name="song_menu_go_to">Go to</string>
+    <string name="song_menu_more">More options</string>
 </resources>

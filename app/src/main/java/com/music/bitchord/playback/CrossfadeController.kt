@@ -680,6 +680,15 @@ class CrossfadeController(
         settledAt.takeIf { it != 0L }?.let { SystemClock.elapsedRealtime() - it }
 
     private val listener = object : Player.Listener {
+        override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+            if (handedOff || (phase != Phase.ARMING && phase != Phase.FADING)) return
+            val out = outgoing ?: return
+            val into = incoming ?: return
+            // Pure appends can be reconciled at handoff. Removal/reordering of
+            // the armed prefix invalidates the standby, including a newly disliked song.
+            if (out.mediaItemCount < queuedItemCount || into.mediaItemCount < queuedItemCount ||
+                (0 until queuedItemCount).any { out.getMediaItemAt(it) != into.getMediaItemAt(it) }) bail()
+        }
         override fun onPositionDiscontinuity(
             oldPosition: Player.PositionInfo,
             newPosition: Player.PositionInfo,
@@ -1435,7 +1444,7 @@ class CrossfadeController(
     private fun driveArming() {
         val out = outgoing ?: return bail()
         val into = incoming ?: return bail()
-        if (!stillWorthFading()) return bail()
+        if (!stillWorthFading() || rejectedIncoming(into)) return bail()
         val eligibility = if (smartFadeActive) automixVerdict() else AutomixAudioPolicy.Verdict.ALLOWED
         if (eligibility == AutomixAudioPolicy.Verdict.HI_RES) return stopIneligibleAutomix()
         // Paused while armed: the transition is no longer imminent, and holding
@@ -1604,6 +1613,7 @@ class CrossfadeController(
     private fun driveFade() {
         val out = outgoing ?: return bail()
         val player = incoming ?: return bail()
+        if (!handedOff && rejectedIncoming(player)) return bail()
         if (smartFadeActive && automixVerdict() != AutomixAudioPolicy.Verdict.ALLOWED) return stopIneligibleAutomix()
         // The incoming track gets the same say over the length as the outgoing
         // one did, so a long crossfade into a short track tightens rather than
@@ -1673,7 +1683,7 @@ class CrossfadeController(
             handOff(out, player)
             if (phase != Phase.FADING) return
         }
-        publishBlend(out, player)
+        publishBlend(out, player, progress = progress, spanMs = wallSpan)
         rideFilters(incomingAt, outgoingAt)
 
         // Finish when the fade runs its course or its setting is switched off.
@@ -1702,7 +1712,7 @@ class CrossfadeController(
     }
 
     /**
-     * Tells the scrubber where the blend's beats fall, and whether it is moving.
+     * Reports audible blend progress and the ownership handoff, with its beat grid.
      *
      * The grid comes from whichever side the listener is hearing more of —
      * the outgoing track until the handoff, the incoming one after — at the
@@ -1710,14 +1720,11 @@ class CrossfadeController(
      * side the beatmatch stretch on top. On a beatmatched pair both grids
      * agree anyway; on one that isn't, this follows the dominant track.
      *
-     * Computed every fade tick but *published* only when it has moved: the
-     * scrubber runs its own beat clock and only leans on this anchor, so
-     * re-sending the same grid thirty times a second just wakes every
-     * collector for nothing. A new value goes out when the tempo changes, the
-     * anchor drifts past [ANCHOR_TOLERANCE_NANOS] — a pause, a stall, the
-     * grid moving to the other song — or playback starts or stops.
+     * Published when progress, playback or the grid changes. UI progress is read
+     * in drawing and interpolated on the frame clock; it never controls this fade.
+     * Paused ticks retain their last progress and anchor.
      */
-    private fun publishBlend(out: ExoPlayer, into: ExoPlayer, force: Boolean = false) {
+    private fun publishBlend(out: ExoPlayer, into: ExoPlayer, force: Boolean = false, progress: Float = 0f, spanMs: Float = fadeMs.toFloat()) {
         if (!smartFadeActive) return
         val session = if (handedOff) into else out
         val playing = session.isPlaying
@@ -1748,11 +1755,18 @@ class CrossfadeController(
             anchor = System.nanoTime() - (sinceBeat / rate * 1e9).toLong()
             break
         }
-        if (!force && last != null && last.playing == playing && sameGrid(last, beatMs, anchor)) return
+        if (!force && last != null && last.playing == playing && last.progress == progress && sameGrid(last, beatMs, anchor)) return
         AppSettings.smartMixBlend.value = MixBlend(
             beatMs = beatMs,
             beatAnchorNanos = anchor,
             playing = playing,
+            progress = progress,
+            outgoingId = out.currentMediaItem?.mediaId,
+            incomingId = into.currentMediaItem?.mediaId,
+            outgoingArtwork = out.currentMediaItem?.mediaMetadata?.artworkUri?.toString(),
+            incomingArtwork = into.currentMediaItem?.mediaMetadata?.artworkUri?.toString(),
+            handoffAt = render.handoffAt,
+            artworkSpan = (1_400f / spanMs.coerceAtLeast(1f)).coerceIn(0.06f, 1f),
         )
     }
 
@@ -1947,6 +1961,12 @@ class CrossfadeController(
         incomingAnalysis = TrackAnalysis()
         phase = Phase.IDLE
     }
+
+    private fun rejectedIncoming(deck: ExoPlayer): Boolean = deck.currentMediaItem?.let {
+        !com.music.bitchord.data.listentogether.ListenTogether.state.value.inParty &&
+            it.queueTier != com.music.bitchord.data.model.QueueTier.USER_QUEUE &&
+            com.music.bitchord.data.LikeState.isDisliked(it.mediaId)
+    } == true
 
     /** Still a next track, still playing, still switched on — by whichever setting armed this one. */
     private fun stillWorthFading(): Boolean {

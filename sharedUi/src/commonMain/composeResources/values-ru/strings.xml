@@ -139,7 +139,7 @@
     <string name="card_views_format">%1$s просмотров</string>
     <string name="clear_search">Очистить поиск</string>
     <string name="downloaded">Загружено</string>
-    <string name="explore">Обзор</string>
+    <string name="explore">Открытия</string>
     <string name="library">Библиотека</string>
     <string name="library_sign_in_description">Войдите в свой аккаунт Google, чтобы видеть понравившиеся песни, плейлисты и историю YouTube Music.</string>
     <string name="new_playlist">Новый плейлист</string>

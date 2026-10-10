@@ -14,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.remember
@@ -147,16 +146,9 @@ fun Modifier.libraryCoverMotion(browseId: String?, cardKey: String? = null, corn
             } else corner.animateTo(percent, tween(LIBRARY_CLOSE_DURATION_MS, easing = LibraryCloseEasing))
         } else corner.snapTo(percent)
     }
-    val currentPercent = corner.value
-    // Match the source's radius, then continuously soften all four corners
-    // against the moving image's own bounds instead of a separate overlay mask.
-    val shape: Shape = if (selected && motion.isTransitioning) object : Shape {
-        override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
-            val radius = size.minDimension * currentPercent / 100f
-            val curve = CornerRadius(radius, radius)
-            return Outline.Rounded(RoundRect(0f, 0f, size.width, size.height, curve, curve, curve, curve))
-        }
-    } else RoundedCornerShape(if (motion.source) cardRadius else 0.dp)
+    val settledShape = remember(motion.source, cardRadius) {
+        RoundedCornerShape(if (motion.source) cardRadius else 0.dp)
+    }
     val density = LocalDensity.current
     val snapshots = LocalLibraryCoverSnapshots.current
     DisposableEffect(snapshots, key) {
@@ -177,6 +169,20 @@ fun Modifier.libraryCoverMotion(browseId: String?, cardKey: String? = null, corn
             sharedContentState = rememberSharedContentState(key),
             animatedVisibilityScope = motion.visibilityScope,
             boundsTransform = bounds,
-        ).clip(shape)
+        ).graphicsLayer {
+            clip = true
+            // Keep the same moving outline while reading its animation during
+            // layer updates. The cover/card no longer recomposes every frame.
+            shape = if (selected && motion.isTransitioning) {
+                val currentPercent = corner.value
+                object : Shape {
+                    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+                        val radius = size.minDimension * currentPercent / 100f
+                        val curve = CornerRadius(radius, radius)
+                        return Outline.Rounded(RoundRect(0f, 0f, size.width, size.height, curve, curve, curve, curve))
+                    }
+                }
+            } else settledShape
+        }
     }
 }

@@ -175,6 +175,7 @@ import java.util.Locale
 
 
 /** Session command used by both the player UI and the media notification. */
+const val ACTION_SKIP_DISLIKED = "com.sh1vvy.daylight.action.SKIP_DISLIKED"
 const val ACTION_TOGGLE_AUTOPLAY = "com.music.bitchord.action.TOGGLE_AUTOPLAY"
 
 /** Session command used to smoothly swap the current track's version (film vs release). */
@@ -717,6 +718,8 @@ class PlaybackService : MediaLibraryService() {
 
     /** Commands exposed as the secondary buttons on the media notification. */
     private val favoriteCommand = SessionCommand(ACTION_TOGGLE_FAVORITE, Bundle.EMPTY)
+    private var pruningDislikes = false
+    private val skipDislikedCommand = SessionCommand(ACTION_SKIP_DISLIKED, Bundle.EMPTY)
     private val autoplayCommand = SessionCommand(ACTION_TOGGLE_AUTOPLAY, Bundle.EMPTY)
     private val shuffleCommand = SessionCommand(ACTION_TOGGLE_SHUFFLE, Bundle.EMPTY)
     private val startStationCommand = SessionCommand(ACTION_START_STATION, Bundle.EMPTY)
@@ -939,6 +942,14 @@ class PlaybackService : MediaLibraryService() {
                 return
             }
 
+            // Explicitly selecting a disliked song is allowed once. Automatic
+            // repeats must not replay it, including repeat-one after that selection.
+            if (!ListenTogether.state.value.inParty && mediaItem != null &&
+                LikeState.isDisliked(mediaItem.mediaId) &&
+                ((reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && mediaItem.queueTier != QueueTier.USER_QUEUE) || reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT)) {
+                exoPlayer.removeMediaItem(exoPlayer.currentMediaItemIndex)
+                return
+            }
             // A receiver, if it is the speaker, is put on whatever became
             // current — or it is the one that moved, and this is the phone
             // catching up, which [CastPlayback] tells apart by track.
@@ -1049,6 +1060,7 @@ class PlaybackService : MediaLibraryService() {
             // The player this fired on, which is by definition the one the
             // session is currently pointed at.
             val exoPlayer = player ?: return
+            if (pruneDislikedQueue(exoPlayer)) return
             if (exoPlayer.isPlaying) prefetchAround(exoPlayer)
             // A queue edit can change what follows gaplessly, and the loudness
             // stage switches to that track on its own at the boundary.
@@ -1235,6 +1247,10 @@ class PlaybackService : MediaLibraryService() {
                     refreshCustomLayouts()
                     publishWidgetState()
                 }
+        }
+        scope.launch {
+            LikeState.overrides.map { ratings -> ratings.filterValues { it == LikeStatus.DISLIKE }.keys }
+                .distinctUntilChanged().collectLatest { player?.let(::pruneDislikedQueue) }
         }
         scope.launch {
             LikeState.overrides
@@ -2414,6 +2430,22 @@ class PlaybackService : MediaLibraryService() {
         refreshCustomLayouts()
     }
 
+    private fun pruneDislikedQueue(active: ExoPlayer): Boolean {
+        if (pruningDislikes || ListenTogether.state.value.inParty ||
+            LikeState.overrides.value.values.none { it == LikeStatus.DISLIKE }) return false
+        val remove = dislikedQueueIndices(
+            (0 until active.mediaItemCount).map { active.getMediaItemAt(it).mediaId },
+            active.currentMediaItemIndex,
+            { active.getMediaItemAt(it).queueTier },
+            LikeState::isDisliked,
+        )
+        if (remove.isEmpty()) return false
+        pruningDislikes = true
+        try { remove.asReversed().forEach(active::removeMediaItem) }
+        finally { pruningDislikes = false }
+        return true
+    }
+
     private fun toggleAutoplayFromNotification() {
         val party = ListenTogether.state.value
         val enabled = if (party.inParty) !party.playback.autoplayEnabled else !AppSettings.autoplay.value
@@ -2907,6 +2939,13 @@ class PlaybackService : MediaLibraryService() {
 
     private fun registerCurrentPlay() {
         player?.currentMediaItem?.mediaId?.let(PlaybackTracker::onPlaying)
+        val source = player?.currentMediaItem?.toSong()?.playbackSourceId
+        if (source?.startsWith(com.music.bitchord.data.spotify.SPOTIFY_PAGE_PREFIX) == true) {
+            val cacheScope = com.music.bitchord.data.library.spotifyMetadataScope(AppSettings.spotifySpdcToken.value)
+            scope.launch {
+                com.music.bitchord.data.library.CollectionMetadataStore.played(cacheScope, source)
+            }
+        }
     }
 
     /**
@@ -7336,6 +7375,7 @@ class PlaybackService : MediaLibraryService() {
                 .buildUpon()
                 .add(favoriteCommand)
                 .add(autoplayCommand)
+                .add(skipDislikedCommand)
                 .add(shuffleCommand)
                 .add(startStationCommand)
                 .add(revertToOriginalCommand)
@@ -7371,6 +7411,21 @@ class PlaybackService : MediaLibraryService() {
             args: Bundle,
         ): ListenableFuture<SessionResult> {
             when (customCommand.customAction) {
+                ACTION_SKIP_DISLIKED -> {
+                    val id = args.getString("videoId")
+                    val active = player
+                    if (id != null && active?.currentMediaItem?.mediaId == id && LikeState.isDisliked(id)) {
+                        if (ListenTogether.state.value.inParty) {
+                            // Shared playback still obeys the room's host controls.
+                            session.player.seekToNextMediaItem()
+                        } else {
+                            pruneDislikedQueue(active)
+                            // Removing the rejected current entry advances immediately;
+                            // an exhausted queue stops instead of leaving it playing.
+                            active.removeMediaItem(active.currentMediaItemIndex)
+                        }
+                    }
+                }
                 ACTION_TOGGLE_AUTOPLAY -> toggleAutoplayFromNotification()
                 ACTION_TOGGLE_SHUFFLE -> toggleShuffleFromSession()
                 ACTION_START_STATION -> startStationFromSession()

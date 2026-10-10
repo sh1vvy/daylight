@@ -60,13 +60,13 @@ jobs:
       - name: Android and shared tests
         run: ./gradlew :app:testDevDebugUnitTest :shared:jvmTest :sharedUi:jvmTest --console=plain
       - name: Build APKs
-        run: ./gradlew :app:assembleDevDebug :app:assembleProdRelease --console=plain
+        run: ./gradlew :app:assembleDevCanary :app:assembleProdRelease --console=plain
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
           name: daylight-android
           path: |
-            app/build/outputs/apk/dev/debug/*.apk
+            app/build/outputs/apk/dev/canary/*.apk
             app/build/outputs/apk/prod/release/*.apk
           if-no-files-found: error
       - name: Upload test reports

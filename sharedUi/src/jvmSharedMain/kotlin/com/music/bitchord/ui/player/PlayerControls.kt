@@ -252,9 +252,8 @@ internal fun PlayerScrubber(
 
 /**
  * "Mixing", in the quality badge's place while an Automix blend runs, breathing on the same
- * beat as the bar above it. Its opacity is read in a graphics layer, so the pulse redraws the
- * label every frame without recomposing it. Plain text in the badge's own type, no icon and
- * no glow: over artwork, a white haze reads as grey fog rather than light.
+ * slow rhythm as the bar above it. Opacity is read in a graphics layer; a soft text
+ * shadow gives the label a restrained glow without recomposing the player.
  */
 @Composable
 private fun MixingLabel(pulse: MixPulse, modifier: Modifier = Modifier) {
@@ -263,6 +262,7 @@ private fun MixingLabel(pulse: MixPulse, modifier: Modifier = Modifier) {
         modifier = modifier.graphicsLayer { alpha = pulse.cover * pulse.alpha(1f, restShare = MIXING_LABEL_REST) },
         style = MaterialTheme.typography.labelMedium.copy(
             fontWeight = FontWeight.SemiBold,
+            shadow = androidx.compose.ui.graphics.Shadow(Color.White.copy(alpha = 0.32f), blurRadius = 7f),
             fontSize = (MaterialTheme.typography.labelMedium.fontSize.value + 1).sp,
         ),
         color = Color.White.copy(alpha = 0.85f),
@@ -271,7 +271,7 @@ private fun MixingLabel(pulse: MixPulse, modifier: Modifier = Modifier) {
 }
 
 /** The label dips only to half between beats: text fading further stops reading as a word. */
-private const val MIXING_LABEL_REST = 0.5f
+private const val MIXING_LABEL_REST = 0.78f
 
 /**
  * Only the decoder-confirmed lossless quality, with a quiet, static label.
@@ -634,10 +634,11 @@ internal fun TrackActionGlyph(
     contentDescription: String,
     onClick: () -> Unit,
     haptic: Haptic = Haptic.Tap,
+    modifier: Modifier = Modifier,
 ) {
     val haptics = rememberHaptics()
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(48.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },

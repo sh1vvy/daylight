@@ -21,6 +21,15 @@ Open the repository in Android Studio, or copy `local.properties.example` to `lo
 
 Development APKs are in `app/build/outputs/apk/dev/debug/`. Production APKs use `:app:assembleProdRelease`; without your signing configuration they are unsigned. Configure your own signing key using `keystore.properties.example` before distributing release APKs. See the [release guide](ANDROID_RELEASES.md) for package matching and signing requirements.
 
+For physical-phone testing and distributable Dev/Canary APKs, build
+`:app:assembleDevCanary`. Output is in `app/build/outputs/apk/dev/canary/`.
+This uses release R8 optimization and disables debugger/inspection overhead,
+while retaining the Dev package and existing debug signing certificate for
+in-place updates. Use `assembleDevDebug` for debugging and native fixture tests;
+do not use its scrolling performance as the shipping-runtime benchmark.
+The build type does not choose the release channel: the Dev flavor's version
+name still controls whether the update checker is enabled.
+
 | Channel | Android package |
 | --- | --- |
 | Public | `com.sh1vvy.daylight` |
@@ -38,6 +47,45 @@ Android. `cloudflare-jam/` contains the owned Jam website and service.
 Desktop packaging, the legacy Go server and unused support/banner images have
 been removed from the checkout. Original sources remain in Git history.
 
+## Collection metadata cache
+
+Liked-song catalogue rows survive app restarts under the current Google account
+and YouTube profile. Opening Liked songs renders the saved full list before
+refreshing. A successful refresh follows continuations in the background; a
+failed or partial refresh retains the previous complete list. Like changes
+invalidate freshness and unlikes remove the row immediately. Explicit Library
+refresh forces a check; a complete unchanged list is reused for five minutes.
+
+Spotify playlist snapshots retain recording IDs and their matched YouTube songs.
+Reopening paints the saved list immediately and only new/unmatched recordings
+need matching during refresh. Actual playback adds the playlist to Library and
+Home's Listen again; merely browsing does not add listening history. Spotify
+metadata is partitioned by a digest of the connected session, and disconnecting
+hides its cards. The session cookie itself is never saved in this cache.
+
+`filesDir/collection-metadata-v1` stores metadata, never audio or stream URLs.
+Parsing and atomic writes use IO workers. Limits are 24 MiB across identities,
+8 MiB per identity bundle, 24 whole collections per bundle and two warm identity
+bundles in memory. Older whole collections are evicted, never silently truncated
+and marked complete. Removing a Google account also removes its cached liked
+lists. Existing audio-cache controls and downloads are independent.
+
+## Automix presentation and editable playlist choices
+
+`MixBlend` carries speaker-time progress, artwork identities and the engine's
+handoff fraction. The UI interpolates only those presentation values; audio
+faders, DSP and queue handoff remain in CrossfadeController. Cover layers reuse
+existing artwork requests and sizes. Animated artwork yields briefly during
+the still-cover handoff, using the existing video player rather than decoding
+two clips. The slow glow uses small canvas draws and a foreground frame clock.
+
+The add-to-playlist picker uses `playlist/get_add_to_playlist`, cached for one
+minute by the authenticated response scope. Unrecognized/unavailable dialogs
+fall back to library candidates whose playlist headers confirm ownership, with
+four concurrent verification requests. Writes clear the picker cache. The
+normal Library activity journal sorts recent editable choices; saved foreign
+playlists and imported Spotify cards are not writable YouTube targets.
+
 ## Test providers
 
 The normal test suite uses local fixtures. The Genius live-provider smoke test is opt-in because its availability depends on the network and external website:
@@ -51,6 +99,10 @@ DAYLIGHT_LIVE_PROVIDER_TESTS=true ./gradlew :app:testDevDebugUnitTest --tests co
 The [Android workflow](../.github/workflows/android.yml) runs Android and shared-library unit tests, then produces a development APK and production APKs. Release signing is optional: configure `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD` repository secrets to sign production builds.
 
 Without signing secrets, the workflow produces unsigned production APKs and an installable development APK. CI signing keys may differ from the locally published development key, so workflow artifacts are for testing, not automatic replacements for signed release assets. The workflow does not publish releases automatically.
+
+CI now produces the optimized Dev build, while regression tests remain on the
+debug variant. [Performance notes](PERFORMANCE.md) cover S22 measurements and
+the bounded, app-specific Android baseline profile.
 
 ## Optional integrations
 
@@ -168,3 +220,29 @@ events. There is no spinning bitmap, alarm or polling job. Short cards with larg
 fonts prioritize readable track details and transport. Existing widget provider
 identities stay intact, and Jam guest controls continue to open the app rather
 than send playback commands.
+
+## Dev.8 player menu and dislike preferences
+
+The player's three-dot button reports its window bounds to `PlayerSongMenu`.
+A compact, focusable menu grows from that button in portrait and landscape.
+Its transparent dialog window stays above the portrait player's own modal window;
+`SongActionsSheet.PlayerMenu` provides short primary actions and separate Go to,
+More options and Sleep timer pages. The existing artwork palette, full-screen
+artwork and animated covers remain intact. Reduce animation uses short fades.
+
+`LikeState` restores only dislikes through `DislikedTracks`, partitioned by
+Google account and YouTube profile (or the signed-out device scope). Rejected
+tracks are filtered from collection play/shuffle, radio and personal mixes.
+The service prunes implicit queued entries and skips the rejected current entry
+through a track-ID-checked session command. Explicit track selection and Play
+next/Add to queue remain available; automatic repeat cannot replay a rejection.
+A failed YouTube rating request does not erase the listener's local preference.
+Undo dislike or Like clears the durable rejection. Jam transport continues to
+obey shared-room controls; personal queue pruning never rewrites another member's
+shared queue. Crossfade standby playback aborts if its armed queue is removed,
+reordered or its incoming track becomes rejected before handoff.
+
+The Explore route/resource key remains stable internally; its visible name is
+Discover and the supplied SVG is a monochrome, theme-tinted Compose vector.
+Attribution is included in Settings → Account & integrations → Credits and the
+packaged `credits/Discover.txt` notice. Jam sharing sends exactly the invite URL.

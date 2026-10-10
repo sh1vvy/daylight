@@ -569,6 +569,12 @@ object Innertube {
     /** Signed-in profile: display name, email/handle and avatar. */
     suspend fun accountMenu(): JsonObject = postMusic("account/account_menu") {}
 
+    /** YouTube's own save dialog offers writable playlists, unlike the saved-library feed. */
+    suspend fun playlistOptions(videoId: String? = null): JsonObject = postMusic("playlist/get_add_to_playlist") {
+        putJsonArray("videoIds") { videoId?.takeIf(String::isNotBlank)?.let { add(JsonPrimitive(it)) } }
+        put("excludeWatchLater", true)
+    }
+
     /**
      * Every channel this session can act as, as Innertube's account switcher
      * lists them: the account's own channel first, then its brand channels.

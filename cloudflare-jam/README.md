@@ -38,6 +38,9 @@ then leaves. It never prints bearer tokens. Set `DAYLIGHT_JAM_URL` to test anoth
 HTTPS deployment. The regular tests use a local Workers runtime and make no
 production requests.
 
+`DAYLIGHT_JAM_TEST_QUEUE_SIZE=1727 npm run test:live` checks a large playlist
+between both authenticated clients. This is still a disposable verification room.
+
 ## Jam website
 
 `src/website.js` renders the homepage, active/full invitations and unavailable
@@ -74,10 +77,15 @@ app-link registration keep their original routes and behavior.
   accepted only in the Authorization header, never invite/query URLs.
 - Host handoff when the host leaves; the host can remove another listener.
 - 45-second reconnect grace, rooms expire after two minutes without connected
-  listeners or after 12 hours. Up to 50 rooms and 25 upcoming tracks per room.
+  listeners or after 12 hours. Up to 50 rooms and 2,000 upcoming tracks per room,
+  alongside the current track and up to 100 previous tracks for shared navigation.
 - Two room creations per IP per minute, bounded messages and control rate limits.
 - WebSocket hibernation, persisted state and alarms support eviction/restarts.
   State broadcasts retain the upstream five-second interval and 350ms play lead.
+  Whole queue entries are saved atomically in 64-track chunks to respect the
+  SQLite Durable Object value limit. Play/pause, seek and heartbeat writes update
+  the small room header without rewriting those chunks. HTTP bodies remain
+  limited to 16 KiB; queue WebSocket messages have a 12 MiB ceiling.
 - Invitation previews show display names, avatars and occupancy. They do not
   disclose tokens, user/device IDs, the playing song or queue.
 

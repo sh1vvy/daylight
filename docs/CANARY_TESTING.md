@@ -1,4 +1,237 @@
-# Daylight Canary 8
+# Daylight Dev.8 validation
+
+**0.2.2-dev.8 · Android code 31 · development prerelease**
+
+This requested Dev release includes Canary 9–11 and the compact player menu,
+persistent Dislike, link-only Jam invitations and Discover tab. Stable remains
+0.2.1/code 12. Future canaries remain internal until explicitly released.
+
+- The final optimized APK updates the connected Galaxy S22 in place. The signed-in
+  Home and real full-screen player remain available; the artwork-colored menu,
+  its secondary page, dismissal and Discover navigation were inspected. Existing
+  account data, full-screen/moving-art preferences and reduced animation were
+  preserved. Playback was left paused. No real tracks were rated during this check.
+- 1,435 app/shared unit checks passed, with one optional live lyrics test skipped.
+  All 29 backend tests passed using the exact staged source, excluding unrelated
+  landing-page work. Signed packages retain their baseline profiles and Dev signer.
+- Native menu checks pass in Light, Dark and Pink Clouding. The fixture includes
+  the portrait player's real modal window: an initial activity-owned popup was
+  covered by that window, caught on the S22 and replaced with a transparent dialog.
+  Primary Dislike, nested navigation, Share/Add to playlist callbacks, Sleep timer
+  and dismissal pass with the corrected window layering.
+- Discover navigation and its expanded/collapsed bar pass all six combinations
+  of the three themes and glass enabled/disabled.
+- A real PlaybackService/ExoPlayer test with short local PCM fixtures confirms
+  persistent dislikes, automatic queue pruning, immediate current-song skip,
+  explicit selection/queue exceptions, blocked repeat and exhausted-queue stop.
+  It runs only on the disposable emulator, not against the owner's ratings.
+- Final native regressions cover full liked-list metadata, played Spotify shelves,
+  full-screen Automix artwork and a cached moving cover before/after the dissolve.
+  Canary 9's controlled S22 scrolling captures remain documented in PERFORMANCE.md;
+  this release does not claim the compact-menu changes were a new performance trial.
+
+Release assets are the universal `daylight-dev.apk` and its checksum. Arm64 remains
+available locally for manual installation. A Canary needs one manual Dev.8 install
+without uninstalling; subsequent public Dev updates use the normal update popup.
+
+---
+
+# Previous candidate: Canary 11 (historical)
+
+**0.2.2-canary.11 · Android code 30 · internal testing only**
+
+Optimized arm64 and universal APKs update Daylight Dev in place with its existing
+package and signer. Public Dev.7/code 27 and stable 0.2.1/code 12 remain unchanged.
+No app release, tag or source push was made. The larger Jam queue backend is
+live at jam.sh1vvy.com; its existing landing page and deployed assets were preserved.
+
+## Changes
+
+- Automix uses a restrained slow glow shared by the Mixing label and progress
+  fill. The bar retains the actual playhead position. The two covers dissolve
+  around the audio engine's metadata handoff, normally over about 1.4 seconds.
+  Existing full-screen/card geometry and audio mixing are preserved. Animated
+  artwork plays around the brief dissolve, and resumes on the incoming cover.
+  Missing art keeps a usable image; Reduce animation uses the current cover
+  immediately. Pausing freezes cover progress and settles the glow.
+- Glow state is read during drawing and the cover fraction in graphics layers.
+  Engine ticks are interpolated on the frame clock; progress does not continually
+  recompose the player root. One glow clock stops when paused, backgrounded or
+  outside a mix. No additional audio analysis, video pair or blur pass is added.
+- Jams share up to 2,000 upcoming songs plus the current track and 100 previous
+  tracks. Manual queue priority, occurrence IDs and next/previous are retained.
+  Server queues persist atomically in bounded chunks; routine playback state
+  writes avoid rewriting the full list.
+- Add to playlist uses YouTube's authenticated editable-playlist dialog, omitting
+  saved playlists that cannot be edited, built-in lists and Spotify collections.
+  A verified-ownership fallback is used only if that dialog is unavailable.
+  Choices use the Library's newest-created/recently-added activity order.
+- The main-player action sheet retains the track's color wash with rounded action
+  groups, softer icon tiles and consistent padding. It opens fully expanded;
+  its lower actions remain scrollable. The heart/menu gap is slightly smaller,
+  retaining the existing touch targets and callbacks.
+- Canary 9 scrolling work and Canary 10 liked/Spotify metadata caching remain.
+
+## Validation and remaining phone checks
+
+**1,430 app/shared checks passed**, with one optional live lyrics test skipped.
+Five final native emulator cases passed, covering all three themes, a cached
+moving cover, and the glow clock. S22 themed previews and its real editable-list
+check also passed. Both packaged APKs retain their Dev signer, licenses, baseline
+profiles and non-debuggable runtime. The installed S22 APK hash matches arm64.
+Playback and synced lyrics worked on the optimized phone build; playback is
+left paused. Its existing Reduce animation preference remains enabled.
+
+The current QA report accompanies the APKs. Automated player fixtures use offline
+covers and engine-shaped progress, rather than claiming an audible two-song mix.
+They cover the dissolve, stable geometry, reduced motion, themed menu callbacks
+and access to its last action. Separate clock checks cover a breathing glow,
+pause settling and no continuing paused redraws. Motion-art checks use a locally
+cached silent clip on the emulator.
+
+The connected S22's real signed-in add-to-playlist dialog returned 14 editable
+choices; three were independently checked against playlist ownership. The test
+made no playlist or account changes. Visual previews on the physical phone now
+use in-memory settings only. Full-screen and animated cover art were restored
+through the normal settings UI after the first preview persisted its choices.
+
+The deployed Jam backend passed a disposable-room test with two authenticated
+clients and a full 1,727-track queue, including next, clock sync and host controls.
+Chunk storage also has restart/hibernation, failed-write, migration and large-value
+coverage. This is a capacity/regression check, not a 50-room load benchmark.
+
+For your listening test, play two queued songs with Automix enabled, on supported
+normal/lossless output. Let the planned transition occur naturally and compare
+its sound, title handoff, slow glow and cover dissolve with the reference video.
+Try a pair with animated covers, a missing cover, pause/resume during a mix, and
+Landscape. Hi-res Automix restrictions, Jams and ordinary crossfade still use
+existing policies. Test ordinary playback and the duplicate-playlist prompt too.
+
+AirPlay is not included in this candidate. Mac, Apple TV and HomePod are the
+agreed future receiver targets; an Android sender transport and real-receiver
+validation remain separate work. Store-specific packaging also remains future
+work, including a Google-Cast-free flavor for F-Droid consideration.
+
+---
+
+# Previous candidate: Canary 10 (historical)
+
+**0.2.2-canary.10 · Android code 29 · internal testing only**
+
+The arm64 APK is installed over Canary 9 on the connected Galaxy S22, retaining
+its account, library and settings. Optimized arm64 and universal APKs use the
+existing Dev package and signer. Public Dev.7 and stable 0.2.1 remain unchanged;
+nothing was pushed, tagged, deployed or published.
+
+## Changes
+
+- Liked songs keeps the full catalogue list across app restarts. The saved list,
+  artwork and creator render immediately while a stale list refreshes in the
+  background. Partial or failed refreshes keep the last complete list usable.
+  Unlikes remove rows immediately, and Library refresh forces a fresh check.
+- Spotify playlists retain their rows and YouTube matches. Reopening uses the
+  saved list; refreshing reuses matches by Spotify recording ID rather than
+  repeating searches for every song. New recordings are matched as needed.
+- Actually playing a cached Spotify playlist adds it to Library → Playlists and
+  Home → Listen again, with its cover, title and creator. Opening alone does not
+  count as listening. Show all and ordinary playlist actions use these cards.
+- Only metadata is saved; this does not download liked songs or playlist audio.
+  IO workers handle parsing and atomic writes. Disk use is bounded to 24 MiB,
+  with 8 MiB/24 whole collections per identity and two warm identities in memory.
+  Cache entries are isolated by Google account/profile and Spotify session.
+- Existing UI, cover transitions, blur, Glass, playback sources, downloads and
+  audio-cache controls remain as before. Canary 9's performance work is retained.
+
+## Checks
+
+- **1,425 app/shared checks passed**; one optional live lyrics check skipped.
+- **Three targeted native emulator tests passed**: full liked-list readiness,
+  warm list pagination/unlike consistency, Spotify fresh-cache reuse and
+  actual-play shelf insertion, identity separation, and the existing two-by-two
+  Library preview/Show all behavior. Spotify cases use offline catalogue fixtures
+  and local silent test audio, not a live Spotify session.
+- The optimized S22 build loaded **1,727 liked songs**, then restored the same
+  full list after its app process was stopped and restarted. Sign-in remained,
+  the existing queue remained available and playback was left paused.
+- One S22 cached-list scroll smoke pass rendered 647 frames, with 23 missed
+  deadlines (3.55%). This is a regression smoke check, not a new multi-device
+  benchmark or a controlled comparison with Canary 9.
+- Both APKs retain `com.sh1vvy.daylight.dev`, code 29, the existing Dev signing
+  certificate, a non-debuggable runtime, bundled licenses and baseline profiles.
+
+## Phone checks
+
+- Open Liked songs, leave, return and reopen after restarting the app. Refresh
+  Library after changing likes on another device. Cached rows should stay usable.
+- Play a Spotify playlist, return to Library and Home, then reopen its card.
+  Check its title/cover and playback. New Spotify entries may still need matching;
+  cached recording matches should not be searched again on every visit.
+- Switch Google profiles and reconnect/disconnect Spotify. Each identity should
+  see its own saved rows; disconnected Spotify cards should disappear.
+- Keep testing scroll feel on other Android phones. The implementation is general;
+  physical measurements so far are from the connected S22.
+
+---
+
+# Previous candidate: Canary 9 (historical)
+
+**0.2.2-canary.9 · Android code 28 · internal testing only**
+
+Install over Daylight Dev.7 or an earlier canary. Both APKs retain the Dev
+package and existing signing certificate. The arm64 APK has been installed on
+the connected Galaxy S22 without clearing its account, library or settings.
+Nothing was pushed, tagged, deployed or published; public Dev.7 and stable 0.2.1
+remain unchanged.
+
+## Changes
+
+- Optimized phone build: release R8 and non-debuggable runtime, while preserving
+  in-place Dev updates. CI also builds this optimized variant for future artifacts.
+- Less work during scrolling: detail artwork/blur offsets update during
+  placement, moving cover corners update during drawing, and Library retains
+  playlist transformations while playback/chrome changes.
+- A bounded Android performance profile uses UI methods actually exercised on
+  the S22, replacing broad whole-app startup rules. Library profiles remain.
+- Softer update popup: rounded themed card, butterfly, eased entrance, clear
+  download/install button, readable Markdown notes and visible progress.
+  Existing download/cancel/retry/install and dismissal behavior remain.
+- App layout, feature set, blur, glass, artwork resolution, queue warming,
+  language filtering, playlist order and animation timings remain as before.
+
+## Checks
+
+- **1,418 app/shared checks passed**; one optional live lyrics check skipped.
+- **13 native emulator cases passed**, covering existing Home/Library cover
+  transitions in Dark, Light, Pink Clouding, Glass and Reduce animation,
+  library preview/order, mix playback/refills, profile/search, album/artist
+  destinations, lyric motion, and update popup states in all three themes.
+- Real S22 optimized runtime opens Home and Liked songs, retains sign-in,
+  plays the existing track and opens synced lyrics. Playback is paused again.
+- Three comparable Liked songs scroll passes: median missed frame deadlines
+  **16.03% → 2.41%**. Home optimized passes are around 4%. See
+  [performance notes](PERFORMANCE.md) for raw counts, conditions and limits.
+- APK package `com.sh1vvy.daylight.dev`, code 28, non-debuggable, original Dev
+  signer, bundled licenses and Android baseline profile verified. Checksums
+  accompany arm64 and universal files. Native fixtures use debug APKs; phone
+  performance measurements use the packaged optimized APK.
+
+## Phone checks
+
+- Scroll Home, Library and a large playlist; compare the feel with Dev.7.
+  Check normal and Glass modes in Dark, Light and Pink Clouding.
+- Open and close an album/playlist from Home, Library and Show all. Check rounded
+  moving corners, blur, foreground title, delayed video and restored position.
+- Try playback, lyrics, search, Play my mix and an extended listening session.
+  Check both a warm cache and a new track/page.
+- The update popup is exercised with offline fixtures because internal canaries
+  never offer public updates. Preview images use a sample Dev.8 notice; no such
+  release was created. Public update checks resume when a Dev version is requested.
+- Repeat scrolling on other phones, including Oppo Find X9. The current physical
+  measurements establish S22 improvement, not results for unconnected hardware.
+
+---
+
+# Previous candidate: Canary 8 (historical)
 
 **0.2.2-canary.8 · Android code 26 · internal testing only**
 

@@ -16,12 +16,12 @@ internal fun daylightMixBatch(
 ): List<Song> {
     val blocked = recent + upcoming
     fun eligible(songs: List<Song>) = songs.asSequence()
-        .filter { !it.isUnresolvedSpotify && it.videoId.isNotBlank() }
+        .filter { !it.isUnresolvedSpotify && it.videoId.isNotBlank() && !com.music.bitchord.data.LikeState.isDisliked(it.videoId) }
         .distinctBy { it.videoId }.filter { song -> blocked.none { QueueBuilder.isSameRecording(it, song) } }.toList()
     var saved = eligible(familiar)
     // After a small library has completed a lap, recycle it without repeating the current or queued song.
     if (saved.isEmpty()) saved = familiar.filter { song ->
-        !song.isUnresolvedSpotify && song.videoId.isNotBlank() &&
+        !song.isUnresolvedSpotify && song.videoId.isNotBlank() && !com.music.bitchord.data.LikeState.isDisliked(song.videoId) &&
             (recent.takeLast(1) + upcoming).none { QueueBuilder.isSameRecording(it, song) }
     }.distinctBy { it.videoId }
     val fresh = eligible(discoveries.filterNot { it.isVideo }).filter { song -> familiar.none { QueueBuilder.isSameRecording(it, song) } }

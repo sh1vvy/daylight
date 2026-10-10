@@ -83,6 +83,7 @@ class PartyCollectionQueueTest {
         val result = QueueTimeline.buildPartyCollectionQueue(
             List(100) { song("track-$it") }, 0, source,
             listOf(song("request-1", QueueTier.USER_QUEUE), song("request-2", QueueTier.USER_QUEUE)),
+            maxUpcoming = 25,
         )
         assertEquals(26, result.timeline.size)
         assertEquals(listOf("track-0", "request-1", "request-2", "track-1"), result.timeline.take(4).map { it.videoId })
@@ -94,7 +95,7 @@ class PartyCollectionQueueTest {
     fun `full queue retains everyone's requests and reports that playlist tail did not fit`() {
         val requests = List(25) { song("request-$it", QueueTier.USER_QUEUE, "entry-$it") }
         val result = QueueTimeline.buildPartyCollectionQueue(
-            listOf(song("first"), song("second"), song("third")), 0, source, requests,
+            listOf(song("first"), song("second"), song("third")), 0, source, requests, maxUpcoming = 25,
         )
         assertEquals(listOf("first") + requests.map { it.videoId }, result.timeline.map { it.videoId })
         assertEquals(requests.map { it.queueEntryId }, result.timeline.drop(1).map { it.queueEntryId })
@@ -145,4 +146,17 @@ class PartyCollectionQueueTest {
         assertEquals(listOf(0, 1, 2, 3, 6), indices)
         assertEquals(2, indices.indexOf(2))
     }
+    @Test fun `large playlist fits the production jam capacity`() {
+        val result = QueueTimeline.buildPartyCollectionQueue(
+            List(1_727) { song("track-$it") }, 0, source, emptyList(),
+        )
+        assertEquals(1_727, result.timeline.size)
+        assertEquals(0, result.omittedSongs)
+        val limited = QueueTimeline.buildPartyCollectionQueue(
+            List(2_500) { song("track-$it") }, 0, source, emptyList(),
+        )
+        assertEquals(2_001, limited.timeline.size)
+        assertEquals(499, limited.omittedSongs)
+    }
+
 }

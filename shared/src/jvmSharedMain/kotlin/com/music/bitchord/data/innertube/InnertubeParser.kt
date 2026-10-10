@@ -1401,24 +1401,28 @@ object InnertubeParser {
     /** Header menu icons only the playlist's owner is offered. */
     private val OWNER_ICONS = setOf("DELETE", "EDIT")
 
-    /**
-     * The playlists the account can be asked to add a track to.
-     *
-     * `FEmusic_liked_playlists` also carries the "New playlist" tile (no
-     * browse id, so it never survives [parseLibraryItems]), the Liked Music
-     * auto-playlist and YouTube's own generated mixes — none of which take an
-     * edit.
-     *
-     * Filtered by exclusion rather than by requiring a `PL` prefix. Playlist
-     * ids are not as regular as they look, and a list that quietly drops the
-     * user's own playlist is worse than one that offers a playlist the edit
-     * endpoint then refuses — which it reports, and which the picker surfaces.
-     *
-     * Whether a playlist is *owned* rather than merely saved isn't stated on
-     * this feed at all, so it isn't decided here: this stays the permissive
-     * list the picker wants, and [parsePlaylistOwned] is what rules a saved
-     * playlist out of being renamed or deleted.
-     */
+    /** Null means an unrecognized response, rather than a verified empty editable list. */
+    fun parseEditablePlaylistOptions(root: JsonElement): List<UserPlaylist>? {
+        val dialogs = collectRenderers(root, "addToPlaylistRenderer")
+        val options = collectRenderers(root, "playlistAddToOptionRenderer")
+        if (dialogs.isEmpty() && options.isEmpty()) return null
+        return options.mapNotNull { option ->
+            if ((option["isEditable"] as? JsonPrimitive)?.booleanOrNull == false ||
+                (option["isDisabled"] as? JsonPrimitive)?.booleanOrNull == true) return@mapNotNull null
+            val id = option.s("playlistId")
+                ?: option.o("serviceEndpoint").o("playlistEditEndpoint").s("playlistId")
+                ?: return@mapNotNull null
+            val playlistId = id.removePrefix("VL")
+            if (playlistId == "WL" || NOT_EDITABLE.any { playlistId.startsWith(it) }) return@mapNotNull null
+            val title = (option.o("title").runs().takeIf(String::isNotBlank)
+                ?: option.o("title").s("simpleText"))?.takeIf(String::isNotBlank) ?: return@mapNotNull null
+            UserPlaylist(playlistId, title, option.o("subtitle").runs(),
+                option.o("thumbnail").a("thumbnails").best()
+                    ?: option.o("thumbnail").o("musicThumbnailRenderer").o("thumbnail").a("thumbnails").best())
+        }.distinctBy { it.playlistId }
+    }
+
+    /** Saved-library candidates. Ownership must be verified before offering them for editing. */
     fun parseUserPlaylists(root: JsonElement): List<UserPlaylist> =
         parseUserPlaylists(parseLibraryItems(root))
 

@@ -1275,4 +1275,6 @@
     <plurals name="recommendation_languages_hidden"><item quantity="one">Gizlenen diller: %1$d</item><item quantity="other">Gizlenen diller: %1$d</item></plurals>
     <string name="recommendation_languages_hint">Önerilerdeki dilleri gizle. Kaydedilen müzik ve arama kullanılabilir kalır.</string>
     <string name="recommendation_languages_reset">Tüm dilleri göster</string>
+    <string name="song_menu_go_to">Git</string>
+    <string name="song_menu_more">Diğer seçenekler</string>
 </resources>

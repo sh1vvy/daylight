@@ -85,7 +85,7 @@ class CanaryLibrarySongsNativeTest {
                 }
                 compose.waitForIdle()
                 assertEquals(songs.drop(1), (model.detailStack.value.single().songs as UiState.Success).data)
-                assertEquals(listOf(songs[1]), (model.library.value as UiState.Success).data.likedSongs)
+                assertEquals(songs.drop(1), (model.library.value as UiState.Success).data.likedSongs)
                 instrumentation.sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
                 compose.waitForIdle()
                 waitNode { hasText(it, context.getString(R.string.auto_liked)) }

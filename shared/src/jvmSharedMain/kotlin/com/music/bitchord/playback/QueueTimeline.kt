@@ -141,7 +141,7 @@ object QueueTimeline {
         source: QueueSource,
         upcomingPartySongs: List<Song>,
         shuffle: Boolean = false,
-        maxUpcoming: Int = 25,
+        maxUpcoming: Int = 2_000,
         random: Random = Random.Default,
     ): PartyCollectionQueueResult {
         if (collectionSongs.isEmpty()) return PartyCollectionQueueResult(emptyList(), 0)

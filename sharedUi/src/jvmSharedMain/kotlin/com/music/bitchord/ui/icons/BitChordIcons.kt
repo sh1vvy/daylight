@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
+import androidx.compose.ui.graphics.vector.group
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
@@ -152,9 +153,9 @@ object BitChordIcons {
     }
 
     /**
-     * The phone tab bar's Explore, Library and Search glyphs: solid-weight
+     * The phone tab bar's Library and Search glyphs: solid-weight
      * iOS shapes rather than this file's stroked family, taken from the
-     * outlines of Flutter's cupertino_icons font (MIT) — square_grid_2x2,
+     * outlines of Flutter's cupertino_icons font (MIT) —
      * square_stack_fill and search.
      *
      * Each is the glyph laid out the way the font sets it: the 512-unit em
@@ -162,18 +163,21 @@ object BitChordIcons {
      * it, and the advance is centred. So they keep the font's own optical
      * size and weight against one another at any icon size.
      */
-    val TabExplore: ImageVector by lazy {
-        fontGlyph(
-            "bc_tab_explore",
-            "M99.5 230.24Q58.5 230.24 58.5 188.24V93.24Q58.5 51.24 99.5 51.24H197.5Q238.5 51.24 238.5 93.24V188.24Q238.5 230.24 197.5 230.24Z" +
-                "M314.5 230.24Q273.5 230.24 273.5 188.24V93.24Q273.5 51.24 314.5 51.24H412.5Q453.5 51.24 453.5 93.24V188.24Q453.5 230.24 412.5 230.24Z" +
-                "M99.5 200.24H196.5Q207.5 200.24 207.5 188.24V93.24Q207.5 81.24 196.5 81.24H99.5Q88.5 81.24 88.5 93.24V188.24Q88.5 200.24 99.5 200.24Z" +
-                "M314.5 200.24H411.5Q422.5 200.24 422.5 188.24V93.24Q422.5 81.24 411.5 81.24H314.5Q303.5 81.24 303.5 93.24V188.24Q303.5 200.24 314.5 200.24Z" +
-                "M99.5 445.24Q58.5 445.24 58.5 403.24V307.24Q58.5 266.24 99.5 266.24H197.5Q238.5 266.24 238.5 307.24V403.24Q238.5 445.24 197.5 445.24Z" +
-                "M314.5 445.24Q273.5 445.24 273.5 403.24V307.24Q273.5 266.24 314.5 266.24H412.5Q453.5 266.24 453.5 307.24V403.24Q453.5 445.24 412.5 445.24Z" +
-                "M99.5 415.24H196.5Q207.5 415.24 207.5 403.24V308.24Q207.5 296.24 196.5 296.24H99.5Q88.5 296.24 88.5 308.24V403.24Q88.5 415.24 99.5 415.24Z" +
-                "M314.5 415.24H411.5Q422.5 415.24 422.5 403.24V308.24Q422.5 296.24 411.5 296.24H314.5Q303.5 296.24 303.5 308.24V403.24Q303.5 415.24 314.5 415.24Z",
-        )
+    /** “Discover” by M Yudi Maulana, Noun Project, CC BY 3.0. Cropped and tinted for Daylight. */
+    val TabDiscover: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "daylight_tab_discover",
+            defaultWidth = 24.dp, defaultHeight = 24.dp,
+            viewportWidth = 24f, viewportHeight = 24f,
+        ).apply {
+            group(translationX = -4f, translationY = -4f) {
+                addPath(pathData = addPathNodes("M9,15h3a3.0033,3.0033,0,0,0,3-3V9a3.0033,3.0033,0,0,0-3-3H9A3.0033,3.0033,0,0,0,6,9v3A3.0033,3.0033,0,0,0,9,15ZM8,9A1.0006,1.0006,0,0,1,9,8h3a1.0006,1.0006,0,0,1,1,1v3a1.0006,1.0006,0,0,1-1,1H9a1.0006,1.0006,0,0,1-1-1Z"), fill = stroke)
+                addPath(pathData = addPathNodes("M6,23a3.0033,3.0033,0,0,0,3,3h3a3.0033,3.0033,0,0,0,3-3V20a3.0033,3.0033,0,0,0-3-3H9a3.0033,3.0033,0,0,0-3,3Zm2-3a1.0006,1.0006,0,0,1,1-1h3a1.0006,1.0006,0,0,1,1,1v3a1.0006,1.0006,0,0,1-1,1H9a1.0006,1.0006,0,0,1-1-1Z"), fill = stroke)
+                addPath(pathData = addPathNodes("M20,15h3a3.0033,3.0033,0,0,0,3-3V9a3.0033,3.0033,0,0,0-3-3H20a3.0033,3.0033,0,0,0-3,3v3A3.0033,3.0033,0,0,0,20,15ZM19,9a1.0006,1.0006,0,0,1,1-1h3a1.0006,1.0006,0,0,1,1,1v3a1.0006,1.0006,0,0,1-1,1H20a1.0006,1.0006,0,0,1-1-1Z"), fill = stroke)
+                addPath(pathData = addPathNodes("M18,20h7a1,1,0,0,0,0-2H18a1,1,0,0,0,0,2Z"), fill = stroke)
+                addPath(pathData = addPathNodes("M18,24h4a1,1,0,0,0,0-2H18a1,1,0,0,0,0,2Z"), fill = stroke)
+            }
+        }.build()
     }
 
     /**
@@ -197,7 +201,7 @@ object BitChordIcons {
         )
     }
 
-    /** A filled glyph outline in the 512-unit em box — see [TabExplore]. */
+    /** A filled glyph outline in the 512-unit em box — see [TabDiscover]. */
     private fun fontGlyph(name: String, pathData: String): ImageVector =
         ImageVector.Builder(
             name = name,

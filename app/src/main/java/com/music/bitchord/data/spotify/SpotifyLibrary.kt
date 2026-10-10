@@ -42,7 +42,7 @@ data class SpotifyTrack(
     val imageUrl: String?,
 )
 
-data class SpotifyPlaylistMetadata(val coverUrl: String?, val creator: PlaylistCreator?)
+data class SpotifyPlaylistMetadata(val coverUrl: String?, val creator: PlaylistCreator?, val title: String? = null)
 
 object SpotifyLibrary {
     private const val GQL = "https://api-partner.spotify.com/pathfinder/v2/query"
@@ -215,6 +215,7 @@ internal fun parseSpotifyPlaylistMetadata(root: JsonObject): SpotifyPlaylistMeta
             source.jsonObject.str("url")?.let { it to (source.jsonObject.int("width") ?: 0) }
         }?.maxByOrNull { it.second }?.first
     return SpotifyPlaylistMetadata(
+        title = playlist.str("name")?.takeIf(String::isNotBlank),
         coverUrl = largestSource(playlist.obj("images")),
         creator = name?.let {
             PlaylistCreator(

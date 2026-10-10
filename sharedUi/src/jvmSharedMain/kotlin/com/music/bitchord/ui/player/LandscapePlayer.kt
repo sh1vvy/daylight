@@ -2,12 +2,14 @@ package com.music.bitchord.ui.player
 
 import com.music.bitchord.sharedui.resources.*
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -44,6 +46,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -289,6 +293,9 @@ internal fun LandscapeArtwork(
     shadowFraction: () -> Float = { 1f },
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
+    val dissolvingArtwork by rememberAutomixArtworkHandoff(artRequest.data)
+    val reduceMixMotion by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
+    val mixArtworkShare = animateFloatAsState(if (dissolvingArtwork) 1f else 0f, tween(if (reduceMixMotion) 0 else 400), label = "landscapeAutomixArtwork")
     val casts = artLoaded || canvasRendered
     Box(modifier = modifier) {
         Box(
@@ -321,16 +328,11 @@ internal fun LandscapeArtwork(
                     modifier = Modifier.fillMaxSize(0.36f),
                 )
             }
-            AsyncImage(
+            AutomixArtwork(
                 model = artRequest,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
                 onState = onArtState,
-                // Not drawn under a clip that got there first — see the
-                // portrait sleeve's note on TextureView stacking order.
-                modifier = Modifier
-                    .fillMaxSize()
-                    .drawWithContent { if (artLoaded || !canvasRendered) drawContent() },
+                drawBase = { artLoaded || !canvasRendered },
+                modifier = Modifier.fillMaxSize(),
             )
             canvas?.let { clip ->
                 CanvasArtworkPlayer(
@@ -338,6 +340,7 @@ internal fun LandscapeArtwork(
                     isPlaying = isPlaying,
                     pausedForTransition = pausedForTransition,
                     onRenderedChanged = onCanvasRenderedChange,
+                    presentationAlpha = { 1f - mixArtworkShare.value },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -416,6 +419,7 @@ internal fun LandscapeCredits(
     showRevertCue: Boolean,
     onToggleLike: () -> Unit,
     onOpenMenu: () -> Unit,
+    onMenuAnchor: (androidx.compose.ui.geometry.Rect) -> Unit = {},
     onOpenAlbum: (String) -> Unit,
     /** Null browse id for anyone but the lead credit — see [NowPlayingScreen]. */
     onOpenArtist: (browseId: String?, name: String) -> Unit,
@@ -471,12 +475,13 @@ internal fun LandscapeCredits(
                 onClick = onToggleLike,
                 haptic = if (liked) Haptic.ToggleOff else Haptic.ToggleOn,
             )
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(2.dp))
         }
         TrackActionGlyph(
             icon = if (showRevertCue) Icons.AutoMirrored.Rounded.Undo else Icons.Rounded.MoreHoriz,
             contentDescription = stringResource(Res.string.more),
             onClick = onOpenMenu,
+            modifier = Modifier.onGloballyPositioned { onMenuAnchor(it.boundsInWindow()) },
         )
     }
 }

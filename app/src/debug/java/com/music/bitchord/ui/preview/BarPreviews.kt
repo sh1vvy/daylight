@@ -110,7 +110,7 @@ private val PreviewSong = Song(
 
 private val PreviewTabs = listOf(
     BottomTab("Play", BitChordIcons.Play),
-    BottomTab("Explore", BitChordIcons.TabExplore),
+    BottomTab("Discover", BitChordIcons.TabDiscover),
     BottomTab("Library", BitChordIcons.TabLibrary),
     BottomTab("Search", BitChordIcons.TabSearch),
 )

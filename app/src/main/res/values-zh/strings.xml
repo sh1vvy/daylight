@@ -23,7 +23,7 @@
     <string name="library">资料库</string>
     <string name="home">首页</string>
     <string name="play">播放</string>
-    <string name="explore">探索</string>
+    <string name="explore">发现</string>
     <string name="listen_now">立即收听</string>
     <string name="downloads">下载内容</string>
     <string name="downloaded_songs">已下载的歌曲</string>
@@ -1295,4 +1295,6 @@
     <plurals name="recommendation_languages_hidden"><item quantity="one">已隐藏的语言：%1$d</item><item quantity="other">已隐藏的语言：%1$d</item></plurals>
     <string name="recommendation_languages_hint">从推荐中隐藏语言。已保存的音乐和搜索仍然可用。</string>
     <string name="recommendation_languages_reset">显示所有语言</string>
+    <string name="song_menu_go_to">前往</string>
+    <string name="song_menu_more">更多选项</string>
 </resources>

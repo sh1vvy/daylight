@@ -60,6 +60,7 @@ class SpotifyLibraryTest {
     fun playlistHeaderSeparatesOwnerAvatarFromCoverAndPreservesActualAccountId() {
         val root = json.parseToJsonElement(
             """{"data":{"playlistV2":{
+              "name":"Renamed playlist",
               "ownerV2":{"data":{"name":"Amit","uri":"spotify:user:amit",
                 "avatar":{"sources":[{"url":"https://small-avatar","width":40},{"url":"https://real-avatar","width":300}]}
               }},
@@ -68,6 +69,7 @@ class SpotifyLibraryTest {
         ).jsonObject
         val metadata = parseSpotifyPlaylistMetadata(root)
         assertEquals("https://playlist-cover", metadata.coverUrl)
+        assertEquals("Renamed playlist", metadata.title)
         assertEquals("Amit", metadata.creator?.name)
         assertEquals("spotify:user:amit", metadata.creator?.browseId)
         assertEquals("https://real-avatar", metadata.creator?.thumbnailUrl)

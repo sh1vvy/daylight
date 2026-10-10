@@ -5,6 +5,8 @@ export const AGE_MS = 12 * 60 * 60 * 1000;
 export const EMPTY_MS = 120000;
 export const GRACE_MS = 45000;
 export const HEARTBEAT_MS = 5000;
+export const MAX_UPCOMING_QUEUE = 2000;
+export const MAX_QUEUE_HISTORY = 100;
 export class JamError extends Error {
   constructor(status, code, message) { super(message); this.status = status; this.code = code; }
 }
@@ -140,7 +142,8 @@ export function setTrack(p, t, pos, playing, index, m, now) {
   p.startedBy = m.memberId; p.startedByName = m.displayName;
 }
 const PLAYBACK_ACTIONS = new Set(['play','pause','seek','setTrack','setQueue','queueAdd','queueRemove','queueClear','queueMove','next','previous','setAutoplay']);
-export function control(room, m, f, maxUpcoming = 25, now = Date.now()) {
+export function control(room, m, f, maxUpcoming = MAX_UPCOMING_QUEUE, now = Date.now()) {
+  maxUpcoming = Number.isInteger(maxUpcoming) ? Math.max(1,Math.min(MAX_UPCOMING_QUEUE,maxUpcoming)) : MAX_UPCOMING_QUEUE;
   const p = room.playback, action = f.action;
   if (PLAYBACK_ACTIONS.has(action) && room.hostOnlyControl && !m.isHost)
     fail(403, 'host_only', 'Only the host can control the music in this party.');
@@ -164,8 +167,9 @@ export function control(room, m, f, maxUpcoming = 25, now = Date.now()) {
       let i = Number.isInteger(f.queueIndex) ? f.queueIndex : -1;
       if (p.track && items[i]?.videoId !== p.track.videoId) i = nearestIndex(items,p.track.videoId,i);
       if (i < 0 || i >= items.length) i = -1;
-      p.items = items.slice(0, i >= 0 ? i + 1 + maxUpcoming : 1 + maxUpcoming);
-      p.queueIndex = i >= 0 && i < p.items.length ? i : -1; queueChanged = true; break;
+      const start = Math.max(0,i - MAX_QUEUE_HISTORY);
+      p.items = items.slice(start, i >= 0 ? i + 1 + maxUpcoming : 1 + maxUpcoming);
+      p.queueIndex = i >= 0 ? i - start : -1; queueChanged = true; break;
     }
     case 'queueAdd': {
       const raw = f.track ? [f.track] : (Array.isArray(f.tracks) ? f.tracks : []);
@@ -222,6 +226,10 @@ export function control(room, m, f, maxUpcoming = 25, now = Date.now()) {
       membersChanged = true; break;
     }
     default: fail(422,'unknown_action',`Unknown control action '${String(action).slice(0,80)}'.`);
+  }
+  if (p.queueIndex > MAX_QUEUE_HISTORY) {
+    p.items.splice(0,p.queueIndex - MAX_QUEUE_HISTORY);
+    p.queueIndex = MAX_QUEUE_HISTORY; queueChanged = true;
   }
   if (stateChanged) p.seq++;
   if (queueChanged) p.queueSeq++;

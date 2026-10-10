@@ -6,18 +6,47 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Ratings changed during this app session, shared by the UI and playback service.
+ * Ratings shared by the UI and playback service; dislikes restore from per-listener storage.
  *
  * The library remains the source for ratings that were already known at load time;
  * these overrides win over it so a notification tap and a player-screen tap paint
  * the same result immediately.
  */
+interface DislikeStorage {
+    fun read(scope: String): Set<String>
+    fun write(scope: String, videoIds: Set<String>)
+}
+
 object LikeState {
+    private var storage: DislikeStorage? = null
+    private var scope: String = "device"
+
+    fun installStorage(value: DislikeStorage?, listener: String?) {
+        storage = value
+        scope = listener ?: "device"
+        restoreDislikes()
+    }
+
+    fun selectScope(listener: String?) {
+        scope = listener ?: "device"
+        restoreDislikes()
+    }
+
+    private fun restoreDislikes() {
+        _overrides.value = storage?.read(scope).orEmpty().associateWith { LikeStatus.DISLIKE }
+    }
+
+    fun isDisliked(videoId: String): Boolean = _overrides.value[videoId] == LikeStatus.DISLIKE
+
     private val _overrides = MutableStateFlow<Map<String, LikeStatus>>(emptyMap())
     val overrides: StateFlow<Map<String, LikeStatus>> = _overrides.asStateFlow()
 
     fun set(videoId: String, status: LikeStatus) {
+        val wasDisliked = isDisliked(videoId)
         _overrides.value += (videoId to status)
+        if (wasDisliked != (status == LikeStatus.DISLIKE)) {
+            storage?.write(scope, _overrides.value.filterValues { it == LikeStatus.DISLIKE }.keys)
+        }
     }
 
     /**

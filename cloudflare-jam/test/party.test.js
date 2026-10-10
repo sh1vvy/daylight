@@ -49,10 +49,10 @@ test('duplicate songs select the correct occurrence, autoplay deduplicates and m
 });
 test('upcoming queue limit preserves history and current track; invalid operations leave it intact',() => {
   const {room,host} = fixture();
-  control(room,host,{action:'setQueue',queue:Array.from({length:40},(_,i)=>song(String(i))),queueIndex:10});
-  control(room,host,{action:'setTrack',track:song('10'),queueIndex:10});
+  control(room,host,{action:'setQueue',queue:Array.from({length:40},(_,i)=>song(String(i))),queueIndex:10},25);
+  control(room,host,{action:'setTrack',track:song('10'),queueIndex:10},25);
   assert.equal(room.playback.items.length,36);
-  assert.throws(()=>control(room,host,{action:'queueAdd',track:song('overflow')}),e=>e.code==='queue_full');
+  assert.throws(()=>control(room,host,{action:'queueAdd',track:song('overflow')},25),e=>e.code==='queue_full');
   assert.throws(()=>control(room,host,{action:'queueMove',fromIndex:10,toIndex:11}),e=>e.code==='invalid_move');
   control(room,host,{action:'queueClear'});
   assert.equal(room.playback.items.length,11);
@@ -60,7 +60,7 @@ test('upcoming queue limit preserves history and current track; invalid operatio
 });
 test('out-of-range queue index cannot bypass the queue bound',() => {
   const {room,host} = fixture();
-  control(room,host,{action:'setQueue',queue:Array.from({length:40},(_,i)=>song(String(i))),queueIndex:99999});
+  control(room,host,{action:'setQueue',queue:Array.from({length:40},(_,i)=>song(String(i))),queueIndex:99999},25);
   assert.equal(room.playback.queueIndex,-1);
   assert.equal(room.playback.items.length,26);
 });

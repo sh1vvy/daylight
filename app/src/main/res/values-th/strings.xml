@@ -23,7 +23,7 @@
     <string name="library">คลังเพลง</string>
     <string name="home">หน้าแรก</string>
     <string name="play">เล่น</string>
-    <string name="explore">สำรวจ</string>
+    <string name="explore">ค้นพบ</string>
     <string name="listen_now">ฟังตอนนี้</string>
     <string name="downloads">การดาวน์โหลด</string>
     <string name="downloaded_songs">เพลงที่ดาวน์โหลดไว้</string>
@@ -1301,4 +1301,6 @@
     <plurals name="recommendation_languages_hidden"><item quantity="one">ภาษาที่ซ่อน: %1$d</item><item quantity="other">ภาษาที่ซ่อน: %1$d</item></plurals>
     <string name="recommendation_languages_hint">ซ่อนภาษาจากคำแนะนำ เพลงที่บันทึกไว้และการค้นหายังคงใช้งานได้</string>
     <string name="recommendation_languages_reset">แสดงทุกภาษา</string>
+    <string name="song_menu_go_to">ไปที่</string>
+    <string name="song_menu_more">ตัวเลือกเพิ่มเติม</string>
 </resources>

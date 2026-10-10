@@ -194,12 +194,10 @@ fun ListenTogetherScreen(
         JamInviteLink.url(partyCode, host ?: ListenTogether.defaultServer)
     }
 
-    /** The system chooser, with the link and the spoken-aloud code together. */
+    /** Share the invite itself, ready to paste or open without extra text. */
     val shareInvite: () -> Unit = {
         state.code?.let { partyCode ->
-            val message = inviteLinkFor(partyCode) +
-                System.lineSeparator() + System.lineSeparator() +
-                context.getString(R.string.listen_together_share_text, partyCode)
+            val message = inviteLinkFor(partyCode)
             context.startActivity(
                 Intent.createChooser(
                     Intent(Intent.ACTION_SEND).apply {

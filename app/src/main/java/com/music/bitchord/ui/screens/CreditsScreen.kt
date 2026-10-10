@@ -72,6 +72,18 @@ fun CreditsScreen(
                 modifier = Modifier.fillMaxWidth().padding(18.dp),
             )
         }
+        SettingsGroup(header = "Discover icon") {
+            Text(
+                text = buildAnnotatedString {
+                    append("Discover by M Yudi Maulana · ")
+                    withLink(LinkAnnotation.Url("https://thenounproject.com/creator/emwaiem18/", linkStyles)) { append("Noun Project") }
+                    append(" · CC BY 3.0. Adapted for Daylight.")
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.fillMaxWidth().padding(18.dp),
+            )
+        }
         SettingsGroup(header = "Accompanist Lyrics UI") {
             Text(
                 text = buildAnnotatedString {

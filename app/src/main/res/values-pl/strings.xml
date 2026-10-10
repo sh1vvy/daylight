@@ -1358,4 +1358,6 @@
     <plurals name="recommendation_languages_hidden"><item quantity="one">Ukryte języki: %1$d</item><item quantity="other">Ukryte języki: %1$d</item></plurals>
     <string name="recommendation_languages_hint">Ukryj języki w rekomendacjach. Zapisana muzyka i wyszukiwanie pozostaną dostępne.</string>
     <string name="recommendation_languages_reset">Pokaż wszystkie języki</string>
+    <string name="song_menu_go_to">Przejdź do</string>
+    <string name="song_menu_more">Więcej opcji</string>
 </resources>

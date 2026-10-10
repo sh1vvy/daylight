@@ -13,7 +13,7 @@
   "vars": {
     "PUBLIC_ORIGIN": "https://jam.sh1vvy.com",
     "MAX_PARTIES": "50",
-    "MAX_UPCOMING_QUEUE": "25"
+    "MAX_UPCOMING_QUEUE": "2000"
   },
   "durable_objects": {
     "bindings": [

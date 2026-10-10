@@ -1236,4 +1236,6 @@
     <plurals name="recommendation_languages_hidden"><item quantity="one">Ngôn ngữ đã ẩn: %1$d</item><item quantity="other">Ngôn ngữ đã ẩn: %1$d</item></plurals>
     <string name="recommendation_languages_hint">Ẩn ngôn ngữ khỏi đề xuất. Nhạc đã lưu và tìm kiếm vẫn khả dụng.</string>
     <string name="recommendation_languages_reset">Hiện tất cả ngôn ngữ</string>
+    <string name="song_menu_go_to">Đi đến</string>
+    <string name="song_menu_more">Tùy chọn khác</string>
 </resources>

@@ -109,6 +109,11 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory {
         com.music.bitchord.data.library.LibraryPlaylistOrderStore.init(this)
         com.music.bitchord.data.library.PlaylistCoverStore.init(this)
         AppSettings.init(this, authStore)
+        com.music.bitchord.data.LikeState.installStorage(
+            com.music.bitchord.data.library.DislikedTracks(this),
+            authStore.activeAccountId?.let { account -> authStore.activeProfileId?.let { "$account:$it" } },
+        )
+        com.music.bitchord.data.library.CollectionMetadataStore.init(this)
         // Before anything resolves a track: an addon with `checkValidLossless`
         // is gated on this, and the gate reads "no" until it has looked.
         com.music.bitchord.playback.audio.LosslessOutput.init(this)

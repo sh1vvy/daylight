@@ -1,10 +1,6 @@
 package com.music.bitchord.data.settings
 
-/*
- * Shared between the Android and desktop players: both run the same analyser
- * and both report the same states from it, so the vocabulary lives in one
- * place. The package is unchanged, so neither side needed a new import.
- */
+/* Shared analysis and presentation state used by the Android player. */
 
 /** Where one track stands in Automix's analysis. */
 enum class TrackAnalysisState {
@@ -40,8 +36,8 @@ data class SmartAnalysis(
 data class TransitionWindow(val start: Float, val end: Float)
 
 /**
- * An Automix blend in flight, as the scrubber draws it: the beat it is running
- * on, and whether it is moving. Only republished when one of those changes.
+ * An Automix blend in flight: the audible progress, ownership handoff and beat
+ * grid. The UI draws the supplied progress; it does not drive audio timing.
  */
 data class MixBlend(
     /**
@@ -54,4 +50,22 @@ data class MixBlend(
     val beatAnchorNanos: Long,
     /** Whether the blend is playing rather than paused; a paused blend holds still. */
     val playing: Boolean,
+    /** Speaker-time progress, never a UI timer. Pausing freezes this value. */
+    val progress: Float = 0f,
+    val outgoingId: String? = null,
+    val incomingId: String? = null,
+    val outgoingArtwork: String? = null,
+    val incomingArtwork: String? = null,
+    /** Metadata ownership changes at this fraction of the audible blend. */
+    val handoffAt: Float = 0.5f,
+    /** Cover dissolve's width in blend fractions (normally about 1.4 seconds). */
+    val artworkSpan: Float = 0.16f,
 )
+
+/** Smooth cover dissolve around the audio engine's handoff; independent of frame rate. */
+fun MixBlend.artworkFraction(): Float {
+    val width = artworkSpan.coerceIn(0.001f, 1f)
+    val start = (handoffAt - width / 2f).coerceIn(0f, 1f - width)
+    val t = ((progress.coerceIn(0f, 1f) - start) / width).coerceIn(0f, 1f)
+    return t * t * (3f - 2f * t)
+}

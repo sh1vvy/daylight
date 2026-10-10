@@ -55,9 +55,11 @@ try {
   const page=await request(`/invite/${host.code}`); assert.equal(page.status,200); assert.ok(page.body.includes('Open in Daylight'));
   a=socket(host); b=socket(guest); await Promise.all([a.receive('welcome'),b.receive('welcome')]);
   a.send({type:'ping',clientMs:12345}); assert.equal((await a.receive('pong')).clientMs,12345);
-  const tracks=[{videoId:'verification-first',title:'Verification First',durationMs:120000},{videoId:'verification-second',title:'Verification Second',durationMs:120000}];
+  const queueSize=Number(process.env.DAYLIGHT_JAM_TEST_QUEUE_SIZE ?? 2);
+  assert.ok(Number.isInteger(queueSize) && queueSize>=2 && queueSize<=2001,'Live queue size must be between 2 and 2001.');
+  const tracks=Array.from({length:queueSize},(_,i)=>({videoId:`verification-${i}`,title:`Verification ${i+1}`,durationMs:120000}));
   a.send({type:'control',action:'setQueue',queue:tracks,queueIndex:0});
-  assert.equal((await b.receive('queue')).queue.items.length,2);
+  assert.equal((await b.receive('queue')).queue.items.length,queueSize);
   a.send({type:'control',action:'setTrack',track:tracks[0],queueIndex:0});
   const state=await b.receive('state',f=>f.playback.seq===1); assert.equal(state.playback.track.videoId,tracks[0].videoId);
   assert.equal(state.playback.anchorMs-state.playback.updatedAtMs,350);
@@ -68,7 +70,7 @@ try {
   b.send({type:'control',action:'pause'}); assert.equal((await b.receive('error')).error,'host_only');
   a.send({type:'control',action:'kick',memberId:guest.you.memberId}); assert.equal((await b.receive('bye')).reason,'kicked');
   assert.equal((await request(`/api/parties/${host.code}`,'GET',undefined,guest.token)).status,401);
-  console.log('Live HTTPS, invites, two authenticated WebSockets, clock sync, queue/next, host policy and kick: passed.');
+  console.log(`Live HTTPS, invites, two authenticated WebSockets, clock sync, ${queueSize}-track queue/next, host policy and kick: passed.`);
 } finally {
   if(guest) await request(`/api/parties/${guest.code}/leave`,'POST',{},guest.token);
   if(host) await request(`/api/parties/${host.code}/leave`,'POST',{},host.token);

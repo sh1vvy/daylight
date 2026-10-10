@@ -6,9 +6,9 @@ import {assetLinks} from '../src/asset-links.js';
 let mf, ip = 0;
 const origin = 'https://jam.sh1vvy.com';
 before(async () => {
-  mf = new Miniflare(convertV4MiniflareOptions({unsafeInspectDurableObjects:true,name:'daylight-jam',modules:['worker.js','party.js','website.js','asset-links.js'].map(file=>({type:'ESModule',path:fileURLToPath(new URL('../src/'+file,import.meta.url))})),compatibilityDate:'2026-10-08',
+  mf = new Miniflare(convertV4MiniflareOptions({unsafeInspectDurableObjects:true,name:'daylight-jam',modules:['worker.js','party.js','website.js','asset-links.js','queue-storage.js'].map(file=>({type:'ESModule',path:fileURLToPath(new URL('../src/'+file,import.meta.url))})),compatibilityDate:'2026-10-08',
     durableObjects:{DIRECTORY:{className:'JamDirectory',useSQLite:true},ROOMS:{className:'JamRoom',useSQLite:true}},
-    bindings:{PUBLIC_ORIGIN:origin,MAX_PARTIES:'50',MAX_UPCOMING_QUEUE:'25'},
+    bindings:{PUBLIC_ORIGIN:origin,MAX_PARTIES:'50',MAX_UPCOMING_QUEUE:'2000'},
     assets:{directory:fileURLToPath(new URL('../public',import.meta.url)),routerConfig:{has_user_worker:true},assetConfig:{html_handling:'none',not_found_handling:'none'}}}));
   await mf.ready;
 });
@@ -180,4 +180,22 @@ test('static assets load with correct types without intercepting app verificatio
   assert.deepEqual(await links.json(),assetLinks);
   assert.equal((await (await request('/healthz')).json()).service,'daylight-jam');
   assert.equal((await request('/assets/does-not-exist.svg')).status,404);
+});
+
+test('a full liked collection passes the socket size bound and survives hibernation',async()=>{
+  const host=await create(), guest=await (await post(`/api/parties/${host.code}/join`,identity('Large queue guest'))).json();
+  const a=await connect(host),b=await connect(guest);
+  const tracks=Array.from({length:1727},(_,i)=>({videoId:'large-'+i,title:'Collection track '+i,artist:'Daylight QA',thumbnailUrl:'https://example.com/cover-'+i+'.jpg',durationMs:180000}));
+  a.send({type:'control',action:'setQueue',queue:tracks,queueIndex:0});
+  const queue=await b.receive('queue'); assert.equal(queue.queue.items.length,1727);
+  a.send({type:'control',action:'setTrack',track:tracks[0],queueIndex:0});
+  await b.receive('state',f=>f.playback.seq===1);
+  await mf.unsafeEvictDurableObject('daylight-jam','JamRoom',{name:host.code,webSockets:'hibernate'});
+  const stored=await (await request(`/api/parties/${host.code}`,{headers:{Authorization:`Bearer ${host.token}`}})).json();
+  assert.equal(stored.queue.items.length,1727); assert.equal(stored.queue.items.at(-1).videoId,'large-1726');
+  a.send({type:'control',action:'queueClear'});
+  assert.equal((await b.receive('queue',f=>f.queue.seq===2)).queue.items.length,1);
+  await post(`/api/parties/${host.code}/leave`,null,{Authorization:`Bearer ${guest.token}`});
+  await post(`/api/parties/${host.code}/leave`,null,{Authorization:`Bearer ${host.token}`});
+  a.ws.close(); b.ws.close();
 });

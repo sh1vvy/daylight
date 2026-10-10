@@ -1318,4 +1318,6 @@
     <plurals name="recommendation_languages_hidden"><item quantity="one">Ausgeblendete Sprachen: %1$d</item><item quantity="other">Ausgeblendete Sprachen: %1$d</item></plurals>
     <string name="recommendation_languages_hint">Sprachen aus Empfehlungen ausblenden. Gespeicherte Musik und die Suche bleiben verfügbar.</string>
     <string name="recommendation_languages_reset">Alle Sprachen anzeigen</string>
+    <string name="song_menu_go_to">Gehe zu</string>
+    <string name="song_menu_more">Weitere Optionen</string>
 </resources>

@@ -1241,8 +1241,10 @@ private fun PageBackground(
         Box(
             Modifier.matchParentSize().libraryCoverForeground(1f).clipToBounds(),
         ) {
-          val headerOffset = listState.headerTop(artHeightPx).roundToInt()
-          Box(Modifier.offset { IntOffset(0, headerOffset) }.fillMaxWidth().height(artHeight)) {
+          // Read the pixel offset during placement. Reading it in composition
+          // rebuilt both artwork/blur layers and their fade on every scroll frame.
+          Box(Modifier.offset { IntOffset(0, listState.headerTop(artHeightPx).roundToInt()) }
+              .fillMaxWidth().height(artHeight)) {
             // Above the still art but below the scrim, so the scrim that
             // settles the header into the page still sits over it. Always
             // running while visible: a header parked above the viewport need
@@ -1297,7 +1299,7 @@ private fun PageBackground(
           }
           // Continue the opaque foot through the body. Otherwise the moving
           // cover escapes the header scrim and flashes a hard edge over rows.
-          Box(Modifier.offset { IntOffset(0, headerOffset + artHeight.toPx().roundToInt()) }
+          Box(Modifier.offset { IntOffset(0, (listState.headerTop(artHeightPx) + artHeightPx).roundToInt()) }
               .fillMaxWidth().fillMaxHeight().background(palette.wash))
         }
     }

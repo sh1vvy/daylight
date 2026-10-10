@@ -56,8 +56,8 @@ require(discordApplicationId.isEmpty() || discordApplicationId.all(Char::isDigit
 }
 
 // Advance only the development channel until a stable release is requested.
-val developmentVersionName = "0.2.2-dev.7"
-val developmentVersionCode = 27
+val developmentVersionName = "0.2.2-dev.8"
+val developmentVersionCode = 31
 
 android {
     namespace = "com.music.bitchord"
@@ -113,7 +113,7 @@ android {
             applicationId = "com.sh1vvy.daylight.dev"
             versionName = developmentVersionName
             versionCode = developmentVersionCode
-            resValue("string", "app_name", "Daylight Dev")
+            resValue("string", "app_name", if (developmentVersionName.contains("canary")) "Daylight Canary" else "Daylight Dev")
         }
         create("prod") {
             dimension = "env"
@@ -177,6 +177,14 @@ android {
             initWith(getByName("release"))
             signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".benchmark"
+            matchingFallbacks += listOf("release")
+        }
+        // Internal phone builds should exercise the optimized runtime, rather
+        // than carry debugger/Compose inspection overhead into scroll testing.
+        // Retain the installed Dev package and certificate for in-place updates.
+        create("canary") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
         }
     }

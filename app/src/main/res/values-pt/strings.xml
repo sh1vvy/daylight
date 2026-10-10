@@ -26,7 +26,7 @@
     <string name="library">Biblioteca</string>
     <string name="home">Início</string>
     <string name="play">Tocar</string>
-    <string name="explore">Explorar</string>
+    <string name="explore">Descobrir</string>
     <string name="listen_now">Ouvir agora</string>
     <string name="downloads">Downloads</string>
     <string name="downloaded_songs">Músicas baixadas</string>
@@ -1323,4 +1323,6 @@
     <plurals name="recommendation_languages_hidden"><item quantity="one">Idiomas ocultos: %1$d</item><item quantity="other">Idiomas ocultos: %1$d</item></plurals>
     <string name="recommendation_languages_hint">Oculte idiomas das recomendações. Sua música salva e a busca continuam disponíveis.</string>
     <string name="recommendation_languages_reset">Mostrar todos os idiomas</string>
+    <string name="song_menu_go_to">Ir para</string>
+    <string name="song_menu_more">Mais opções</string>
 </resources>

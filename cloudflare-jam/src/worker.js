@@ -3,10 +3,12 @@ import { AGE_MS, EMPTY_MS, GRACE_MS, HEARTBEAT_MS, JamError, fail, identity, new
   normalizeCode, validCode, createRoom, expired, join, authenticate, memberWire,
   snapshot, playbackWire, queueWire, refreshEmpty, removeMember, pruneMembers,
   control, activity } from './party.js';
+import { QueueStorage } from './queue-storage.js';
 import { landing } from './website.js';
 import { assetLinks } from './asset-links.js';
 
 const MAX_BODY = 16384;
+const MAX_WS_BODY = 12 * 1024 * 1024;
 const JSON_HEADERS = { 'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store' };
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers:JSON_HEADERS });
 function errorResponse(e) {
@@ -113,8 +115,9 @@ export class JamDirectory extends DurableObject {
 export class JamRoom extends DurableObject {
   constructor(ctx,env) {
     super(ctx,env);
+    this.queueStorage = new QueueStorage(ctx.storage);
     ctx.blockConcurrencyWhile(async () => {
-      this.room = await ctx.storage.get('room');
+      this.room = await this.queueStorage.read();
       if (!this.room) return;
       let repaired = false;
       // Attachments and sockets survive eviction; reconnect the persisted members.
@@ -155,7 +158,7 @@ export class JamRoom extends DurableObject {
   async requireRoom() {
     if (expired(this.room)) { if (this.room) await this.destroy(); fail(404,'no_such_party','No party with that code.'); }
   }
-  async save() { await this.ctx.storage.put('room',this.room); }
+  async save() { await this.queueStorage.write(this.room); }
   async arm() {
     const now = Date.now();
     // No intervals: an alarm wakes the room briefly and lets it hibernate again.
@@ -221,7 +224,7 @@ export class JamRoom extends DurableObject {
       await this.requireRoom();
       const a = ws.deserializeAttachment(), m = authenticate(this.room,a?.token);
       if (m.connectionId !== a.connectionId) { ws.close(1000,'replaced'); return; }
-      if (typeof message !== 'string' || new TextEncoder().encode(message).length > MAX_BODY) { ws.close(1009,'Message too large'); return; }
+      if (typeof message !== 'string' || new TextEncoder().encode(message).length > MAX_WS_BODY) { ws.close(1009,'Message too large'); return; }
       const now = Date.now();
       if (now - a.window >= 1000) { a.window = now; a.frames = 0; a.controls = 0; }
       a.frames++; a.lastSeenMs = now; m.lastSeenMs = now;
@@ -238,7 +241,7 @@ export class JamRoom extends DurableObject {
         case 'control': {
           a.controls++; ws.serializeAttachment(a);
           if (a.controls > 25) fail(429,'rate_limited','Too many controls at once.');
-          const result = control(this.room,m,f,Number(this.env.MAX_UPCOMING_QUEUE) || 25,now);
+          const result = control(this.room,m,f,Number(this.env.MAX_UPCOMING_QUEUE) || 2000,now);
           if (result.kicked) this.closeMember(result.kicked.memberId,'kicked');
           await this.save();
           if (result.queueChanged) this.broadcast(this.queueFrame());

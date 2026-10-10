@@ -57,9 +57,9 @@ Some music, lyrics, and audio options depend on the provider and your device.
 
 **Android 8.0 or newer.** Download the signed **[daylight.apk](https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk)** from the latest release, then open it to install. Android may ask you to allow installation from your browser.
 
-Already using **Daylight Dev**? Keep that installation and use its in-app update popup, or download the matching **[daylight-dev.apk](https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.7/daylight-dev.apk)**. Coming from an internal Canary? Install this APK manually once, without uninstalling, to return to public Dev updates.
+Already using **Daylight Dev**? Keep that installation and use its in-app update popup, or download the matching **[daylight-dev.apk](https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.8/daylight-dev.apk)**. Coming from an internal Canary? Install this APK manually once, without uninstalling, to return to public Dev updates.
 
-**New in Dev:** A refreshed Home, mixed Quick picks, one-tap Play my mix, recommendation language choices, playlist editing, album discoveries, artist portraits, Last.fm and a fixed 2×2 Record widget. Eight canaries' refinements in one update. [See the changelog →](https://github.com/sh1vvy/daylight/releases/tag/v0.2.2-dev.7)
+**New in Dev:** Smoother scrolling, a ready-to-open Liked songs list, played Spotify playlists in your library, fluid Automix cover transitions, larger Jam queues, a compact player menu and the new Discover tab. [See the changelog →](https://github.com/sh1vvy/daylight/releases/tag/v0.2.2-dev.8)
 
 For future updates, fully close and reopen the app. When a newer release is available, Daylight offers a download and opens Android's installer for your confirmation. Android may first ask you to allow installs from Daylight; return to the app and tap Install again afterward.
 

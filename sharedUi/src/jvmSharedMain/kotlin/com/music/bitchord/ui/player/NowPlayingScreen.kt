@@ -124,6 +124,7 @@ import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -705,6 +706,7 @@ fun NowPlayingScreen(
     onQueueDragActiveChange: (Boolean) -> Unit = {},
     onClearQueue: () -> Unit,
     onOpenMenu: () -> Unit,
+    onMenuAnchor: (Rect) -> Unit = {},
     onOpenAlbum: (String) -> Unit,
     /**
      * Opens an artist's page. [browseId] is null for anyone but the lead credit:
@@ -807,6 +809,13 @@ fun NowPlayingScreen(
     // track" check lives.
     val spotifyCanvasAutoHide by PlayerSettings.spotifyCanvasAutoHide.collectAsStateWithLifecycle()
     val mixing by PlayerSettings.smartMixInProgress.collectAsStateWithLifecycle()
+    val dissolvingArtwork by rememberAutomixArtworkHandoff(remoteArt)
+    val reduceMixMotion by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
+    val mixArtworkShare = animateFloatAsState(
+        targetValue = if (dissolvingArtwork) 1f else 0f,
+        animationSpec = tween(if (reduceMixMotion) 0 else 400, easing = FastOutSlowInEasing),
+        label = "automixStillArtwork",
+    )
     val canvas = rememberCanvasArtwork(song)
     var canvasAspect by remember(canvas) { mutableFloatStateOf(0f) }
     // Whether the clip actually has a frame on screen right now, and one of
@@ -1810,7 +1819,7 @@ fun NowPlayingScreen(
                         onCanvasRenderedChange = { canvasRendered = it },
                         // A clip decoding behind a player on its way to the
                         // bar is work nobody sees — see [dockMoving].
-                        pausedForTransition = artworkOpen || dockMoving,
+                        pausedForTransition = dissolvingArtwork || artworkOpen || dockMoving,
                         sleeveShape = landscapeArtShape,
                         // Let go of on the way to the mini player, whose
                         // cover sits flat in its bar.
@@ -1894,6 +1903,7 @@ fun NowPlayingScreen(
                                 showRevertCue = showRevertCue,
                                 onToggleLike = onToggleLike,
                                 onOpenMenu = onOpenMenu,
+                                onMenuAnchor = onMenuAnchor,
                                 onOpenAlbum = onOpenAlbum,
                                 onOpenArtist = onOpenArtist,
                             )
@@ -2110,7 +2120,7 @@ fun NowPlayingScreen(
                     // The panels asked first: a collapse a tap asked for is
                     // paused from the tap, and this screen doesn't then listen
                     // for the sleeve's first frame of movement as well.
-                    pausedForTransition = artworkOpen || lyricsOpen || queueOpen || queueDragging ||
+                    pausedForTransition = dissolvingArtwork || artworkOpen || lyricsOpen || queueOpen || queueDragging ||
                         collapseStarted || dockMoving,
                     // Spotify's 9:16 Canvas is the phone background, so it
                     // covers every edge. Other providers retain the contained
@@ -2130,7 +2140,7 @@ fun NowPlayingScreen(
                     // And with the rest of the player as it docks: a
                     // TextureView doesn't reliably take the fade from a
                     // Compose layer around it.
-                    presentationAlpha = { (1f - 2f * p()).coerceIn(0f, 1f) * dockFade() },
+                    presentationAlpha = { (1f - mixArtworkShare.value) * (1f - 2f * p()).coerceIn(0f, 1f) * dockFade() },
                     onRenderedChanged = { canvasRendered = it },
                     onFrameCaptured = {
                         if (!clipFullscreen && !tabletArtworkBackdrop &&
@@ -2850,7 +2860,7 @@ fun NowPlayingScreen(
                             // is no clip mounted to hand it to. The clip is gone
                             // by the collapse's half, so the sleeve is whole
                             // again by the time it unmounts.
-                            alpha = if (heroClip != null) 1f - canvasCover.floatValue else 1f
+                            alpha = if (heroClip != null) 1f - canvasCover.floatValue * (1f - mixArtworkShare.value) else 1f
                         }
                         .graphicsLayer {
                             val shown = sleeveShown()
@@ -2967,44 +2977,11 @@ fun NowPlayingScreen(
                             )
                         }
                     }
-                    AsyncImage(
-                        // Decode at the sleeve's *expanded* size, always.
-                        // Coil otherwise sizes the decode to however large
-                        // this is when the request goes out — and changing
-                        // track from the queue does that while the sleeve is
-                        // collapsed to a thumbnail, leaving a thumbnail-sized
-                        // bitmap to be blown back up when the queue closes.
-                        // Skipping tracks with the transport keeps it sharp
-                        // only because the sleeve happens to be full size at
-                        // that moment.
-                        //
-                        // Asked for at the source's own size rather than the
-                        // sleeve's: the banner is taller than the card is
-                        // wide, and the one bitmap has to serve both shapes
-                        // with nothing to upscale between them.
+                    AutomixArtwork(
                         model = art.request,
-                        contentDescription = null,
-                        // Video thumbnails are 16:9; letterboxing them inside
-                        // the square sleeve looks like a broken frame.
-                        contentScale = ContentScale.Crop,
                         onState = art::onState,
-                        // TextureView-backed canvas frames can arrive
-                        // before Coil has decoded the sleeve. Alpha alone
-                        // doesn't hide this layer for that window: a
-                        // TextureView composites through its own hardware
-                        // layer, and on some devices that layer wins the
-                        // stacking order against a sibling Compose layer
-                        // even when that layer's alpha is zero — so the
-                        // still image's empty placeholder still shows
-                        // through, above a perfectly healthy animated
-                        // cover. Skipping the draw call outright leaves
-                        // nothing there to composite, in the wrong order
-                        // or otherwise; the request stays mounted so
-                        // loading still finishes in the background and
-                        // [PlayerArtwork.loaded] still flips the moment it does.
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .drawWithContent { if (art.loaded || !canvasRendered) drawContent() },
+                        drawBase = { art.loaded || !canvasRendered },
+                        modifier = Modifier.fillMaxSize(),
                     )
 
                     // Where the clip plays when it can't have the banner:
@@ -3018,9 +2995,10 @@ fun NowPlayingScreen(
                                 // The panels first: a collapse the tap asked
                                 // for is paused from the tap, and then never
                                 // asks after its first frame of movement.
-                                pausedForTransition = artworkOpen || lyricsOpen || queueOpen || queueDragging ||
+                                pausedForTransition = dissolvingArtwork || artworkOpen || lyricsOpen || queueOpen || queueDragging ||
                                     collapseStarted || dockMoving,
                                 onRenderedChanged = { canvasRendered = it },
+                                presentationAlpha = { 1f - mixArtworkShare.value },
                                 onFrameCaptured = {
                                     if (!tabletArtworkBackdrop && !lyricsOpen && !queueOpen) {
                                         canvasFrame = it
@@ -3273,12 +3251,13 @@ fun NowPlayingScreen(
                             onClick = onToggleLike,
                             haptic = if (liked) Haptic.ToggleOff else Haptic.ToggleOn,
                         )
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(2.dp))
                     }
                     TrackActionGlyph(
                         icon = if (showRevertCue) Icons.AutoMirrored.Rounded.Undo else Icons.Rounded.MoreHoriz,
                         contentDescription = stringResource(Res.string.more),
                         onClick = onOpenMenu,
+                        modifier = Modifier.onGloballyPositioned { onMenuAnchor(it.boundsInWindow()) },
                     )
                 }
 

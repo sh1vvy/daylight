@@ -794,3 +794,8 @@ suspend fun MediaController.playSongs(songs: List<Song>, startIndex: Int) {
  */
 internal fun queueStartIndex(requestedIndex: Int, itemCount: Int, shuffled: Boolean): Int =
     if (shuffled) 0 else requestedIndex.coerceIn(0, itemCount - 1)
+
+/** Skip only if this is still the song the listener just rejected. */
+fun MediaController.skipDislikedSong(videoId: String) {
+    sendCustomCommand(SessionCommand(ACTION_SKIP_DISLIKED, Bundle.EMPTY), Bundle().apply { putString("videoId", videoId) })
+}

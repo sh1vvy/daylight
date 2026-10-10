@@ -136,6 +136,21 @@ fun LibraryScreen(
     val visiblePersonalPlaylists = rememberCoverSourceValue("library-personal", personalPlaylists)
     val visibleDeviceItems = rememberCoverSourceValue("library-device", deviceItems)
     val visibleCreatedIds = rememberCoverSourceValue("library-created", createdPlaylistIds)
+    // Keep collection instances while only chrome/playback state changes.
+    // A fresh flattened list inside a lazy item defeats strong skipping and
+    // makes the preview reorder/sort all playlists again unnecessarily.
+    val remotePlaylists = remember(visibleState) {
+        (visibleState as? UiState.Success)?.data?.shelves.orEmpty()
+            .filter { it.isPlaylistLibraryShelf() }.flatMap { it.items }
+    }
+    val playlists = remember(remotePlaylists, visiblePersonalPlaylists, pinnedPlaylists, visibleCreatedIds) {
+        HomeShelf(PLAYLISTS, visiblePersonalPlaylists + remotePlaylists).withoutLikedMusic()
+            .orderedForLibrary(pinnedPlaylists, LibrarySort.DEFAULT, visibleCreatedIds)
+    }
+    val otherShelves = remember(visibleState) {
+        (visibleState as? UiState.Success)?.data?.shelves.orEmpty()
+            .filterNot { it.isPlaylistLibraryShelf() }
+    }
     val onDevice = stringResource(Res.string.on_device)
     PullToRefresh(
         refreshing = refreshing,
@@ -163,12 +178,6 @@ fun LibraryScreen(
                 item(key = "links") { LibraryLinkList(links = links, onClick = onShelfItemClick) }
             }
             item(key = "shelf:$PLAYLISTS") {
-                val remote = (visibleState as? UiState.Success)?.data?.shelves.orEmpty()
-                    .filter { it.isPlaylistLibraryShelf() }.flatMap { it.items }
-                val playlists = remember(remote, visiblePersonalPlaylists, pinnedPlaylists, visibleCreatedIds) {
-                    HomeShelf(PLAYLISTS, visiblePersonalPlaylists + remote).withoutLikedMusic()
-                        .orderedForLibrary(pinnedPlaylists, LibrarySort.DEFAULT, visibleCreatedIds)
-                }
                 PlaylistShelf(
                     shelf = playlists,
                     savedLocally = !signedIn,
@@ -212,7 +221,7 @@ fun LibraryScreen(
                 is UiState.Error -> item {
                     MessageState(visibleState.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
                 }
-                is UiState.Success -> visibleState.data.shelves.filterNot { it.isPlaylistLibraryShelf() }.forEach { shelf ->
+                is UiState.Success -> otherShelves.forEach { shelf ->
                     item(key = "shelf:${shelf.title}") {
                         LibraryGridShelf(
                             shelf = shelf,

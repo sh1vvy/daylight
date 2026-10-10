@@ -139,7 +139,7 @@
     <string name="card_views_format">%1$s views</string>
     <string name="clear_search">ล้างการค้นหา</string>
     <string name="downloaded">ดาวน์โหลดแล้ว</string>
-    <string name="explore">สำรวจ</string>
+    <string name="explore">ค้นพบ</string>
     <string name="library">คลังเพลง</string>
     <string name="library_sign_in_description">ลงชื่อเข้าใช้บัญชี Google เพื่อดูเพลงที่ถูกใจ เพลย์ลิสต์ และประวัติ YouTube Music ของคุณ</string>
     <string name="new_playlist">เพลย์ลิสต์ใหม่</string>

@@ -58,6 +58,7 @@ class Dev8SongMenuNativeTest {
         val anchor=mutableStateOf<Rect?>(null)
         val liked=mutableStateOf(LikeStatus.INDIFFERENT)
         val signedIn=mutableStateOf(true)
+        val audioVersion=mutableStateOf(true)
         val art=File(context.cacheDir,"qa-dev8-art.png")
         Bitmap.createBitmap(300,300,Bitmap.Config.ARGB_8888).apply {
             eraseColor(android.graphics.Color.rgb(135,58,101)); art.outputStream().use { compress(Bitmap.CompressFormat.PNG,100,it) }; recycle()
@@ -89,12 +90,16 @@ class Dev8SongMenuNativeTest {
                                 SongActionsSheet(target,signedIn.value,liked.value,onPlayNext={menu.value=false},onAddToQueue={menu.value=false},onStartRadio={menu.value=false},onDownload={},
                                     onToggleLike={liked.value=LikeStatus.LIKE},onToggleDislike={liked.value=LikeStatus.DISLIKE;skips++;menu.value=false},
                                     onAddToPlaylist={playlists++;menu.value=false},onOpenAlbum={albums++;menu.value=false},onOpenArtist={},showSleepTimer=true,onLyricsOffset={offsets++;menu.value=false},
-                                    onShare={shares++;menu.value=false},onCopyLog={},onUpgradeQuality={},onToggleAudioVersion={},presentation=SongActionsPresentation.PlayerMenu)
+                                    onShare={shares++;menu.value=false},onCopyLog={},onUpgradeQuality={},onToggleAudioVersion={},isAudioVersion=audioVersion.value,presentation=SongActionsPresentation.PlayerMenu)
                             }
                         }
                     }
                 } }
                 fun open() { compose.onNodeWithContentDescription(context.getString(R.string.more)).performClick();compose.waitForIdle() }
+                compose.waitForIdle()
+                val dots = compose.onNodeWithContentDescription(context.getString(R.string.more), useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
+                val progress = compose.onNodeWithTag("player-progress-bar").fetchSemanticsNode().boundsInRoot
+                assertTrue("Menu glyph aligns with the progress bar", kotlin.math.abs(dots.right - progress.right) < 2f)
                 open()
                 val bounds=compose.onNodeWithTag("player-song-menu").fetchSemanticsNode().boundsInRoot
                 assertTrue("Compact menu stays under 60% of screen",bounds.height<instrumentation.uiAutomation.takeScreenshot().height*0.60f)
@@ -106,6 +111,11 @@ class Dev8SongMenuNativeTest {
                 assertEquals(1,albums)
                 open();compose.onNodeWithText(context.getString(R.string.song_menu_more)).performClick()
                 compose.onNodeWithText(context.getString(R.string.copy_log)).assertIsDisplayed()
+                compose.onNodeWithText(context.getString(R.string.convert_to_video)).assertDoesNotExist()
+                compose.onNodeWithText(context.getString(R.string.convert_to_audio)).assertDoesNotExist()
+                compose.runOnIdle { audioVersion.value=false }
+                compose.onNodeWithText(context.getString(R.string.convert_to_audio)).assertIsDisplayed()
+                compose.onNodeWithText(context.getString(R.string.convert_to_video)).assertDoesNotExist()
                 screenshot("more-$theme")
                 compose.onNodeWithText(context.getString(R.string.sleep_timer)).performClick()
                 compose.onNodeWithText(context.getString(R.string.after_this_song)).assertIsDisplayed()

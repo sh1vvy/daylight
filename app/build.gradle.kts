@@ -56,8 +56,8 @@ require(discordApplicationId.isEmpty() || discordApplicationId.all(Char::isDigit
 }
 
 // Advance only the development channel until a stable release is requested.
-val developmentVersionName = "0.2.2-dev.8"
-val developmentVersionCode = 31
+val developmentVersionName = "0.2.2-dev.9"
+val developmentVersionCode = 32
 
 android {
     namespace = "com.music.bitchord"
@@ -316,6 +316,8 @@ dependencies {
     // FFmpeg line with an AC-4 decoder) by native/ffmpeg/build.sh. It needs
     // media3-decoder, which media3-exoplayer already brings.
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.9.0")
+    // Bundled offline model: lyric buttons do not need a request or model download.
+    implementation("com.google.mlkit:language-id:17.0.6")
 
     // ---- Images: Coil 3 + Palette (dominant colors for the mesh gradient) ----
     implementation("io.coil-kt.coil3:coil-compose:3.0.4")

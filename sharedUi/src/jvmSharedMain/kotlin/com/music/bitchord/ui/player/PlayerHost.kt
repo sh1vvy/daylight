@@ -70,6 +70,9 @@ interface PlayerHost {
     /** The Listen Together party this device is in, as the player draws it. */
     val party: StateFlow<PartyUi>
 
+    /** Offline identification of the original lyrics; null keeps translation available. */
+    suspend fun identifyLyricsLanguage(lines: List<LyricLine>): String? = null
+
     suspend fun translateLyrics(
         trackId: String,
         lines: List<LyricLine>,

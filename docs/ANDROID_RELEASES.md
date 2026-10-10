@@ -16,17 +16,17 @@ existing package and signer so an in-place update preserves library and settings
 
 ## Internal canaries
 
-The current public development release is **0.2.2-dev.8**, Android code **31**,
-following internal **canary.9–11** (codes 28–30). Build it with
+The current public development release is **0.2.2-dev.9**, Android code **32**,
+following Dev.8 and internal **canary.9–11** (codes 28–30). Build it with
 `:app:assembleDevCanary`: this optimized, non-debuggable runtime uses the existing
 Dev signer under `com.sh1vvy.daylight.dev`, despite the build type's internal name.
 Its visible label is Daylight Dev and its public Dev update checks are enabled.
 
 The universal GitHub asset is `daylight-dev.apk`; the arm64 APK can be used for
 local phone testing. Both update existing Dev/Canary installations in place.
-Canaries disable their checker and should manually install Dev.8 once without
+Canaries disable their checker and should manually install the latest Dev once without
 uninstalling. Stable remains **0.2.1**, code **12**. Its release and website badge
-are unchanged. The next public Dev release is **dev.9**, with a code above 31.
+are unchanged. The next public Dev release is **dev.10**, with a code above 32.
 
 Future internal canaries remain private and manually installed. Do not publish,
 tag or push a canary without the owner requesting it. See [internal checks](CANARY_TESTING.md).

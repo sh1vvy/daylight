@@ -70,6 +70,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
@@ -201,6 +202,7 @@ internal fun PlayerScrubber(
     val mixPulse = rememberMixPulse({ mixBlend.value }, enabled = !reduceAnimation)
     Column(Modifier.fillMaxWidth()) {
         ThinSlider(
+            modifier = Modifier.testTag("player-progress-bar"),
             value = shown,
             onValueChange = onScrub,
             onValueChangeFinished = onScrubFinished,
@@ -647,7 +649,9 @@ internal fun TrackActionGlyph(
                 haptics.play(haptic)
                 onClick()
             },
-        contentAlignment = Alignment.Center,
+        // Match the scrubber's trailing edge without shrinking the 48dp touch
+        // targets. Both glyphs move together, preserving their existing gap.
+        contentAlignment = Alignment.CenterEnd,
     ) {
         Crossfade(
             targetState = icon,

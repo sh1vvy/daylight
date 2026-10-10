@@ -45,7 +45,7 @@ copies use fast-start metadata and `preload="none"`. Source recordings remain
 unchanged. Each preview starts in view and pauses offscreen; only one plays at a
 time. Manual pause, hidden tabs and reduced-motion preferences are respected.
 
-Primary downloads remain Stable 0.2.1. Dev 0.2.2-dev.8 is secondary. Features shown
+Primary downloads remain Stable 0.2.1. Dev 0.2.2-dev.9 is secondary. Features shown
 are identified as development-build features. Lossless uses a separate community
 source, Spotify supplies playlist metadata, and Jams use YouTube Music audio.
 The site does not claim that YouTube streams are lossless.

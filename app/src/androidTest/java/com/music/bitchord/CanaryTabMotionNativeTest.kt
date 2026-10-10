@@ -144,6 +144,23 @@ class CanaryTabMotionNativeTest {
                 assertTrue("Regular mode does not sample the glass lens", lensFrames.isEmpty())
                 compose.mainClock.autoAdvance = true
                 compose.waitForIdle()
+                // A two-cell return to the first tab previously let the spring
+                // overshoot the bar's clip and cut the capsule's rounded edge.
+                compose.onNodeWithContentDescription("Library").performClick()
+                compose.waitForIdle()
+                compose.mainClock.autoAdvance = false
+                compose.onNodeWithContentDescription("Home").performClick()
+                repeat(12) { frame ->
+                    advance(32)
+                    val edge = screenshot("tabs-regular-edge-$frame")
+                    assertTrue("The full capsule remains visible at the edge ($rest → $edge)",
+                        abs(edge.width() - rest.width()) <= 4 && abs(edge.height() - rest.height()) <= 4)
+                    assertTrue("The capsule cannot overshoot the first cell", edge.left >= rest.left - 2)
+                }
+                compose.mainClock.autoAdvance = true
+                compose.waitForIdle()
+                compose.onNodeWithContentDescription("Explore").performClick()
+                compose.waitForIdle()
                 compose.onNodeWithContentDescription("Explore").performTouchInput {
                     swipe(start = Offset(width * 0.1f, height / 2f), end = Offset(width * 0.9f, height / 2f), durationMillis = 200)
                 }

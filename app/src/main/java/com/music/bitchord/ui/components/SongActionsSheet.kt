@@ -56,7 +56,6 @@ import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.ThumbDown
 import androidx.compose.material.icons.rounded.ThumbDownOffAlt
 import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -170,13 +169,13 @@ fun SongActionsSheet(
     /** Keeps the upgrade row visible but untappable while its lookup is running. */
     upgradeQualityInProgress: Boolean = false,
     /**
-     * Switches the playing track between its video and audio-only cuts. Null
-     * hides the row — offered only from the player, and only once an
-     * alternate cut is known to exist. See
+     * Switches a playing video track to its audio-only cut. Null hides the
+     * row; audio tracks never offer conversion to video. Offered only from
+     * the player once an alternate cut is known to exist. See
      * [com.music.bitchord.playback.PlaybackService.smoothSwapCurrentTrackVersion].
      */
     onToggleAudioVersion: (() -> Unit)? = null,
-    /** Which cut is playing now, so the row can offer the other one. */
+    /** Whether the current cut is audio-only; hides conversion for audio tracks. */
     isAudioVersion: Boolean = false,
     onShare: (() -> Unit)? = null,
     /**
@@ -203,6 +202,7 @@ fun SongActionsSheet(
      */
     presentation: SongActionsPresentation = SongActionsPresentation.Sheet,
 ) {
+    val convertToAudio = onToggleAudioVersion.takeUnless { isAudioVersion }
     var pickingSleepTimer by remember { mutableStateOf(false) }
     val menu = presentation == SongActionsPresentation.Menu
     // Read from the thumbnail the row that opened this sheet was already
@@ -297,9 +297,9 @@ fun SongActionsSheet(
                                         stringResource(if (onRollbackToOriginal != null) R.string.revert_to_original else R.string.upgrade_quality),
                                         enabled = onRollbackToOriginal != null || !upgradeQualityInProgress, onClick = callback)
                                 }
-                                onToggleAudioVersion?.let { callback ->
-                                    ActionRow(if (isAudioVersion) Icons.Rounded.Videocam else BitChordIcons.MusicNote,
-                                        stringResource(if (isAudioVersion) R.string.convert_to_video else R.string.convert_to_audio), onClick = callback)
+                                convertToAudio?.let { callback ->
+                                    ActionRow(BitChordIcons.MusicNote,
+                                        stringResource(R.string.convert_to_audio), onClick = callback)
                                 }
                                 onLyricsOffset?.let { callback -> ActionRow(Icons.Rounded.Tune, stringResource(R.string.lyrics_offset), onClick = callback) }
                                 if (showSleepTimer) ActionRow(Icons.Rounded.Bedtime, stringResource(R.string.sleep_timer), value = sleepTimerStatus()) { page = 3 }
@@ -324,7 +324,7 @@ fun SongActionsSheet(
         // a substituted copy, the other for a track held on YouTube's own —
         // and between them they are the whole of the choice, which is why they
         // sit in the same place under the same divider.
-        if (onRollbackToOriginal != null || onUpgradeQuality != null || onToggleAudioVersion != null) {
+        if (onRollbackToOriginal != null || onUpgradeQuality != null || convertToAudio != null) {
             ActionGroup(palette) {
             (onRollbackToOriginal ?: onUpgradeQuality)?.let {
                 ActionRow(
@@ -348,11 +348,11 @@ fun SongActionsSheet(
             // Which recording, not which quality — a different question from
             // the row above, so it sits right under it rather than merged
             // into it, but still ahead of the divider both share.
-            onToggleAudioVersion?.let {
+            convertToAudio?.let {
                 ActionRow(
-                    icon = if (isAudioVersion) Icons.Rounded.Videocam else BitChordIcons.MusicNote,
+                    icon = BitChordIcons.MusicNote,
                     label = stringResource(
-                        if (isAudioVersion) R.string.convert_to_video else R.string.convert_to_audio,
+                        R.string.convert_to_audio,
                     ),
                     accent = palette.accent,
                     onClick = it,

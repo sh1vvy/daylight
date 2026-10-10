@@ -142,6 +142,9 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
             .stateIn(scope, SharingStarted.Eagerly, ListenTogether.state.value.toPartyUi())
     }
 
+    override suspend fun identifyLyricsLanguage(lines: List<LyricLine>): String? =
+        com.music.bitchord.data.lyrics.LyricsLanguage.identify(lines)
+
     override suspend fun translateLyrics(
         trackId: String,
         lines: List<LyricLine>,

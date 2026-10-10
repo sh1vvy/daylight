@@ -137,6 +137,8 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -2738,7 +2740,22 @@ internal fun rememberLyricsTranslation(
     }
     val needsRomanization = remember(lyrics) { lyrics.orEmpty().needsRomanization() }
     val canRomanize = needsRomanization && romanizationState !is LyricsTranslationUiState.SameLanguage
-    val canTranslate = !lyrics.isNullOrEmpty() && translationState !is LyricsTranslationUiState.SameLanguage
+    var languageChecked by remember(trackId, lyrics) { mutableStateOf(false) }
+    var originalLanguage by remember(trackId, lyrics) { mutableStateOf<String?>(null) }
+    LaunchedEffect(trackId, lyrics) {
+        if (!lyrics.isNullOrEmpty()) {
+            originalLanguage = try {
+                withTimeoutOrNull(2_000L) { PlayerPlatform.host.identifyLyricsLanguage(lyrics) }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            }
+        }
+        languageChecked = true
+    }
+    val canTranslate = translationAvailable(lyrics, languageChecked, originalLanguage, translationLanguage) &&
+        translationState !is LyricsTranslationUiState.SameLanguage
     var lyricsDisplayMode by remember(trackId, translationLanguage, lyrics) {
         mutableStateOf(LyricsDisplayMode.Original)
     }

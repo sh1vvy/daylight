@@ -868,7 +868,10 @@ private fun SharedTransitionScope.ExpandedTabs(
                         modifier = Modifier
                             .matchParentSize()
                             .pillPlacement(
-                                center = { pillCenterInRow(pill?.position ?: flatPosition!!.value) },
+                                // Regular-mode spring overshoot and edge drags
+                                // must stay inside the first/last tab cell;
+                                // otherwise the bar clips the capsule's ends.
+                                center = { pillCenterInRow(pill?.position ?: flatPosition!!.value.coerceIn(0f, (tabCount - 1).toFloat())) },
                                 size = { pill?.liveSize(restSize, liftedSize) ?: restSize },
                             ),
                     )

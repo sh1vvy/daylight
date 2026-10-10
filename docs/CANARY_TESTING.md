@@ -1,3 +1,39 @@
+# Daylight Dev.9 hotfix validation
+
+**0.2.2-dev.9 · Android code 32 · development prerelease**
+
+Includes all Dev.8 changes. Stable remains 0.2.1/code 12.
+
+- Original lyrics are identified with a bundled offline model before showing
+  Translate. Matching app/lyric languages hide the button, including English.
+  Unknown and mixed-language results retain translation. Detection is bounded
+  to 3,000 characters and cached for 32 lyric sheets; no automatic translation
+  or model download is required. Portrait, landscape and lyric panels share
+  the same visibility policy.
+- Player menus no longer offer Convert to video. Converting a playing video
+  to its available audio cut remains supported.
+- The main-player three-dot glyph aligns with the progress bar’s trailing
+  edge. The heart/menu gap and 48dp touch targets remain unchanged.
+- With Liquid Glass off, navigation’s sliding capsule stays within the edge
+  tab cells during spring settling and drags, preserving its rounded ends.
+  Glass lens movement and compact/expanded navigation are unchanged.
+- 1,439 Android/shared unit checks passed; one optional live-provider check
+  was skipped. All 23 Daylight landing-page checks passed.
+
+- Seven native Android fixture checks passed on the disposable emulator.
+  Real offline language identification covers English, French, Spanish and
+  mixed scripts; player state hides English before tapping and on reopening.
+  The real modal player verifies menu/progress alignment and conversion rows.
+  Twelve intermediate frames of the edge-to-edge regular capsule keep its
+  complete geometry; folding, swiping, standalone Search and glass switching
+  remain usable. Discover checks cover all three themes with glass on/off.
+- The optimized universal APK retains the Dev package, signing certificate and
+  baseline profiles, and uses code 32. The release contains only the universal
+  development APK and its checksum. No physical phone was connected for this
+  hotfix; the on-device checks above used the Android emulator.
+
+---
+
 # Daylight Dev.8 validation
 
 **0.2.2-dev.8 · Android code 31 · development prerelease**

@@ -12,10 +12,10 @@
 
 <p>
 <a href="https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk"><img src="docs/assets/download-android.svg" alt="Download Daylight Stable for Android" width="260" /></a>
-<a href="https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.8/daylight-dev.apk"><img src="docs/assets/download-dev.svg" alt="Download Daylight Dev for Android" width="260" /></a>
+<a href="https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.9/daylight-dev.apk"><img src="docs/assets/download-dev.svg" alt="Download Daylight Dev for Android" width="260" /></a>
 </p>
 
-**Stable 0.2.1** · **Dev 0.2.2-dev.8**
+**Stable 0.2.1** · **Dev 0.2.2-dev.9**
 
 [Website](https://daylight.sh1vvy.com) · [Release notes](https://github.com/sh1vvy/daylight/releases) · [Daylight Jam](https://jam.sh1vvy.com) · [Report an issue](https://github.com/sh1vvy/daylight/issues)
 
@@ -97,7 +97,7 @@ Requires **Android 8.0 or newer**. Download the APK for your channel, open it an
 | Channel | Version | Download |
 | :--- | :--- | :--- |
 | **Stable** | 0.2.1 | [daylight.apk](https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk) |
-| **Dev** | 0.2.2-dev.8 | [daylight-dev.apk](https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.8/daylight-dev.apk) |
+| **Dev** | 0.2.2-dev.9 | [daylight-dev.apk](https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.9/daylight-dev.apk) |
 
 Stable and Dev install separately. Keep the same channel when updating to preserve its data. Public builds offer an in-app update prompt; Android still asks you to confirm installation. From an internal Canary, install the matching Dev APK manually once to resume public Dev updates.
 

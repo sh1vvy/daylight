@@ -37,7 +37,7 @@ test('primary downloads remain the public stable Android APK', () => {
   assert.ok(links.includes('https://github.com/sh1vvy/daylight/releases/latest'));
   assert.ok(links.includes('https://github.com/sh1vvy/daylight'));
   assert.ok(links.includes('https://jam.sh1vvy.com'));
-  assert.ok(links.includes('https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.8/daylight-dev.apk'));
+  assert.ok(links.includes('https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.9/daylight-dev.apk'));
   assert.ok(links.every(link => !/canary|localhost|127\.0\.0\.1|\/output\//i.test(link)), 'Internal test builds must not be published.');
 });
 

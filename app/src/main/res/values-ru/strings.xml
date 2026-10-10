@@ -471,7 +471,6 @@
     <string name="sources_order_footer">Если у источника нет трека или он недоступен, Daylight пробует следующий. Источники выше YouTube могут заменить его запись, если предоставляют более качественную версию.</string>
     <string name="sources_order_header">Источники, пробуются в этом порядке</string>
     <string name="sources_quality_capped">Это соединение установлено ниже высокого качества, поэтому потоки перекодируются под это ограничение. На загрузки это не влияет.</string>
-    <string name="jiosaavn_mismatch_warning">Может подобрать не ту версию песни. Включайте на свой страх и риск.</string>
     <string name="enable_jiosaavn">Включить JioSaavn?</string>
     <string name="enable_anyway">Всё равно включить</string>
     <string name="sources_subtitle">Откуда поступает аудио и в каком порядке</string>
@@ -611,33 +610,6 @@
     <string name="use_all_audio_folders_subtitle">Снять ограничение по папкам и сканировать музыку по всему устройству</string>
     <string name="album">альбом</string>
     <string name="artist">исполнитель</string>
-    <string name="webdav">WebDAV</string>
-    <string name="webdav_subtitle">Музыка на вашем сервере</string>
-    <string name="webdav_not_configured">Подключите сервер в разделе «Источники»</string>
-    <string name="webdav_empty">На сервере WebDAV не найдено аудиофайлов. Проверьте URL в настройках.</string>
-    <string name="webdav_description">Укажите Daylight музыкальную папку WebDAV — каталог «Музыка» в Nextcloud или любой сервер с поддержкой WebDAV.</string>
-    <string name="webdav_server_url">URL сервера</string>
-    <string name="webdav_server_url_hint">https://cloud.example.com/remote.php/dav/files/user/Music</string>
-    <string name="webdav_disconnect">Отключить</string>
-    <string name="webdav_test_failed">Не удалось подключиться: %1$s</string>
-    <string name="upload_to_webdav">Отправить в WebDAV</string>
-    <string name="webdav_conflict_title">«%1$s» уже есть на сервере</string>
-    <string name="webdav_conflict_message">Перезаписать или сохранить обе копии?</string>
-    <string name="webdav_overwrite">Перезаписать</string>
-    <string name="webdav_keep_both">Сохранить обе</string>
-    <string name="webdav_skip">Пропустить</string>
-    <string name="webdav_apply_to_all">Применить ко всем</string>
-    <string name="webdav_upload_summary">Отправлено: %1$d · пропущено: %2$d · ошибок: %3$d</string>
-    <string name="smb">SMB</string>
-    <string name="smb_subtitle">Музыка в общей папке</string>
-    <string name="smb_not_configured">Подключите общую папку в разделе «Источники»</string>
-    <string name="smb_empty">В общей папке SMB не найдено аудиофайлов. Проверьте сервер в разделе «Источники».</string>
-    <string name="smb_description">Укажите Daylight общую музыкальную папку — NAS или общую папку Windows по SMB.</string>
-    <string name="smb_server_hint">nas.local or 192.168.1.10:4445</string>
-    <string name="smb_share_hint">Имя ресурса, например Music</string>
-    <string name="smb_folder_hint">Папка (необязательно)</string>
-    <string name="smb_disconnect">Отключить</string>
-    <string name="smb_test_failed">Не удалось подключиться: %1$s</string>
     <string name="playlist">плейлист</string>
     <string name="open">Открыть</string>
     <string name="open_playlist">Открыть плейлист</string>
@@ -872,10 +844,6 @@
     <string name="dolby_atmos_unavailable">Это устройство не поддерживает Atmos, треки будут играть в обычном формате</string>
 
     <string name="export_compatible_downloads">Экспорт совместимых загрузок</string>
-
-    <string name="legacy_mesh_gradient">Классический сетчатый градиент</string>
-
-    <string name="legacy_mesh_gradient_subtitle">Возвращает мягкие анимированные цветные пятна из v1.5</string>
 
     <string name="liquid_glass">Жидкое стекло</string>
 
@@ -1360,4 +1328,26 @@
     <string name="quality_lossless_description">24 бит · до 48 кГц</string>
     <string name="quality_hi_res_description">Аудио более высокого разрешения</string>
     <string name="automix_high_res_unavailable">Недоступно с аудио без потерь Hi-Res</string>
+    <string name="lastfm_setup_pending">Last.fm настраивается для Daylight и будет доступен в следующей версии.</string>
+    <string name="lastfm_browser_description">Подключитесь в браузере, чтобы сохранять историю прослушивания в Last.fm.</string>
+    <string name="lastfm_browser_return">Разрешите доступ Daylight в браузере, затем вернитесь и завершите подключение.</string>
+    <string name="lastfm_open_browser">Открыть Last.fm</string>
+    <string name="lastfm_finish_connecting">Завершить подключение</string>
+    <string name="lastfm_disconnect">Отключить Last.fm</string>
+    <string name="edit_playlist">Редактировать плейлист</string>
+    <string name="choose_photo">Выбрать фото</string>
+    <string name="reset_playlist_cover">Сбросить обложку</string>
+    <string name="playlist_cover_local_note">Свои обложки сохраняются на этом устройстве.</string>
+    <string name="playlist_image_error">Не удалось открыть изображение. Выберите другое фото.</string>
+    <string name="playlist_edit_error">Не удалось сохранить изменения. Попробуйте ещё раз.</string>
+    <string name="home_play_my_mix">Включить мой микс</string>
+    <string name="home_mix_empty">Добавьте музыку в медиатеку, чтобы начать микс.</string>
+    <string name="more_by_artist">Другие альбомы %1$s</string>
+    <string name="similar_albums_for_you">Похожие альбомы для вас</string>
+    <string name="featured_artists">Исполнители плейлиста</string>
+    <string name="recommendation_languages">Языки рекомендаций</string>
+    <string name="recommendation_languages_all">Все языки</string>
+    <plurals name="recommendation_languages_hidden"><item quantity="one">Скрыто языков: %1$d</item><item quantity="other">Скрыто языков: %1$d</item></plurals>
+    <string name="recommendation_languages_hint">Скройте языки в рекомендациях. Сохранённая музыка и поиск останутся доступны.</string>
+    <string name="recommendation_languages_reset">Показать все языки</string>
 </resources>

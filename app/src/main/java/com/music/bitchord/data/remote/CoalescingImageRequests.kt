@@ -17,7 +17,6 @@ class CoalescingImageRequests : Interceptor {
         val url = request.data as? String ?: return chain.proceed()
         if (!url.startsWith("http") || !request.diskCachePolicy.readEnabled ||
             !request.diskCachePolicy.writeEnabled) return chain.proceed()
-        // WebDavCoilAuth runs before us and has already partitioned private keys.
         return gate.withKey(request.diskCacheKey ?: url) { chain.proceed() }
     }
 }

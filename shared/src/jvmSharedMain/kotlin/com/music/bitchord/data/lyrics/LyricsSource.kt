@@ -22,11 +22,8 @@ enum class LyricsSource(
      */
     val hidden: Boolean = false,
 ) {
-    // Declaration order is the default priority — [AppSettings.lyricsSourceOrder]
-    // and [AppSettings.lyricsSources] both fall back to [LyricsSource.entries]
-    // verbatim, so this list *is* the out-of-the-box experience. Stored by
-    // name rather than position, so this can be rearranged without disturbing
-    // an order somebody has already chosen for themselves.
+    // Declaration order is the default priority. [offered] controls the picker;
+    // [defaults] excludes opt-in providers. Saved choices use enum names.
     //
     // The three Apple hosts lead, because they carry the same catalogue and
     // that catalogue is the one with the voices in it. [BINI_LYRICS] goes
@@ -132,6 +129,11 @@ enum class LyricsSource(
     companion object {
         /** Every source a listener can see and choose, in default priority. */
         val offered: List<LyricsSource> = entries.filterNot { it.hidden }
+
+        /** Opt-in providers stay in the picker without being contacted by default. */
+        val defaults: List<LyricsSource> = offered.filterNot {
+            it == KUGOU || it == BETTER_LYRICS_PORTATO
+        }
 
         /**
          * A saved order brought up to date with this build: hidden sources

@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">लॉसलेस बीटा: मूल अवधि उपलब्ध नहीं है</string>
     <string name="lossless_beta_ineligible">लॉसलेस बीटा: Wi-Fi पर Jam के बाहर ऑडियो चाहिए</string>
     <string name="lossless_beta_unavailable">लॉसलेस बीटा: स्रोत उपलब्ध नहीं है</string>
+    <string name="home_play_my_mix">मेरा मिक्स चलाएँ</string>
+    <string name="home_mix_empty">मिक्स शुरू करने के लिए अपनी लाइब्रेरी में संगीत जोड़ें।</string>
 </resources>

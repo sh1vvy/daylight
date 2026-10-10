@@ -466,7 +466,6 @@
     <string name="sources_order_footer">หากแหล่งข้อมูลหนึ่งไม่มีแทร็กหรือเชื่อมต่อไม่ได้ Daylight จะลองแหล่งถัดไป แหล่งข้อมูลที่อยู่เหนือ YouTube สามารถแทนที่การบันทึกของ YouTube ได้เมื่อให้เวอร์ชันที่ดีกว่า</string>
     <string name="sources_order_header">แหล่งข้อมูล เรียงตามลำดับที่ลอง</string>
     <string name="sources_quality_capped">การเชื่อมต่อนี้ตั้งไว้ต่ำกว่าคุณภาพสูง สตรีมจึงถูกแปลงให้พอดีกับขีดจำกัดนั้น การดาวน์โหลดไม่ได้รับผลกระทบ</string>
-    <string name="jiosaavn_mismatch_warning">อาจจับคู่กับเพลงผิดเวอร์ชัน เปิดใช้โดยยอมรับความเสี่ยงเอง</string>
     <string name="enable_jiosaavn">เปิดใช้ JioSaavn หรือไม่</string>
     <string name="enable_anyway">เปิดใช้ต่อไป</string>
     <string name="sources_subtitle">เสียงมาจากที่ใดและลำดับที่ใช้</string>
@@ -595,33 +594,6 @@
     <string name="use_all_audio_folders_subtitle">ยกเลิกขีดจำกัดโฟลเดอร์และสแกนเพลงทั่วทั้งอุปกรณ์</string>
     <string name="album">อัลบั้ม</string>
     <string name="artist">ศิลปิน</string>
-    <string name="webdav">WebDAV</string>
-    <string name="webdav_subtitle">เพลงบนเซิร์ฟเวอร์ของคุณ</string>
-    <string name="webdav_not_configured">เชื่อมต่อเซิร์ฟเวอร์ในส่วนแหล่งข้อมูล</string>
-    <string name="webdav_empty">ไม่พบไฟล์เสียงบนเซิร์ฟเวอร์ WebDAV ตรวจสอบ URL ในการตั้งค่า</string>
-    <string name="webdav_description">เชื่อม Daylight กับโฟลเดอร์เพลง WebDAV — ไดเรกทอรีเพลงใน Nextcloud ของคุณหรือเซิร์ฟเวอร์ใดก็ได้ที่รองรับ WebDAV</string>
-    <string name="webdav_server_url">URL ของเซิร์ฟเวอร์</string>
-    <string name="webdav_server_url_hint">https://cloud.example.com/remote.php/dav/files/user/Music</string>
-    <string name="webdav_disconnect">ยกเลิกการเชื่อมต่อ</string>
-    <string name="webdav_test_failed">เชื่อมต่อไม่ได้: %1$s</string>
-    <string name="upload_to_webdav">อัปโหลดไปยัง WebDAV</string>
-    <string name="webdav_conflict_title">“%1$s” มีอยู่บนเซิร์ฟเวอร์แล้ว</string>
-    <string name="webdav_conflict_message">เขียนทับ หรือเก็บไว้ทั้งสองไฟล์</string>
-    <string name="webdav_overwrite">เขียนทับ</string>
-    <string name="webdav_keep_both">เก็บทั้งสอง</string>
-    <string name="webdav_skip">ข้าม</string>
-    <string name="webdav_apply_to_all">ใช้กับทั้งหมด</string>
-    <string name="webdav_upload_summary">อัปโหลด %1$d · ข้าม %2$d · ล้มเหลว %3$d</string>
-    <string name="smb">SMB</string>
-    <string name="smb_subtitle">เพลงในโฟลเดอร์ที่แชร์</string>
-    <string name="smb_not_configured">เชื่อมต่อโฟลเดอร์แชร์ในส่วนแหล่งข้อมูล</string>
-    <string name="smb_empty">ไม่พบไฟล์เสียงในโฟลเดอร์แชร์ SMB ตรวจสอบเซิร์ฟเวอร์ในส่วนแหล่งข้อมูล</string>
-    <string name="smb_description">เชื่อม Daylight กับโฟลเดอร์เพลงที่แชร์ — NAS หรือโฟลเดอร์แชร์ของ Windows ผ่าน SMB</string>
-    <string name="smb_server_hint">nas.local or 192.168.1.10:4445</string>
-    <string name="smb_share_hint">ชื่อแชร์ เช่น Music</string>
-    <string name="smb_folder_hint">โฟลเดอร์ (ไม่บังคับ)</string>
-    <string name="smb_disconnect">ยกเลิกการเชื่อมต่อ</string>
-    <string name="smb_test_failed">เชื่อมต่อไม่ได้: %1$s</string>
     <string name="playlist">เพลย์ลิสต์</string>
     <string name="playlist_action">เพลย์ลิสต์</string>
     <string name="open">เปิด</string>
@@ -935,10 +907,6 @@
     <string name="eq_preset_late_night">Late night</string>
 
     <string name="eq_preset_custom">Custom</string>
-
-    <string name="legacy_mesh_gradient">Legacy mesh gradient</string>
-
-    <string name="legacy_mesh_gradient_subtitle">Brings back the drifting colour blobs behind the player from v1.5</string>
 
     <string name="add_addon">Add an addon</string>
 
@@ -1311,4 +1279,26 @@
     <string name="quality_lossless_description">24 บิต · สูงสุด 48 kHz</string>
     <string name="quality_hi_res_description">เสียงความละเอียดสูงขึ้น</string>
     <string name="automix_high_res_unavailable">ใช้ไม่ได้กับ Lossless ความละเอียดสูง</string>
+    <string name="lastfm_setup_pending">กำลังตั้งค่า Last.fm สำหรับ Daylight โดยจะพร้อมใช้งานในรุ่นถัดไป</string>
+    <string name="lastfm_browser_description">เชื่อมต่อในเบราว์เซอร์เพื่อบันทึกประวัติการฟังบน Last.fm</string>
+    <string name="lastfm_browser_return">อนุญาต Daylight ในเบราว์เซอร์ แล้วกลับมาเชื่อมต่อให้เสร็จ</string>
+    <string name="lastfm_open_browser">เปิด Last.fm</string>
+    <string name="lastfm_finish_connecting">เชื่อมต่อให้เสร็จ</string>
+    <string name="lastfm_disconnect">ยกเลิกการเชื่อมต่อ Last.fm</string>
+    <string name="edit_playlist">แก้ไขเพลย์ลิสต์</string>
+    <string name="choose_photo">เลือกรูปภาพ</string>
+    <string name="reset_playlist_cover">รีเซ็ตปก</string>
+    <string name="playlist_cover_local_note">ปกที่กำหนดเองจะอยู่ในอุปกรณ์นี้</string>
+    <string name="playlist_image_error">เปิดภาพนี้ไม่ได้ ลองเลือกรูปอื่น</string>
+    <string name="playlist_edit_error">บันทึกการเปลี่ยนแปลงไม่ได้ โปรดลองอีกครั้ง</string>
+    <string name="home_play_my_mix">เล่นมิกซ์ของฉัน</string>
+    <string name="home_mix_empty">เพิ่มเพลงในคลังเพื่อเริ่มมิกซ์</string>
+    <string name="more_by_artist">ผลงานเพิ่มเติมของ %1$s</string>
+    <string name="similar_albums_for_you">อัลบั้มที่คล้ายกันสำหรับคุณ</string>
+    <string name="featured_artists">ศิลปินในเพลย์ลิสต์</string>
+    <string name="recommendation_languages">ภาษาของคำแนะนำ</string>
+    <string name="recommendation_languages_all">ทุกภาษา</string>
+    <plurals name="recommendation_languages_hidden"><item quantity="one">ภาษาที่ซ่อน: %1$d</item><item quantity="other">ภาษาที่ซ่อน: %1$d</item></plurals>
+    <string name="recommendation_languages_hint">ซ่อนภาษาจากคำแนะนำ เพลงที่บันทึกไว้และการค้นหายังคงใช้งานได้</string>
+    <string name="recommendation_languages_reset">แสดงทุกภาษา</string>
 </resources>

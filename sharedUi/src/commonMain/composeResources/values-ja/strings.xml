@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">ロスレスベータ：元の再生時間を取得できません</string>
     <string name="lossless_beta_ineligible">ロスレスベータ：Wi-Fi接続でJam以外の音声が必要です</string>
     <string name="lossless_beta_unavailable">ロスレスベータ：音源を利用できません</string>
+    <string name="home_play_my_mix">マイミックスを再生</string>
+    <string name="home_mix_empty">ミックスを始めるには、ライブラリに音楽を追加してください。</string>
 </resources>

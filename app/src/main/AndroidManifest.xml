@@ -301,6 +301,19 @@
                 android:resource="@xml/widget_media_pill" />
         </receiver>
 
+        <!-- Cropped album-disc card; independent of the existing widget identities. -->
+        <receiver
+            android:name=".widget.MediaWidgetRecord"
+            android:exported="false"
+            android:label="@string/widget_record_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_media_record" />
+        </receiver>
+
         <!-- APK updates kill the old player process; refresh widgets without starting playback. -->
         <receiver
             android:name=".widget.MediaWidgetUpgradeReceiver"

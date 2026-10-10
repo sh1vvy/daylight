@@ -30,7 +30,7 @@
  *   it last saw — so one shared instance is invalidated by whichever surface
  *   drew last and re-creates all three outlines every frame. A factory gives
  *   each surface its own.
- * - The expanded tab group's selection pill is a lifted glass lens in motion
+ * - In Liquid Glass mode, the expanded tab group's selection pill is a lifted glass lens in motion
  *   (see [GlassSelectionPill]): a tap inflates it past the bar, carries it to
  *   the tab on a spring, squashes it with its acceleration, and sheds the glass
  *   back into a flat fill on landing. Horizontal drags pick it up the same way,
@@ -83,6 +83,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -756,12 +757,25 @@ private fun SharedTransitionScope.ExpandedTabs(
     }
     val haptics = rememberHaptics()
 
-    val coroutineScope = rememberCoroutineScope()
-    val pill = remember { GlassPillMotion(coroutineScope, selectedTabIndex.coerceAtLeast(0)) }
-    pill.reduceMotion = reduceAnimation
     // The lens samples the recorded page, and "reduce dynamic blur" stops that
-    // recording. There the flat pill carries the whole motion on its own.
+    // recording. Regular material uses a sliding capsule at its resting size,
+    // without running the glass lift, acceleration squash or handover springs.
     val glassPill = LocalLiquidGlassEnabled.current && isGlassSupported() && !reduceDynamicBlur
+    val coroutineScope = rememberCoroutineScope()
+    val pill = if (glassPill) {
+        remember { GlassPillMotion(coroutineScope, selectedTabIndex.coerceAtLeast(0)) }
+            .also { it.reduceMotion = reduceAnimation }
+    } else null
+    var flatDragOffset by remember(glassPill) { mutableFloatStateOf(0f) }
+    // Search has its own circle. Forget the group's position while it is
+    // selected so returning starts directly under the newly selected tab.
+    val flatPosition = if (!glassPill && selectedTabIndex >= 0) {
+        animateFloatAsState(
+            targetValue = selectedTabIndex.toFloat() + flatDragOffset,
+            animationSpec = selectionSpec,
+            label = "flatTabPosition",
+        )
+    } else null
     val barGlass = rememberLayerBackdrop()
     val tabRow = rememberLayerBackdrop()
 
@@ -783,7 +797,7 @@ private fun SharedTransitionScope.ExpandedTabs(
     } else {
         0f
     }
-    pill.stepDp = tabStepPx / density.density
+    pill?.stepDp = tabStepPx / density.density
 
     // The pill rests in its tab's cell and lifts to stand [PILL_GROW_HEIGHT]
     // taller than the whole bar, keeping the cell's proportions as it grows.
@@ -807,8 +821,9 @@ private fun SharedTransitionScope.ExpandedTabs(
     }
     val showPill = selectedTabIndex >= 0 && tabWidthPx > 0f
 
-    LaunchedEffect(selectedTabIndex) {
-        if (selectedTabIndex >= 0) {
+    LaunchedEffect(selectedTabIndex, glassPill) {
+        flatDragOffset = 0f
+        if (selectedTabIndex >= 0 && pill != null) {
             // Back from the standalone tab there is no tab to travel from.
             if (lastSelectedTabIndex < 0) {
                 pill.snapTo(selectedTabIndex)
@@ -847,14 +862,14 @@ private fun SharedTransitionScope.ExpandedTabs(
                     .padding(contentPadding)
                     .animateContentSize()
             ) {
-                if (showPill && (!glassPill || pill.isFlat)) {
+                if (showPill && (pill == null || pill.isFlat)) {
                     FlatSelectionPill(
                         color = colors.indicatorColor,
                         modifier = Modifier
                             .matchParentSize()
                             .pillPlacement(
-                                center = { pillCenterInRow(pill.position) },
-                                size = { pill.liveSize(restSize, liftedSize) },
+                                center = { pillCenterInRow(pill?.position ?: flatPosition!!.value) },
+                                size = { pill?.liveSize(restSize, liftedSize) ?: restSize },
                             ),
                     )
                 }
@@ -865,7 +880,7 @@ private fun SharedTransitionScope.ExpandedTabs(
                         .fillMaxWidth()
                         .onSizeChanged { rowSize = it }
                         .then(if (glassPill) Modifier.layerBackdrop(tabRow) else Modifier)
-                        .pointerInput(tabCount, tabStepPx, currentSelectedTabIndex, isRtl) {
+                        .pointerInput(tabCount, tabStepPx, currentSelectedTabIndex, isRtl, glassPill) {
                             if (currentSelectedTabIndex < 0 || tabStepPx <= 0f) return@pointerInput
 
                             // In tab order, whichever way the row runs.
@@ -874,9 +889,13 @@ private fun SharedTransitionScope.ExpandedTabs(
                             detectHorizontalDragGestures(
                                 onDragStart = {
                                     totalDrag = 0f
-                                    pill.startDrag()
+                                    pill?.startDrag()
+                                    flatDragOffset = 0f
                                 },
-                                onDragCancel = { pill.release(currentSelectedTabIndex) },
+                                onDragCancel = {
+                                    pill?.release(currentSelectedTabIndex)
+                                    flatDragOffset = 0f
+                                },
                                 onDragEnd = {
                                     val ratio = totalDrag / tabStepPx
                                     val shift = when {
@@ -886,7 +905,8 @@ private fun SharedTransitionScope.ExpandedTabs(
                                     }
                                     val newIndex = (currentSelectedTabIndex + shift)
                                         .coerceIn(0, scope.tabs.lastIndex)
-                                    pill.release(newIndex)
+                                    pill?.release(newIndex)
+                                    flatDragOffset = 0f
                                     if (newIndex != currentSelectedTabIndex) {
                                         scope.tabs[newIndex].onClick()
                                     }
@@ -900,7 +920,11 @@ private fun SharedTransitionScope.ExpandedTabs(
                                             totalDrag * 0.25f
                                         else -> totalDrag
                                     }
-                                    pill.dragTo(currentSelectedTabIndex + dragOffset / tabStepPx)
+                                    if (pill != null) {
+                                        pill.dragTo(currentSelectedTabIndex + dragOffset / tabStepPx)
+                                    } else {
+                                        flatDragOffset = dragOffset / tabStepPx
+                                    }
 
                                     val approximateTab =
                                         (currentSelectedTabIndex + dragOffset / tabStepPx)
@@ -973,7 +997,7 @@ private fun SharedTransitionScope.ExpandedTabs(
             }
         }
 
-        if (glassPill && showPill && !pill.isFlat) {
+        if (pill != null && showPill && !pill.isFlat) {
             GlassSelectionPill(
                 motion = pill,
                 fillColor = colors.indicatorColor,

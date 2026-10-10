@@ -85,5 +85,6 @@ internal object MediaWidgetArt {
     fun clear() {
         covers.evictAll()
         failures.clear()
+        RecordWidgetArt.clear()
     }
 }

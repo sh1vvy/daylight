@@ -138,6 +138,7 @@ import com.music.bitchord.playback.smart.AutomixAnalysisSource
 import com.music.bitchord.playback.smart.VersionAudioAligner
 import com.music.bitchord.widget.MediaWidget
 import com.music.bitchord.widget.MediaWidgetSnapshot
+import com.music.bitchord.widget.sameWidgetPresentationAs
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -909,10 +910,12 @@ class PlaybackService : MediaLibraryService() {
             // clock must be rescheduled whenever the playback position jumps.
             updateLyricSubtitle()
             if (exoPlayer.isPlaying) startLyricsTicker(restart = true)
+            publishWidgetState()
         }
 
         override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
             if (player?.isPlaying == true) startLyricsTicker(restart = true)
+            publishWidgetState()
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -1059,6 +1062,8 @@ class PlaybackService : MediaLibraryService() {
                 // make the current track eligible for a fresh load.
                 refreshAutoplayIfQueueEmpty()
             }
+            // Duration and skip availability can arrive after the first metadata event.
+            publishWidgetState()
         }
     }
 
@@ -1556,13 +1561,7 @@ class PlaybackService : MediaLibraryService() {
                 AudioCache.recordServed(dataSpec, resolved.uri.toString())
             }
         }
-        // Read-ahead resolves streams through the same chain the player does.
-        // smb:// tracks read straight off the share below the cache (so they
-        // cache and seek like HTTP); everything else flows as before, and the
-        // YouTube resolver never sees a scheme it cannot answer.
-        val defaultDataSourceFactory = SmbDataSource.RoutingFactory(
-            DefaultDataSource.Factory(this, resolvingFactory),
-        )
+        val defaultDataSourceFactory = DefaultDataSource.Factory(this, resolvingFactory)
         AudioCache.setUpstream(defaultDataSourceFactory, ::prepareLosslessDataSpec)
         // DsdExtractorsFactory: the stock extractors plus DSF/DFF, which Media3
         // cannot open at all. A DSD file leaves the extractor as float PCM.
@@ -2446,6 +2445,43 @@ class PlaybackService : MediaLibraryService() {
         refreshCustomLayouts()
     }
 
+    /** Personal mixes refill a bounded tail rather than keeping an ever-growing library queue. */
+    private fun loadPersonalMixTail(exoPlayer: ExoPlayer, current: Song) {
+        val waiting = exoPlayer.mediaItemCount - exoPlayer.currentMediaItemIndex - 1
+        if (waiting >= 8 || autoplaySeed == current.videoId || autoplayLoadJob?.isActive == true) return
+        val requestScope = com.music.bitchord.data.innertube.Innertube.responseCacheScope
+        val mixId = current.playbackSourceId
+        autoplaySeed = current.videoId
+        autoplayLoadJob = scope.launch {
+            val familiar = DaylightMixRepository.playable(this@PlaybackService, DaylightMixRepository.warm(this@PlaybackService))
+            val fresh = (if (DaylightMixRepository.networkAvailable(this@PlaybackService)) withTimeoutOrNull(4_000L) {
+                youtubeSeedFor(current)?.let { YtMusicRepository.homeRecommendations(it).getOrNull() }
+            }.orEmpty() else emptyList<Song>())
+                .filter { LikeState.overrides.value[it.videoId] != LikeStatus.DISLIKE &&
+                    com.music.bitchord.data.RecommendationLanguages.allows(it, AppSettings.excludedRecommendationLanguages.value) }
+            val active = player ?: return@launch
+            if (!AppSettings.autoplay.value || ListenTogether.state.value.inParty ||
+                requestScope != com.music.bitchord.data.innertube.Innertube.responseCacheScope ||
+                active.currentMediaItem?.mediaId != current.videoId || active.currentMediaItem?.toSong()?.playbackSourceId != mixId ||
+                active.repeatMode == Player.REPEAT_MODE_ALL) return@launch
+            val index = active.currentMediaItemIndex
+            val heard = (maxOf(0, index - 29)..index).map { active.getMediaItemAt(it).toSong() }
+            val upcoming = (index + 1 until active.mediaItemCount).map { active.getMediaItemAt(it).toSong() }
+            val additions = withContext(Dispatchers.Default) {
+                daylightMixBatch(familiar.shuffled(), fresh, heard, upcoming, (12 - upcoming.size).coerceAtLeast(0), current)
+            }
+            // A manual selection, queue edit, party join or account switch can happen while the batch is built.
+            if (player !== active || !AppSettings.autoplay.value || ListenTogether.state.value.inParty ||
+                requestScope != com.music.bitchord.data.innertube.Innertube.responseCacheScope ||
+                active.currentMediaItem?.mediaId != current.videoId || active.currentMediaItem?.toSong()?.playbackSourceId != mixId ||
+                (active.currentMediaItemIndex + 1 until active.mediaItemCount).map { active.getMediaItemAt(it).mediaId } != upcoming.map { it.videoId }) return@launch
+            if (additions.isNotEmpty()) {
+                active.addMediaItems(additions.map { it.toMediaItem() })
+                if (active.currentMediaItemIndex > 40) active.removeMediaItems(0, active.currentMediaItemIndex - 30)
+            } else autoplaySeed = null
+        }
+    }
+
     /**
      * Tops the queue back up to [MAX_QUEUED_AUTOPLAY] AutoPlay-suggested tracks
      * ahead of whatever is currently playing. Run on every track change rather
@@ -2463,6 +2499,10 @@ class PlaybackService : MediaLibraryService() {
             return
         }
         val current = exoPlayer.currentMediaItem?.toSong() ?: return
+        if (current.isDaylightMix() && !party.inParty) {
+            loadPersonalMixTail(exoPlayer, current)
+            return
+        }
         if (AppSettings.dontRepeatSuggestions.value) sessionSongHistory += current
         // In a party the server's queue is the one being topped up, and this
         // player's copy of it lags behind by however long reconcile is held off
@@ -5293,10 +5333,15 @@ class PlaybackService : MediaLibraryService() {
             shuffleEnabled = QueueShuffle.enabled.value,
             isLoading = wantsPlayback && exoPlayer.playbackState == Player.STATE_BUFFERING,
             controlsLocked = ListenTogether.state.value.controlsLocked,
+            positionMs = exoPlayer.currentPosition.coerceAtLeast(0L),
+            durationMs = exoPlayer.duration.takeIf { it > 0L } ?: 0L,
+            capturedAtElapsedMs = SystemClock.elapsedRealtime(),
+            capturedAtEpochMs = System.currentTimeMillis(),
+            clockRunning = wantsPlayback && exoPlayer.isPlaying && exoPlayer.playbackParameters.speed == 1f,
         )
         // Buffering and playing callbacks can report the same state in one frame.
         MediaWidgetSnapshot.notePlaybackPublished()
-        if (snapshot == previous) return
+        if (snapshot.sameWidgetPresentationAs(previous)) return
         MediaWidgetSnapshot.save(this, snapshot)
         MediaWidget.refresh(this)
     }

@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">Lossless-Beta: ursprüngliche Dauer fehlt</string>
     <string name="lossless_beta_ineligible">Lossless-Beta: benötigt Solo-Audio über WLAN</string>
     <string name="lossless_beta_unavailable">Lossless-Beta: Quelle nicht verfügbar</string>
+    <string name="home_play_my_mix">Meinen Mix abspielen</string>
+    <string name="home_mix_empty">Füge deiner Mediathek Musik hinzu, um einen Mix zu starten.</string>
 </resources>

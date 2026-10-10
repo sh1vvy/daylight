@@ -56,8 +56,8 @@ require(discordApplicationId.isEmpty() || discordApplicationId.all(Char::isDigit
 }
 
 // Advance only the development channel until a stable release is requested.
-val developmentVersionName = "0.2.2-dev.6"
-val developmentVersionCode = 18
+val developmentVersionName = "0.2.2-dev.7"
+val developmentVersionCode = 27
 
 android {
     namespace = "com.music.bitchord"
@@ -150,7 +150,7 @@ android {
              *
              * Nothing is renamed (-dontobfuscate), and every library that reaches
              * for classes by name — Rhino running YouTube's player JavaScript,
-             * NewPipe, InnerTubeX, QuickJS, SMBJ and BouncyCastle, ONNX's JNI,
+             * NewPipe, InnerTubeX, QuickJS and BouncyCastle, ONNX's JNI,
              * protobuf-lite, Ktor — is kept whole: see proguard-rules.pro. What R8
              * is left to optimise is Compose, Media3, coroutines and our own
              * code, which is where the time goes. Checked on a device through the
@@ -376,9 +376,6 @@ dependencies {
     // Held at InnerTubeX's version; the same VM runs QuickJsExecutor's module sources.
     implementation("io.github.dokar3:quickjs-kt-android:1.0.14")
 
-    // ---- SMB file shares: pure-Java SMB2/3 client (listing + streaming) ----
-    implementation("com.hierynomus:smbj:0.15.0")
-
     // ---- Automix: on-device beat/downbeat model (Beat This!, MIT-licensed) ----
     // The full android artifact, not onnxruntime-mobile: mobile only loads .ort
     // files, which would put an offline conversion step between the model and
@@ -402,6 +399,9 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
+    // Freeze navigation at individual frames to catch cover jumps, not just
+    // check the fully opened page. Test-only; the app runtime is unchanged.
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.10.5")
 }
 
 /*

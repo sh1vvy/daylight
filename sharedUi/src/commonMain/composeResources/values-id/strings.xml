@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">Lossless beta: durasi asli tidak tersedia</string>
     <string name="lossless_beta_ineligible">Lossless beta: perlu audio di luar Jam melalui Wi-Fi</string>
     <string name="lossless_beta_unavailable">Lossless beta: sumber tidak tersedia</string>
+    <string name="home_play_my_mix">Putar mix saya</string>
+    <string name="home_mix_empty">Tambahkan musik ke koleksi untuk memulai mix.</string>
 </resources>

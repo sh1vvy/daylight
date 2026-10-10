@@ -2,6 +2,7 @@ package com.music.bitchord.data.scrobbling
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.forms.FormDataContent
@@ -15,6 +16,11 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.net.URI
+import java.net.URLEncoder
+import kotlinx.coroutines.CancellationException
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.intOrNull
 import java.security.MessageDigest
 import java.util.Locale
 
@@ -67,6 +73,7 @@ object LastFM {
             install(ContentNegotiation) {
                 json(json)
             }
+            install(HttpTimeout) { requestTimeoutMillis = 12_000; connectTimeoutMillis = 8_000; socketTimeoutMillis = 8_000 }
             expectSuccess = false
         }
     }
@@ -109,14 +116,14 @@ object LastFM {
     }
 
     suspend fun getToken() =
-        runCatching {
+        requestResult {
             postAndDecode<TokenResponse>(
                 method = "auth.getToken",
             )
         }
 
     suspend fun getSession(token: String) =
-        runCatching {
+        requestResult {
             postAndDecode<Authentication>(
                 method = "auth.getSession",
                 extra = mapOf("token" to token),
@@ -126,20 +133,10 @@ object LastFM {
     fun getAuthUrl(token: String): String {
         val config = runtimeConfig
         return if (config.endpoint == LIBREFM_API_ENDPOINT) {
-            "https://libre.fm/api/auth?api_key=${config.apiKey}&token=$token"
+            "https://libre.fm/api/auth?api_key=${URLEncoder.encode(config.apiKey, "UTF-8")}&token=${URLEncoder.encode(token, "UTF-8")}"
         } else {
-            "https://www.last.fm/api/auth/?api_key=${config.apiKey}&token=$token"
+            "https://www.last.fm/api/auth/?api_key=${URLEncoder.encode(config.apiKey, "UTF-8")}&token=${URLEncoder.encode(token, "UTF-8")}"
         }
-    }
-
-    suspend fun getMobileSession(
-        username: String,
-        password: String,
-    ) = runCatching {
-        postAndDecode<Authentication>(
-            method = "auth.getMobileSession",
-            extra = mapOf("username" to username, "password" to password),
-        )
     }
 
     class LastFmException(
@@ -153,7 +150,7 @@ object LastFM {
         album: String? = null,
         trackNumber: Int? = null,
         duration: Int? = null,
-    ) = runCatching {
+    ) = requestResult {
         postAndRead(
             method = "track.updateNowPlaying",
             sessionKey = requireSessionKey(),
@@ -175,7 +172,7 @@ object LastFM {
         album: String? = null,
         trackNumber: Int? = null,
         duration: Int? = null,
-    ) = runCatching {
+    ) = requestResult {
         postAndRead(
             method = "track.scrobble",
             sessionKey = requireSessionKey(),
@@ -282,17 +279,25 @@ object LastFM {
             }
 
         val responseText = response.bodyAsText()
-        if (!response.status.isSuccess()) {
-            throw LastFmException(response.status.value, response.status.description)
-        }
-        if (responseText.contains("\"error\"")) {
+        val root = runCatching { json.parseToJsonElement(responseText).jsonObject }.getOrNull()
+        val code = root?.get("error")?.jsonPrimitive?.intOrNull
+        if (code != null) {
             val error = json.decodeFromString<LastFmError>(responseText)
             throw LastFmException(error.error, error.message)
         }
+        if (!response.status.isSuccess()) throw LastFmException(response.status.value, response.status.description)
         return responseText
+    }
+
+    private inline fun <T> requestResult(block: () -> T): Result<T> = try {
+        Result.success(block())
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Exception) {
+        Result.failure(error)
     }
 
     const val DEFAULT_SCROBBLE_DELAY_PERCENT = 0.5f
     const val DEFAULT_SCROBBLE_MIN_SONG_DURATION = 30
-    const val DEFAULT_SCROBBLE_DELAY_SECONDS = 180
+    const val DEFAULT_SCROBBLE_DELAY_SECONDS = 240
 }

@@ -11,6 +11,8 @@ import com.music.bitchord.auth.profileId
 import com.music.bitchord.auth.sessionId
 import com.music.bitchord.auth.adjacentProfile
 import com.music.bitchord.data.AppUpdateChecker
+import com.music.bitchord.data.BoundedRequestCache
+import com.music.bitchord.data.SearchRequestKey
 import com.music.bitchord.data.LocalMediaRepository
 import com.music.bitchord.data.DownloadedListingFallback
 import com.music.bitchord.data.LikeState
@@ -60,7 +62,6 @@ import com.music.bitchord.data.model.SearchHistoryEntity
 import com.music.bitchord.data.model.EntityType
 import com.music.bitchord.data.settings.SearchHistory
 import com.music.bitchord.download.Downloads
-import android.util.LruCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -121,6 +122,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * declared after [init] would still be null when that runs.
      */
     private var homeContinuation: String? = null
+    private val _homeQuickRecommendations = MutableStateFlow<List<ShelfItem>>(emptyList())
+    val homeQuickRecommendations = _homeQuickRecommendations.asStateFlow()
+    private var homeRecommendationsJob: Job? = null
+    private var homeRecommendationSeed: String? = null
+
 
     /** Titles already on screen, so a later page can't repeat a shelf. */
     private val homeSeenTitles = mutableSetOf<String>()
@@ -233,7 +239,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * mid-search, and [BufferOverflow.DROP_OLDEST] because when two arrive
      * together the later one is the one meant.
      */
-    private val searchRequests = MutableSharedFlow<SearchRequest>(
+    private val searchRequests = MutableSharedFlow<SearchRequest?>(
         extraBufferCapacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
@@ -245,39 +251,34 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * to the prefix they ended on instead of being worked through a letter at
      * a time.
      */
-    private val suggestRequests = MutableSharedFlow<String>(
+    private val suggestRequests = MutableSharedFlow<SuggestRequest?>(
         extraBufferCapacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
 
     private val newestRequestId = AtomicLong(0L)
 
-    /**
-     * Results of recent searches, so a query searched before is answered
-     * without asking again. That covers the two ways a query is repeated most:
-     * a filter tab, which re-runs the same text against a different tab and
-     * then usually goes back, and a term tapped out of the recent searches.
-     *
-     * Its other half is [prefixMatch], which is what the typeahead makes worth
-     * keeping: picking "coldplay yellow" off a list is normally preceded by
-     * having searched "coldplay", and those results are close enough to leave
-     * up for the moment the narrower one takes rather than blanking the page
-     * to a spinner.
-     */
+    /** Recent result pages, bounded by both entry count and retained row count. */
     private data class SearchCacheEntry(
         val rows: List<SearchResult>,
         val continuation: String?,
     )
 
     private data class SearchSession(
-        val key: String,
+        val key: SearchRequestKey,
         val requestId: Long,
-        val filter: SearchFilter,
         val continuation: String?,
     )
 
-    private val searchCache = LruCache<String, SearchCacheEntry>(SEARCH_CACHE_ENTRIES)
+    private data class SuggestRequest(val input: String, val key: SearchRequestKey)
+
+    private val searchCache = BoundedRequestCache<SearchRequestKey, SearchCacheEntry>(
+        viewModelScope, ttlMs = 120_000L, maxEntries = 12, maxWeight = 600,
+        weightOf = { it.rows.size },
+    )
     private var searchSession: SearchSession? = null
+    private var activeSearchKey: SearchRequestKey? = null
+    private var searchPaginationJob: Job? = null
 
     /** Synced lyrics for whatever is playing; null while unknown or absent. */
     private val _lyrics = MutableStateFlow<List<LyricLine>?>(null)
@@ -753,6 +754,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * into a list that YouTube orders for itself; the next fetch places it.
      */
     private fun dropFromLikedLists(videoId: String) {
+        com.music.bitchord.playback.DaylightMixRepository.remove(videoId)
         val library = (_library.value as? UiState.Success)?.data
         if (library != null && library.likedSongs.any { it.videoId == videoId }) {
             _library.value = UiState.Success(
@@ -1266,6 +1268,42 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Editing is account guarded; local creations never require sign-in. */
+    fun editPlaylist(browseId: String, title: String, onResult: (Result<Unit>) -> Unit) {
+        val name = title.trim()
+        if (name.isBlank()) return onResult(Result.failure(IllegalArgumentException("Empty name")))
+        val identity = listenerKey()
+        viewModelScope.launch {
+            val result = playlistMutationGate.withLock {
+                val local = LocalPlaylistStore.getPlaylist(browseId)
+                if (local != null) {
+                    LocalPlaylistStore.renamePlaylist(local.id, name)
+                    _detailStack.value = _detailStack.value.map { if (it.browseId == browseId) it.copy(title = name) else it }
+                    Result.success(Unit)
+                } else if (!requireSignIn() || identity != listenerKey() || _playlistOwned.value[browseId] != true) {
+                    Result.failure(IllegalStateException("Playlist is not editable"))
+                } else {
+                    val existing = _playlists.value.firstOrNull { it.browseId == browseId }
+                    val currentTitle = existing?.title ?: _detailStack.value.firstOrNull { it.browseId == browseId }?.title
+                    val playlist = existing ?: UserPlaylist(browseId.removePrefix("VL"), name, "", null)
+                    val rename = if (currentTitle == name) Result.success(Unit) else
+                        YtMusicRepository.renamePlaylist(playlist.playlistId, name)
+                    rename.mapCatching {
+                        check(identity == listenerKey()) { "Account changed" }
+                        setPlaylistTitle(playlist, name)
+                        homeStale = true; libraryStale = true
+                        val home = _home.value as? UiState.Success
+                        if (home != null) _home.value = UiState.Success(home.data.map { shelf ->
+                            shelf.copy(items = shelf.items.map { if (it.browseId == browseId) it.copy(title = name) else it })
+                        })
+                        Unit
+                    }
+                }
+            }
+            onResult(result)
+        }
+    }
+
     /**
      * The playlist's entries as they stand on YouTube, for the reorder sheet —
      * see [YtMusicRepository.playlistEntries] for why not the open page's list.
@@ -1473,23 +1511,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         viewModelScope.launch {
-            AppSettings.webdavUrl.drop(1).collect {
-                reloadRemoteDetail(com.music.bitchord.data.webdav.WebDavConfig.BROWSE_ID)
-            }
-        }
-        viewModelScope.launch {
-            combine(
-                AppSettings.smbHost,
-                AppSettings.smbShare,
-                AppSettings.smbBasePath,
-                AppSettings.smbUsername,
-                AppSettings.smbPassword,
-            ) { fields -> fields.toList() }
-                .drop(1)
-                .debounce(300)
-                .collect { reloadRemoteDetail(com.music.bitchord.data.smb.SmbConfig.BROWSE_ID) }
-        }
-        viewModelScope.launch {
             // A leftover APK only means "Install Now" for the session that
             // downloaded it — see AppUpdateChecker.clearCache.
             AppUpdateChecker.clearCache(getApplication())
@@ -1658,6 +1679,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun loadHome() {
         val identity = listenerKey()
         val generation = homeLoadGeneration.incrementAndGet()
+        homeRecommendationsJob?.cancel()
+        homeRecommendationSeed = null
+        _homeQuickRecommendations.value = emptyList()
         _home.value = UiState.Loading
         homeContinuation = null
         homeSeenTitles.clear()
@@ -1668,47 +1692,68 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         // one at the tail.
         _homePendingShelves.value = 1 + YtMusicRepository.HOME_SUPPLEMENT_BROWSE_IDS.size
         viewModelScope.launch {
-            launch {
-                try {
-                    YtMusicRepository.home()
-                        .onSuccess { feed ->
-                            if (!isCurrentHomeLoad(identity, generation)) return@onSuccess
-                            homeContinuation = feed.continuation
-                            publishHomeShelves(feed.shelves)
-                        }
-                        .onFailure { failure ->
-                            if (isCurrentHomeLoad(identity, generation) && _home.value !is UiState.Success) {
-                                _home.value = UiState.Error(failure.friendly())
-                            }
-                        }
-                } finally {
-                    homeShelfRequestSettled(identity, generation)
-                }
-            }
-            if (_signedIn.value) {
-                launch {
-                    YtMusicRepository.homeRecentlyPlayed()
-                        .onSuccess { shelf ->
-                            if (isCurrentHomeLoad(identity, generation)) {
-                                shelf?.let { publishHomeShelves(listOf(it), prepend = true) }
-                                _homeRecentlyPlayedLoading.value = false
-                            }
-                        }
-                        .onFailure {
-                            if (isCurrentHomeLoad(identity, generation)) _homeRecentlyPlayedLoading.value = false
-                        }
-                }
-            }
-            YtMusicRepository.HOME_SUPPLEMENT_BROWSE_IDS.forEach { browseId ->
+            coroutineScope {
                 launch {
                     try {
-                        YtMusicRepository.homeSupplement(browseId).onSuccess { shelves ->
-                            if (isCurrentHomeLoad(identity, generation)) publishHomeShelves(shelves)
-                        }
+                        YtMusicRepository.home()
+                            .onSuccess { feed ->
+                                if (!isCurrentHomeLoad(identity, generation)) return@onSuccess
+                                homeContinuation = feed.continuation
+                                publishHomeShelves(feed.shelves)
+                            }
+                            .onFailure { failure ->
+                                if (isCurrentHomeLoad(identity, generation) && _home.value !is UiState.Success) {
+                                    _home.value = UiState.Error(failure.friendly())
+                                }
+                            }
                     } finally {
                         homeShelfRequestSettled(identity, generation)
                     }
                 }
+                if (_signedIn.value) {
+                    launch {
+                        YtMusicRepository.homeRecentlyPlayed()
+                            .onSuccess { shelf ->
+                                if (isCurrentHomeLoad(identity, generation)) {
+                                    shelf?.let { publishHomeShelves(listOf(it), prepend = true) }
+                                    _homeRecentlyPlayedLoading.value = false
+                                    enrichHomeQuickPicks(identity, generation)
+                                }
+                            }
+                            .onFailure {
+                                if (isCurrentHomeLoad(identity, generation)) _homeRecentlyPlayedLoading.value = false
+                            }
+                    }
+                }
+                YtMusicRepository.HOME_SUPPLEMENT_BROWSE_IDS.forEach { browseId ->
+                    launch {
+                        try {
+                            YtMusicRepository.homeSupplement(browseId).onSuccess { shelves ->
+                                if (isCurrentHomeLoad(identity, generation)) publishHomeShelves(shelves)
+                            }
+                        } finally {
+                            homeShelfRequestSettled(identity, generation)
+                        }
+                    }
+                }
+            }
+            if (isCurrentHomeLoad(identity, generation)) enrichHomeQuickPicks(identity, generation)
+        }
+    }
+
+    private fun enrichHomeQuickPicks(identity: String?, generation: Long) {
+        val shelves = (_home.value as? UiState.Success)?.data.orEmpty()
+                val recent = com.music.bitchord.data.model.homeRecentTracks(shelves)
+        val seed = (recent.firstOrNull() ?: com.music.bitchord.data.model.homeDiscoveryTracks(shelves).firstOrNull())?.videoId ?: return
+        if (homeRecommendationSeed == seed) return
+        homeRecommendationSeed = seed
+        homeRecommendationsJob?.cancel()
+        homeRecommendationsJob = viewModelScope.launch {
+            val result = withTimeoutOrNull(4_000L) { YtMusicRepository.homeRecommendations(seed).getOrNull() }.orEmpty()
+            if (!isCurrentHomeLoad(identity, generation)) return@launch
+            val heard = recent.mapTo(HashSet()) { it.videoId }
+            _homeQuickRecommendations.value = result.filter { it.videoId !in heard }.map {
+                ShelfItem(it.title, it.artist, it.thumbnailUrl, it.videoId, null)
             }
         }
     }
@@ -1720,6 +1765,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun homeShelfRequestSettled(identity: String?, generation: Long) {
         if (!isCurrentHomeLoad(identity, generation)) return
         _homePendingShelves.value = (_homePendingShelves.value - 1).coerceAtLeast(0)
+        if (!_homeRecentlyPlayedLoading.value) enrichHomeQuickPicks(identity, generation)
     }
 
     private fun isCurrentHomeLoad(identity: String?, generation: Long) =
@@ -1746,6 +1792,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun refreshHome(identity: String?) {
         if (identity != listenerKey()) return
         val generation = homeLoadGeneration.incrementAndGet()
+        homeRecommendationsJob?.cancel()
+        homeRecommendationSeed = null
         val previous = (_home.value as? UiState.Success)?.data.orEmpty()
         _homePendingShelves.value = 0
         _homeLoadingMore.value = false
@@ -1764,6 +1812,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (feed.shelves.isNotEmpty()) _home.value = UiState.Success(feed.shelves)
         }
         _homeRecentlyPlayedLoading.value = false
+        if (refreshed.isSuccess) enrichHomeQuickPicks(identity, generation)
     }
 
     /**
@@ -1812,6 +1861,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val next = response.fold(
             onSuccess = { page ->
                 val merged = pendingPlaylistCreations.mergeLibrary(identity, page)
+                com.music.bitchord.playback.DaylightMixRepository.prime(
+                    page.likedSongs + page.librarySongs,
+                    page.shelves.flatMap { it.items }.mapNotNull { it.browseId?.takeIf { id -> id.startsWith("VL") && id != "VLLM" } },
+                )
                 // Liked Music is published with just its first page on the tab;
                 // the rest of the collection is synced into LikeState here, in
                 // this ViewModel's scope, so it is cancelled with the screen and
@@ -1831,7 +1884,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      *
      * Scoped to [viewModelScope] — a re-fetch of the library cancels and
      * replaces it, and it dies with the screen. It only ever seeds ids, never
-     * retaining the full songs for pages already behind the tab.
+     * retaining the full pages. The mix keeps a bounded sample of their tracks.
      *
      * [identity] is the listener this token belongs to, checked before every
      * page: [LikeState] is a single shared map, not scoped per account, so a
@@ -1842,7 +1895,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         likedSyncJob?.cancel()
         likedSyncJob = viewModelScope.launch {
             YtMusicRepository.syncLikedMusic(token) { next ->
-                if (identity != listenerKey()) null else YtMusicRepository.moreSongs(next).getOrNull()
+                if (identity != listenerKey()) null else YtMusicRepository.moreSongs(next).getOrNull()?.also { page ->
+                    if (identity == listenerKey()) com.music.bitchord.playback.DaylightMixRepository.prime(page.songs)
+                }
             }
         }
     }
@@ -1974,27 +2029,24 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun clearSearchHistory() = SearchHistory.clear()
 
     fun onQueryChange(newValue: String) {
+        if (_query.value == newValue) return
         _query.value = newValue
+        searchSubmitted = false
+        invalidateCommittedSearch()
         if (newValue.isBlank()) {
-            searchSubmitted = false
+            suggestRequests.tryEmit(null)
             _suggestions.value = emptyList()
             _typeaheadResults.value = emptyList()
             _results.value = null
-            // The list is about to switch from search results to recent
-            // searches (or the empty state) — without this it can keep
-            // whatever scroll offset the results list was left at, landing
-            // the new, much shorter list somewhere other than the top.
             _searchScrollReset.value += 1
             return
         }
-        // Reset the submission gate so typeahead pipelines fire again.
-        searchSubmitted = false
-        // The Library source answers from the device on every keystroke (see
-        // [libraryResults]); YouTube's completions have nothing to add to it.
         if (_searchSource.value == SearchSource.LIBRARY) return
-        // While typing, surface text completions — the pipeline already feeds
-        // them through [suggestRequests] and publishes results via typeahead.
-        suggestRequests.tryEmit(newValue)
+        // The typed query is usable immediately. Backspacing also restores
+        // cached completions and media without waiting out the debounce again.
+        publishSuggestions(newValue, YtMusicRepository.cachedSearchSuggestions(newValue).orEmpty())
+        _typeaheadResults.value = YtMusicRepository.cachedSearchTypeahead(newValue)?.rows.orEmpty().take(TYPEAHEAD_MAX_RESULTS)
+        suggestRequests.tryEmit(SuggestRequest(newValue, SearchRequestKey.current(newValue)))
     }
 
     /**
@@ -2020,6 +2072,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun setSearchSource(source: SearchSource) {
         if (_searchSource.value == source) return
         _searchSource.value = source
+        invalidateCommittedSearch()
+        suggestRequests.tryEmit(null)
         _suggestions.value = emptyList()
         _typeaheadResults.value = emptyList()
         _searchScrollReset.value += 1
@@ -2058,104 +2112,93 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         runSearch()
     }
 
-    /**
-     * A search asked for, as a request the pipeline below decides what to do
-     * with.
-     *
-     * [requestId] is what makes a late answer harmless: a response is only
-     * written to the screen if its id is still the newest one asked for.
-     */
-    private data class SearchRequest(
-        val query: String,
-        val filter: SearchFilter,
-        val requestId: Long,
-    )
+    /** The request id and scoped key make superseded answers harmless. */
+    private data class SearchRequest(val query: String, val key: SearchRequestKey, val requestId: Long)
 
-    private fun cacheKey(query: String, filter: SearchFilter) = "${filter.name}:$query"
+    private fun invalidateCommittedSearch() {
+        newestRequestId.incrementAndGet()
+        activeSearchKey = null
+        searchSession = null
+        searchPaginationJob?.cancel()
+        searchPaginationJob = null
+        _searchLoadingMore.value = false
+        searchRequests.tryEmit(null)
+    }
 
-    /**
-     * The results of the longest earlier query this one starts with — near
-     * enough to leave up while the narrower search runs.
-     */
-    private fun prefixMatch(query: String, filter: SearchFilter): List<SearchResult>? {
-        val prefix = "${filter.name}:"
-        return searchCache.snapshot()
-            .filterKeys { it.startsWith(prefix) && query.startsWith(it.removePrefix(prefix), true) }
-            .maxByOrNull { it.key.length }
-            ?.value
-            ?.rows
+    private fun clearSearchState() {
+        invalidateCommittedSearch()
+        suggestRequests.tryEmit(null)
+        searchSubmitted = false
+        _suggestions.value = emptyList()
+        _typeaheadResults.value = emptyList()
+        _results.value = null
+        searchCache.clear()
+        YtMusicRepository.clearSearchCache()
     }
 
     private fun runSearch() {
-        val query = _query.value
-        if (query.isBlank()) {
-            // Nothing in flight can still be waiting to overwrite this: the
-            // id it would be checked against has already moved past it.
-            newestRequestId.incrementAndGet()
-            searchSession = null
-            _searchLoadingMore.value = false
+        val query = _query.value.trim()
+        if (query.isEmpty() || _searchSource.value != SearchSource.YOUTUBE) {
+            invalidateCommittedSearch()
             _results.value = null
             return
         }
-        val id = newestRequestId.incrementAndGet()
+        searchSubmitted = true
+        suggestRequests.tryEmit(null)
+        _suggestions.value = emptyList()
+        _typeaheadResults.value = emptyList()
+        val key = SearchRequestKey.current(query, _filter.value)
+        // IME Search and the submit icon can arrive together. Keep the active
+        // request (or already displayed page) rather than restarting its socket.
+        if (activeSearchKey == key ||
+            (searchSession?.key == key && _results.value is UiState.Success && searchCache.peek(key) != null)
+        ) return
+        invalidateCommittedSearch()
+        val id = newestRequestId.get()
+        activeSearchKey = key
         _searchScrollReset.value += 1
-        searchSession = null
-        _searchLoadingMore.value = false
-        searchRequests.tryEmit(SearchRequest(query, _filter.value, id))
+        searchRequests.tryEmit(SearchRequest(query, key, id))
     }
 
-    /**
-     * The search pipeline, started once and left running for the lifetime of
-     * the view model.
-     *
-     * The point of it being one long-lived collector is that a new search no
-     * longer cancels the request before it out of a fresh coroutine.
-     * Cancelling a call mid-flight tears down its socket, and on a pooled HTTP
-     * client that is felt by whatever picks that connection up next — which is
-     * how one search could end in "Software caused connection abort" for a
-     * request that was never itself in any trouble.
-     *
-     * There is no debounce here any more, and nothing to absorb: a search is
-     * only ever asked for by a deliberate act — the search button, a
-     * suggestion or history row, a filter tab — so the request that arrives is
-     * already the one the user meant, and making them wait out a timer for it
-     * would be a delay with nothing behind it. Typing asks
-     * [startSuggestPipeline] for completions instead and leaves the results
-     * alone.
-     */
+    /** Submit immediately; typing alone is debounced by the preview pipelines. */
     private fun startSearchPipeline() = viewModelScope.launch {
-        searchRequests
-            .collectLatest { request ->
-                val key = cacheKey(request.query, request.filter)
-                // Something to look at immediately: the exact answer if this
-                // query has been run before, otherwise the closest earlier
-                // one. Only fall back to a spinner with neither.
-                val exact = searchCache.get(key)
-                val cached = exact?.rows ?: prefixMatch(request.query, request.filter)
-                _results.value = cached?.let { UiState.Success(it) } ?: UiState.Loading
+        searchRequests.collectLatest { request ->
+            request ?: return@collectLatest
+            if (request.requestId != newestRequestId.get()) return@collectLatest
+            // The selected account's server scope can finish settling after
+            // submission. Retry against its current identity rather than
+            // leaving this still-visible search waiting on a discarded page.
+            if (!request.key.isCurrent()) {
+                runSearch()
+                return@collectLatest
+            }
+            val key = request.key
+            try {
+                val exact = searchCache.peek(key)
+                val preview = if (key.filter == SearchFilter.ALL) {
+                    YtMusicRepository.cachedSearchTypeahead(key.query)?.rows?.takeIf { it.isNotEmpty() }
+                } else null
+                _results.value = (exact?.rows ?: preview)?.let { UiState.Success(it) } ?: UiState.Loading
                 if (exact != null) {
-                    searchSession = SearchSession(key, request.requestId, request.filter, exact.continuation)
+                    searchSession = SearchSession(key, request.requestId, exact.continuation)
                     return@collectLatest
                 }
-
-                // Search is YouTube's alone. A module is a *substitution*
-                // layer, not a catalogue to browse: it never has cover art,
-                // radio, related tracks or an album page, so its rows arrived
-                // in the results list looking like YouTube's and then behaved
-                // nothing like them. Every track found here takes the ordinary
-                // YouTube path and is handed to the module at playback time —
-                // see [SourceResolver.substituteForYouTube] — which upgrades
-                // the ones it holds without any of them having to be a
-                // separate row to pick between.
-                val result = YtMusicRepository.searchPage(request.query, request.filter)
-                // A search that has been superseded shouldn't land on screen,
-                // whether it succeeded or failed.
+                // A preview is anonymous, so confirmed searches still obtain
+                // the signed-in result and continuation for the selected filter.
+                val result = YtMusicRepository.searchPage(request.query, key.filter)
                 if (request.requestId != newestRequestId.get()) return@collectLatest
+                if (!key.isCurrent()) {
+                    runSearch()
+                    return@collectLatest
+                }
                 _results.value = result.fold(
                     onSuccess = { page -> published(page, key, request.requestId) },
-                    onFailure = { failure -> UiState.Error(failure.friendly()) },
+                    onFailure = { failure -> preview?.let { UiState.Success(it) } ?: UiState.Error(failure.friendly()) },
                 )
+            } finally {
+                if (request.requestId == newestRequestId.get()) activeSearchKey = null
             }
+        }
     }
 
     /**
@@ -2166,107 +2209,73 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun loadMoreSearchResults() {
         val session = searchSession ?: return
         val token = session.continuation ?: return
-        if (_searchLoadingMore.value) return
+        if (_searchLoadingMore.value || !session.key.isCurrent()) return
         _searchLoadingMore.value = true
-        viewModelScope.launch {
-            val next = YtMusicRepository.searchContinuation(token, session.filter)
-            val stillCurrent = searchSession == session && session.requestId == newestRequestId.get()
-            if (stillCurrent) {
-                next.onSuccess { page ->
+        searchPaginationJob = viewModelScope.launch {
+            try {
+                val next = YtMusicRepository.searchContinuation(token, session.key.filter)
+                val stillCurrent = searchSession == session && session.requestId == newestRequestId.get() && session.key.isCurrent()
+                if (stillCurrent) next.onSuccess { page ->
                     val current = (_results.value as? UiState.Success)?.data.orEmpty()
                     val merged = (current + page.rows).distinctBy(::searchResultKey)
                     searchCache.put(session.key, SearchCacheEntry(merged, page.continuation))
                     searchSession = session.copy(continuation = page.continuation)
                     _results.value = UiState.Success(merged)
                 }
-                _searchLoadingMore.value = false
+            } finally {
+                if (session.requestId == newestRequestId.get()) _searchLoadingMore.value = false
             }
         }
     }
 
-    /**
-     * The typeahead pipeline, alongside [startSearchPipeline] and for the same
-     * structural reason — one long-lived collector rather than a coroutine per
-     * keystroke, so a lookup the user has typed past doesn't take a pooled
-     * socket down with it.
-     *
-     * This one *does* debounce, and that isn't the timer that was taken off the
-     * search. It's two orders of magnitude shorter, and it's paid for by the
-     * request behind it being a few hundred bytes rather than a full page of
-     * results — a burst of keystrokes shouldn't each cost a round trip, but the
-     * gap has to be short enough that the list is up before the next letter is
-     * typed. Nothing is waiting on it either way: the row the user typed is
-     * already on screen from the keystroke itself.
-     *
-     * A failure is left on the floor. There is no worthwhile way to report
-     * "couldn't suggest anything" in a list of suggestions, and the typed text
-     * is standing there as a working first row regardless.
-     */
+    private fun stillWantsSuggestions(request: SuggestRequest): Boolean =
+        _query.value == request.input && !searchSubmitted &&
+            _searchSource.value == SearchSource.YOUTUBE && request.key.isCurrent()
+
+    private fun publishSuggestions(input: String, fetched: List<String>) {
+        _suggestions.value = listOf(input) + fetched.filterNot { it.equals(input, ignoreCase = true) }
+    }
+
+    /** Text completions are cheap and return sooner than the full media preview. */
     @OptIn(FlowPreview::class)
     private fun startSuggestPipeline() = viewModelScope.launch {
-        // Whether a list for [input] is still wanted. False once the field has
-        // moved on: typed further, or searched — which empties [_suggestions],
-        // and a late answer writing to it would reopen the suggestions over
-        // the results the user is by then reading.
-        fun stillWanted(input: String) = _query.value == input && !searchSubmitted
-
         suggestRequests
-            .debounce(SUGGEST_DEBOUNCE_MS)
-            .collectLatest { input ->
-                if (!stillWanted(input)) return@collectLatest
-                val fetched = YtMusicRepository.searchSuggestions(input).getOrNull()
-                    ?: return@collectLatest
-                // Asked again on the way back; the field is live throughout.
-                if (!stillWanted(input)) return@collectLatest
-                _suggestions.value = listOf(input) +
-                    fetched.filterNot { it.equals(input, ignoreCase = true) }
+            .debounce { if (it == null) 0L else SUGGEST_DEBOUNCE_MS }
+            .collectLatest { request ->
+                request ?: return@collectLatest
+                if (!stillWantsSuggestions(request)) return@collectLatest
+                val fetched = YtMusicRepository.searchSuggestions(request.input).getOrNull() ?: return@collectLatest
+                if (stillWantsSuggestions(request)) publishSuggestions(request.input, fetched)
             }
     }
 
-    /**
-     * Parallel pipeline that fetches live media results (tracks, artists,
-     * albums) for the current query text. Runs alongside [startSuggestPipeline]
-     * with its own debounce so a fast typist doesn't saturate the network.
-     */
+    /** One media request after a short pause, with instant reuse on backspacing. */
     @OptIn(FlowPreview::class)
     private fun startTypeaheadMediaPipeline() = viewModelScope.launch {
         suggestRequests
-            .debounce(TYPEAHEAD_MEDIA_DEBOUNCE_MS)
-            .collectLatest { input ->
-                if (input.isBlank()) {
-                    _typeaheadResults.value = emptyList()
-                    return@collectLatest
+            .debounce { if (it == null) 0L else TYPEAHEAD_MEDIA_DEBOUNCE_MS }
+            .collectLatest { request ->
+                request ?: return@collectLatest
+                if (request.input.trim().length < 2 || !stillWantsSuggestions(request)) return@collectLatest
+                val page = YtMusicRepository.searchTypeahead(request.input).getOrNull()
+                // Submission, source changes and account switches can happen
+                // while a response is arriving. None should reopen the preview.
+                if (stillWantsSuggestions(request)) {
+                    _typeaheadResults.value = page?.rows.orEmpty().take(TYPEAHEAD_MAX_RESULTS)
                 }
-                // Only show media results while the user is still typing — not
-                // reading committed search results. The query-text check on its
-                // own isn't enough: a late suggestion callback can repopulate
-                // _suggestions after submission, and we must not re-open the
-                // typeahead dropdown under an already-committed search.
-                if (searchSubmitted) {
-                    _typeaheadResults.value = emptyList()
-                    return@collectLatest
-                }
-                val result = YtMusicRepository.searchTypeahead(input).getOrNull()
-                // If the field moved on, drop the result silently.
-                if (_query.value != input) {
-                    _typeaheadResults.value = emptyList()
-                    return@collectLatest
-                }
-                // Cap results so the dropdown doesn't grow unbounded.
-                _typeaheadResults.value = result?.rows.orEmpty().take(TYPEAHEAD_MAX_RESULTS)
             }
     }
 
-    /** Caches and publishes the initial result page without waiting for later pages. */
+    /** Caches and publishes the first page without waiting for continuation. */
     private fun published(
         page: YtMusicRepository.SearchPage,
-        key: String,
+        key: SearchRequestKey,
         requestId: Long,
     ): UiState<List<SearchResult>> {
         val rows = page.rows
         if (rows.isEmpty()) return UiState.Error(text(R.string.no_results))
         searchCache.put(key, SearchCacheEntry(rows, page.continuation))
-        searchSession = SearchSession(key, requestId, _filter.value, page.continuation)
+        searchSession = SearchSession(key, requestId, page.continuation)
         prefetchTopResult(rows)
         return UiState.Success(rows)
     }
@@ -2389,7 +2398,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
          * long enough that "cold" isn't four lookups, short enough that the
          * list is up by the time the thumb has left the key.
          */
-        const val SUGGEST_DEBOUNCE_MS = 180L
+        const val SUGGEST_DEBOUNCE_MS = 120L
 
         /**
          * Debounce for the parallel media-search pipeline. Slightly longer than
@@ -2397,15 +2406,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
          * full search is heavier than a suggestion request, and the UI only
          * needs a few results to fill the dropdown.
          */
-        const val TYPEAHEAD_MEDIA_DEBOUNCE_MS = 350L
+        const val TYPEAHEAD_MEDIA_DEBOUNCE_MS = 300L
 
         /**
          * Maximum number of live media results shown in the typeahead dropdown.
          * Enough to give variety without making the list unscrollable.
          */
         const val TYPEAHEAD_MAX_RESULTS = 15
-
-        const val SEARCH_CACHE_ENTRIES = 100
 
         /**
          * How long any one source gets to answer a search.
@@ -2451,43 +2458,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /**
-     * A remote file library behind a `local:` page: how to list it and what
-     * an empty listing says. One entry per library keeps the detail loader,
-     * the refresher and the queue collector from each repeating the switch —
-     * a third library adds one line here and nothing anywhere else.
-     */
-    private data class RemoteLibrary(
-        val emptyRes: Int,
-        val songs: suspend () -> List<Song>,
-    )
-
-    private fun remoteLibrary(browseId: String): RemoteLibrary? = when (browseId) {
-        com.music.bitchord.data.webdav.WebDavConfig.BROWSE_ID ->
-            RemoteLibrary(
-                R.string.webdav_empty,
-                com.music.bitchord.data.webdav.WebDavRepository::getSongs,
-            )
-        com.music.bitchord.data.smb.SmbConfig.BROWSE_ID ->
-            RemoteLibrary(
-                R.string.smb_empty,
-                com.music.bitchord.data.smb.SmbRepository::getSongs,
-            )
-        else -> null
-    }
-
-    private suspend fun remoteSongsState(remote: RemoteLibrary): UiState<List<Song>> =
-        com.music.bitchord.data.remote.RemoteListing.state(runCatching { remote.songs() }, text(remote.emptyRes))
-
-    /**
-     * Re-reads an open remote-library page after its server settings change.
-     * A no-op when the page isn't open — the next visit lists fresh anyway.
-     */
-    private fun reloadRemoteDetail(browseId: String) {
-        if (_detailStack.value.any { page -> page.browseId == browseId }) {
-            reloadLocalDetail(browseId)
-        }
-    }
 
     fun openDetail(
         browseId: String,
@@ -2511,12 +2481,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
         val resolved = browseTypeOf(browseId, type)
         val instanceId = detailInstanceIds.incrementAndGet()
+        // Library has already read the first liked page. Paint those same rows
+        // immediately; the existing bounded cache and pagination do the rest.
+        val warmLiked = if (browseId == YtMusicRepository.LIKED_MUSIC) {
+            YtMusicRepository.cachedBrowseSongs(browseId)
+        } else null
+        val initialSongs: UiState<List<Song>> = warmLiked?.songs?.takeIf { it.isNotEmpty() }
+            ?.let { UiState.Success(it) } ?: UiState.Loading
         _detailStack.value += DetailPage(
             browseId = browseId,
             title = title,
             subtitle = subtitle,
-            thumbnailUrl = thumbnailUrl,
-            songs = UiState.Loading,
+            thumbnailUrl = thumbnailUrl ?: warmLiked?.header?.thumbnailUrl,
+            songs = initialSongs,
             type = resolved,
             instanceId = instanceId,
         )
@@ -2555,13 +2532,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             var subscription: SubscriptionState? = null
             var creator: PlaylistCreator? = null
             val localPlaylist = com.music.bitchord.data.spotify.LocalPlaylistStore.getPlaylist(browseId)
-            val remote = remoteLibrary(browseId)
             // A release downloaded whole and opened by its YouTube id — the
             // Playlists shelf, a search hit — used to wait on the network for
             // tracks already on the device, and showed an error with no
             // connection at all. Its downloaded copy goes up first; the
             // online listing replaces it if and when that arrives.
-            val downloadedCopy = if (localPlaylist == null && remote == null && !browseId.startsWith("local:")) {
+            val downloadedCopy = if (localPlaylist == null && !browseId.startsWith("local:")) {
                 DownloadedListingFallback(
                     scope = this,
                     read = { downloadedCopyOf(browseId) },
@@ -2584,7 +2560,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     if (localPlaylist.songs.isEmpty()) UiState.Error(text(R.string.spotify_import_empty_playlist))
                     else UiState.Success(localPlaylist.songs)
                 }
-                remote != null -> remoteSongsState(remote)
                 Downloads.recordIdOf(browseId) != null -> {
                     val songs = downloadedPlaylist(browseId)
                     if (songs.isEmpty()) UiState.Error(text(R.string.downloaded_playlist_empty))
@@ -2637,6 +2612,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                             // even when the listing came back empty.
                             page.owned?.let { setPlaylistOwned(browseId, it) }
                             creator = page.creator.takeIf { resolved == BrowseType.PLAYLIST }
+                            sections = page.sections
                             // Only for the caller that had nothing: a card's own
                             // title is what the user just tapped, and must not
                             // be swapped for the header's wording underneath them.
@@ -2679,7 +2655,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // failed or empty fetch leaves the downloaded tracks up.
             _detailStack.value = _detailStack.value.map {
                 if (it.instanceId == instanceId &&
-                    (it.songs is UiState.Loading || (onDevice.isNotEmpty() && hasOnlineSongs))
+                    (it.songs === initialSongs || it.songs is UiState.Loading || (onDevice.isNotEmpty() && hasOnlineSongs))
                 ) {
                     it.copy(
                         songs = state,
@@ -2805,13 +2781,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val context = getApplication<Application>()
             val localPlaylist = com.music.bitchord.data.spotify.LocalPlaylistStore.getPlaylist(browseId)
-            val remote = remoteLibrary(browseId)
             val state: UiState<List<Song>> = when {
                 localPlaylist != null -> {
                     if (localPlaylist.songs.isEmpty()) UiState.Error(text(R.string.spotify_import_empty_playlist))
                     else UiState.Success(localPlaylist.songs)
                 }
-                remote != null -> remoteSongsState(remote)
                 Downloads.recordIdOf(browseId) != null -> {
                     val songs = downloadedPlaylist(browseId)
                     if (songs.isEmpty()) UiState.Error(text(R.string.downloaded_playlist_empty))
@@ -2980,11 +2954,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     ) {
         viewModelScope.launch {
             val context = getApplication<Application>()
-            val remote = remoteLibrary(browseId)
             val result = when {
-                remote != null -> runCatching {
-                    remote.songs().ifEmpty { error(text(remote.emptyRes)) }
-                }
                 Downloads.recordIdOf(browseId) != null -> runCatching {
                     downloadedPlaylist(browseId).ifEmpty {
                         error(text(R.string.downloaded_playlist_empty))
@@ -3263,7 +3233,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // Every resolver verdict and personalised page belongs to the
             // identity that was active before validation succeeded.
             StreamResolver.onSessionChanged()
-            if (wasSignedIn) clearListenerState()
+            if (wasSignedIn) clearListenerState() else clearSearchState()
             reloadForAccount()
             loadChannels(force = true)
             onComplete(true)
@@ -3370,6 +3340,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun clearListenerState(restoreCached: Boolean = false) {
+        clearSearchState()
+        homeRecommendationsJob?.cancel()
+        homeRecommendationSeed = null
+        _homeQuickRecommendations.value = emptyList()
+        com.music.bitchord.playback.DaylightMixRepository.clear()
         latestLibraryRequest.invalidate()
         pendingPlaylistCreations.clear()
         clearDetail()
@@ -3422,6 +3397,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         authStore.signOut()
+        clearSearchState()
         latestLibraryRequest.invalidate()
         pendingPlaylistCreations.clear()
         clearDetail()

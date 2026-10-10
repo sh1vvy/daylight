@@ -63,7 +63,7 @@ class AddonOrderTest {
         SourceRegistry.reorderAddons(listOf(addons[1].id, addons[0].id))
 
         assertEquals(
-            listOf(SourceKind.ADDON, SourceKind.ADDON, SourceKind.JIOSAAVN, SourceKind.YOUTUBE),
+            listOf(SourceKind.ADDON, SourceKind.ADDON, SourceKind.YOUTUBE),
             SourceRegistry.configs.value.map { it.kind },
         )
     }

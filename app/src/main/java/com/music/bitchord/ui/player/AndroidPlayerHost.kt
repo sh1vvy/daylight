@@ -72,7 +72,6 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
         override val hideSongStatus get() = AppSettings.hideSongStatus
         override val hideVolumeBar get() = AppSettings.hideVolumeBar
         override val lastPlayerScreen get() = AppSettings.lastPlayerScreen
-        override val legacyMeshGradient get() = AppSettings.legacyMeshGradient
         override val lyricsBlur get() = AppSettings.lyricsBlur
         override val showLyricsLanguageButtons get() = AppSettings.showLyricsLanguageButtons
         override val lyricsOffsetMs get() = AppSettings.lyricsOffsetMs
@@ -147,23 +146,41 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
         trackId: String,
         lines: List<LyricLine>,
         targetLanguageTag: String,
-    ): LyricsTranslationResult =
-        when (val result = LyricsTranslation.translate(trackId, lines, targetLanguageTag)) {
-            is LyricsTranslation.Result.Translated -> LyricsTranslationResult.Translated(result.lines)
-            is LyricsTranslation.Result.SameLanguage -> LyricsTranslationResult.SameLanguage(result.language)
+    ): LyricsTranslationResult {
+        val requestScope = com.music.bitchord.data.innertube.Innertube.responseCacheScope
+        return when (val result = LyricsTranslation.translate(trackId, lines, targetLanguageTag)) {
+            is LyricsTranslation.Result.Translated -> {
+                com.music.bitchord.data.RecommendationLanguageHints.record(trackId, result.sourceLanguage, requestScope)
+                LyricsTranslationResult.Translated(result.lines)
+            }
+            is LyricsTranslation.Result.SameLanguage -> {
+                com.music.bitchord.data.RecommendationLanguageHints.record(trackId, result.language, requestScope)
+                LyricsTranslationResult.SameLanguage(result.language)
+            }
             LyricsTranslation.Result.Unavailable -> LyricsTranslationResult.Unavailable
         }
+    }
 
     override suspend fun romanizeLyrics(
         trackId: String,
         lines: List<LyricLine>,
         targetLanguageTag: String,
-    ): LyricsRomanizationResult =
-        when (val result = LyricsTranslation.romanize(trackId, lines, targetLanguageTag)) {
-            is LyricsTranslation.RomanizationResult.Romanized -> LyricsRomanizationResult.Romanized(result.lines)
+    ): LyricsRomanizationResult {
+        val requestScope = com.music.bitchord.data.innertube.Innertube.responseCacheScope
+        return when (val result = LyricsTranslation.romanize(trackId, lines, targetLanguageTag)) {
+            is LyricsTranslation.RomanizationResult.Romanized -> {
+                com.music.bitchord.data.RecommendationLanguageHints.record(trackId, result.sourceLanguage, requestScope)
+                LyricsRomanizationResult.Romanized(result.lines)
+            }
             LyricsTranslation.RomanizationResult.AlreadyRomanized -> LyricsRomanizationResult.AlreadyRomanized
             LyricsTranslation.RomanizationResult.Unavailable -> LyricsRomanizationResult.Unavailable
         }
+    }
+
+    @Composable
+    override fun ArtworkViewer(url: String, title: String, onDismiss: () -> Unit) {
+        com.music.bitchord.ui.components.ArtworkViewer(url, title, onDismiss)
+    }
 
     override fun showMessage(message: String) {
         main.post { Toast.makeText(app, message, Toast.LENGTH_SHORT).show() }

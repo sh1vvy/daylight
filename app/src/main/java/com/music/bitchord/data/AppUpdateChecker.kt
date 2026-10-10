@@ -62,6 +62,8 @@ object AppUpdateChecker {
     private var downloadCancelled = false
 
     suspend fun check() = withContext(Dispatchers.IO) {
+        // Internal builds are installed manually and never offered public updates.
+        if (BuildConfig.VERSION_NAME.contains("-canary.")) return@withContext
         runCatching {
             val request = Request.Builder().url(AppRelease.releasesUrl(BuildConfig.APPLICATION_ID)).build()
             val body = Http.client.newCall(request).execute().use { response ->

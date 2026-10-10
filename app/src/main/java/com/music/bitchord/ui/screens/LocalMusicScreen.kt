@@ -174,7 +174,6 @@ fun LocalMusicScreen(
     /** Deletes the Downloads rows selected through this screen's long-press mode. */
     onDeleteDownloads: ((List<Song>) -> Unit)? = null,
     /** Copies the selected Downloads rows to the WebDAV server; null hides the action. */
-    onUploadToWebDav: ((List<Song>) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     // Which top-level tab is selected.
@@ -265,14 +264,6 @@ fun LocalMusicScreen(
                     selectedDownloadIds = emptySet()
                     selectedAlbumKeys = emptySet()
                     onDeleteDownloads?.invoke(chosen)
-                },
-                onUpload = onUploadToWebDav?.let { upload ->
-                    {
-                        val chosen = songs.filter { it.videoId in selectedDownloadIds }
-                        selectedDownloadIds = emptySet()
-                        selectedAlbumKeys = emptySet()
-                        upload(chosen)
-                    }
                 },
                 onCancel = {
                     selectedDownloadIds = emptySet()
@@ -1638,8 +1629,6 @@ private fun DownloadSelectionBar(
     onDelete: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
-    /** Copies the selection to WebDAV; null (no server configured) hides the action. */
-    onUpload: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -1663,21 +1652,6 @@ private fun DownloadSelectionBar(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
-        onUpload?.let { upload ->
-            TextButton(onClick = upload, enabled = count > 0) {
-                Icon(
-                    Icons.Rounded.FileUpload,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    stringResource(R.string.upload_to_webdav),
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
         TextButton(onClick = onDelete, enabled = count > 0) {
             Icon(
                 Icons.Rounded.Delete,

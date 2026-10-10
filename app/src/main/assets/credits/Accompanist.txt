@@ -1,0 +1,4 @@
+Spring-following lyrics adapted from Accompanist Lyrics UI
+https://github.com/6xingyv/accompanist-lyrics-ui
+Maintained by 6xingyv (Simon Scholz). Apache License 2.0.
+Modified for Daylight on 10 October 2026.

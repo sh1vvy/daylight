@@ -2,6 +2,14 @@ package com.music.bitchord.ui.screens
 
 import android.os.Build
 import com.music.bitchord.R
+import com.music.bitchord.data.YtMusicRepository
+import com.music.bitchord.data.innertube.Innertube
+import com.music.bitchord.data.model.featuredPlaylistArtists
+import com.music.bitchord.data.model.discoveryAlbumCards
+import com.music.bitchord.data.model.recommendedAlbumCards
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.async
+import androidx.compose.ui.platform.testTag
 import com.music.bitchord.ui.HeaderCreditLink
 import com.music.bitchord.ui.headerCreditLink
 
@@ -65,6 +73,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
@@ -78,14 +88,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
@@ -110,6 +116,7 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.compose.AsyncImagePainter
 import coil3.request.ImageRequest
+import coil3.request.crossfade
 import androidx.compose.runtime.mutableIntStateOf
 import kotlinx.coroutines.delay
 import androidx.compose.ui.layout.layout
@@ -149,6 +156,10 @@ import com.music.bitchord.ui.components.SongRow
 import com.music.bitchord.ui.components.SearchPlayingBars
 import com.music.bitchord.ui.components.libraryGrid
 import com.music.bitchord.ui.components.lightweightLiquidGlass
+import com.music.bitchord.ui.components.libraryCoverMotion
+import com.music.bitchord.ui.components.libraryCoverForeground
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import com.music.bitchord.ui.components.thumbnailBorder
 import com.music.bitchord.ui.components.detailSkeleton
 import com.music.bitchord.ui.components.topBarContentPadding
@@ -449,16 +460,16 @@ fun DetailScreen(
                 PageBackground(
                     page = page,
                     palette = palette,
-                    canvas = canvas,
+                    canvas = canvas.takeUnless { page.thumbnailUrl?.contains("/playlist-covers/") == true },
                     artHeight = artHeight,
                     listState = listState,
-                    heroUrl = appleArt?.heroUrl,
+                    heroUrl = appleArt?.heroUrl?.takeUnless { page.thumbnailUrl?.contains("/playlist-covers/") == true },
                     modifier = Modifier.matchParentSize(),
                 )
 
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().libraryCoverForeground(2f),
                     // Both artist photos and release artwork run edge-to-edge up under
                     // the glass bar — the image is the top of the page, not a card on it.
                     contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding()),
@@ -702,9 +713,21 @@ fun DetailScreen(
                 }
             }
 
-            // Albums / Singles & EPs carousels (artist pages).
+            if (page.type == BrowseType.ALBUM && rawSongs.isNotEmpty()) {
+                item(key = "album-discovery", contentType = "album-discovery") {
+                    AlbumDiscoveryRows(page, rawSongs, palette, onSectionItemClick, onSectionItemLongPress)
+                }
+            }
+            if (page.type == BrowseType.PLAYLIST && rawSongs.isNotEmpty()) {
+                val featured = featuredPlaylistArtists(rawSongs)
+                if (featured.isNotEmpty()) item(key = "featured-artists", contentType = "featured-artists") {
+                    PlaylistArtistRow(featured, palette, onArtistClick)
+                }
+            }
+
+            // Artist discography shelves keep their existing show-all navigation.
             itemsIndexed(
-                page.sections,
+                if (isArtist) page.sections else emptyList(),
                 key = { index, _ -> sectionKeys[index] },
                 contentType = { _, _ -> "artist-shelf" },
             ) { _, shelf ->
@@ -780,6 +803,10 @@ private fun ReleaseHeader(
     onCreatorClick: ((com.music.bitchord.data.model.PlaylistCreator) -> Unit)?,
     onToggleLibrary: (() -> Unit)?,
 ) {
+    var artworkOpen by remember(page.browseId, page.thumbnailUrl) { mutableStateOf(false) }
+    if (artworkOpen) page.thumbnailUrl?.let { url ->
+        com.music.bitchord.ui.components.ArtworkViewer(url, page.title) { artworkOpen = false }
+    }
     val (headerCredit, meta) = page.headerLines(trackCount, songs.playtime())
     val credit = page.creator?.name?.takeIf { page.type == BrowseType.PLAYLIST } ?: headerCredit
     // Album rows share an artist, while a playlist header credits the account
@@ -790,7 +817,11 @@ private fun ReleaseHeader(
     // an aspect ratio here so the action buttons can extend below the artwork.
     Box(Modifier.fillMaxWidth()) {
 
-        Spacer(Modifier.fillMaxWidth().height(artHeight + HEADER_DROP))
+        Box(Modifier.fillMaxWidth().height(artHeight + HEADER_DROP)) {
+            Box(Modifier.fillMaxWidth().height(artHeight)
+                .semantics { contentDescription = "View album artwork" }
+                .clickable(enabled = page.thumbnailUrl != null, onClickLabel = "View album artwork") { artworkOpen = true })
+        }
 
         // Text + action row stacked, pinned to the bottom of the Box.
         Column(
@@ -807,7 +838,7 @@ private fun ReleaseHeader(
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = HEADER_GUTTER),
+                modifier = Modifier.padding(horizontal = HEADER_GUTTER).testTag("detail-release-title"),
             )
             // Artist / credit line
             if (credit.isNotBlank()) {
@@ -1157,10 +1188,7 @@ private fun ArtistHeader(
  * did with item zero. Read in a placement block, so a scroll moves it without
  * recomposing anything.
  *
- * The join used to be hidden by a live blur laid across it, re-run on every
- * frame of every scroll. A blurred copy of the sleeve does the same job here
- * drawn once: nothing about it changes as the page moves, so it is rasterised
- * on the first frame and only composited after that.
+ * The sleeve stays sharp while a light colour fade merges its foot into the page.
  */
 @Composable
 private fun PageBackground(
@@ -1172,12 +1200,23 @@ private fun PageBackground(
     heroUrl: String? = null,
     modifier: Modifier = Modifier,
 ) {
+    val coverMotion = com.music.bitchord.ui.components.LocalLibraryCoverMotion.current
+    val movingCover = coverMotion?.isTransitioning == true
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    // Not under a canvas: a still blurred over the foot of a moving clip would
-    // freeze the bottom of the video into the wrong picture.
-    val softenFoot = canvas == null && !reduceDynamicBlur &&
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val art = heroUrl ?: page.thumbnailUrl.artworkAt(HEADER_ART_PX)
+    val softenFoot = canvas == null && !reduceDynamicBlur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    // Keep the already visible sleeve while it moves; a larger decode or artist
+    // image must not replace it halfway through the shared-element transition.
+    val art = if (movingCover) page.thumbnailUrl.artworkAt(CARD_ART_PX)
+        else heroUrl ?: page.thumbnailUrl.artworkAt(HEADER_ART_PX)
+    val imageContext = LocalPlatformContext.current
+    val coverModel = remember(art, page.thumbnailUrl, imageContext) {
+        ImageRequest.Builder(imageContext)
+            .data(art)
+            // Reuse the visible card while its full-size sleeve decodes; no empty flash.
+            .placeholderMemoryCacheKey(page.thumbnailUrl.artworkAt(CARD_ART_PX))
+            .crossfade(false)
+            .build()
+    }
     val artHeightPx = with(LocalDensity.current) { artHeight.toPx() }
     val headerVisible by remember(listState, artHeightPx) {
         derivedStateOf {
@@ -1186,26 +1225,32 @@ private fun PageBackground(
     }
 
     Box(modifier.clipToBounds()) {
-        Box(
-            Modifier
+        AsyncImage(
+            model = coverModel,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .offset { IntOffset(0, listState.headerTop(artHeight.toPx()).roundToInt()) }
                 .fillMaxWidth()
                 .height(artHeight)
-                .offset { IntOffset(0, listState.headerTop(artHeight.toPx()).roundToInt()) },
+                .then(if (headerVisible) Modifier.libraryCoverMotion(page.browseId) else Modifier)
+                .background(palette.elevated),
+        )
+        // The shared layer contains only the sharp sleeve. Video and the page's
+        // tonal fade stay in their final header bounds beneath the overlay.
+        Box(
+            Modifier.matchParentSize().libraryCoverForeground(1f).clipToBounds(),
         ) {
-            AsyncImage(
-                model = art,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(palette.elevated),
-            )
-
+          val headerOffset = listState.headerTop(artHeightPx).roundToInt()
+          Box(Modifier.offset { IntOffset(0, headerOffset) }.fillMaxWidth().height(artHeight)) {
             // Above the still art but below the scrim, so the scrim that
             // settles the header into the page still sits over it. Always
             // running while visible: a header parked above the viewport need
             // not keep decoding a video while the user reads its track list.
-            canvas?.let { clip ->
+            // TextureView cannot reliably travel in the Compose overlay. Do not
+            // mount its decoder until navigation settles; its own first-frame fade
+            // then introduces the video above the still artwork.
+            canvas?.takeUnless { movingCover }?.let { clip ->
                 CanvasArtworkPlayer(
                     canvas = clip,
                     isPlaying = headerVisible,
@@ -1217,26 +1262,17 @@ private fun PageBackground(
                 )
             }
 
-            // The same sleeve, blurred and faded in over the lower half, so the
-            // picture loses its detail before it loses its colour — a merge
-            // rather than a fade to a flat tint. The same request as the sharp
-            // copy, so it is a memory-cache hit and lands on the same frame.
             if (softenFoot) {
                 AsyncImage(
-                    model = art,
+                    model = coverModel,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .matchParentSize()
-                        // Offscreen so the mask cuts the blurred result rather
-                        // than each draw beneath it.
+                    modifier = Modifier.matchParentSize()
                         .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                         .drawWithContent {
                             drawContent()
                             drawRect(SOFT_FOOT_MASK, blendMode = BlendMode.DstIn)
                         }
-                        // Rectangle keeps the edges clamped to the picture's own
-                        // colour rather than fading to transparent at the foot.
                         .blur(SOFT_FOOT_BLUR, BlurredEdgeTreatment.Rectangle),
                 )
             }
@@ -1258,6 +1294,11 @@ private fun PageBackground(
                         ),
                     ),
             )
+          }
+          // Continue the opaque foot through the body. Otherwise the moving
+          // cover escapes the header scrim and flashes a hard edge over rows.
+          Box(Modifier.offset { IntOffset(0, headerOffset + artHeight.toPx().roundToInt()) }
+              .fillMaxWidth().fillMaxHeight().background(palette.wash))
         }
     }
 }
@@ -1274,17 +1315,7 @@ private fun PageBackground(
 private fun LazyListState.headerTop(artHeightPx: Float): Float =
     if (firstVisibleItemIndex == 0) -firstVisibleItemScrollOffset.toFloat() else -artHeightPx * 2f
 
-/** Where the blurred copy starts to show and where it has fully taken over. */
-private val SOFT_FOOT_MASK = Brush.verticalGradient(
-    0.35f to Color.Transparent,
-    0.75f to Color.Black,
-)
-
-/**
- * Wide enough that no shapes survive where the blurred copy is at full
- * strength — a blur that leaves them reads as a blurred photograph, and a
- * blurred photograph next to a flat colour is still two surfaces.
- */
+private val SOFT_FOOT_MASK = Brush.verticalGradient(0.35f to Color.Transparent, 0.75f to Color.Black)
 private val SOFT_FOOT_BLUR = 48.dp
 
 /**
@@ -2056,5 +2087,100 @@ private fun List<Song>.playtime(): String? {
         minutes <= 0 -> null
         minutes < 60 -> stringResource(R.string.minutes_short, minutes.toInt())
         else -> stringResource(R.string.hours_minutes_short, (minutes / 60).toInt(), (minutes % 60).toInt())
+    }
+}
+
+
+/** Composed near the foot of the list: opening the page does not start discovery requests. */
+@Composable
+private fun AlbumDiscoveryRows(
+    page: DetailPage,
+    songs: List<Song>,
+    palette: ArtworkPalette,
+    onClick: (ShelfItem) -> Unit,
+    onLongPress: ((ShelfItem) -> Unit)?,
+) {
+    val artist = page.headerCreditLink(songs.firstOrNull()) as? HeaderCreditLink.Artist
+    val accountScope = Innertube.responseCacheScope
+    var more by remember(page.browseId, artist?.browseId, accountScope) { mutableStateOf(emptyList<ShelfItem>()) }
+    var similar by remember(page.browseId, page.sections, accountScope) {
+        mutableStateOf(discoveryAlbumCards(page.sections, page.browseId))
+    }
+    LaunchedEffect(page.browseId, artist?.browseId, accountScope) {
+        // Independent discovery requests overlap; neither is on the opening path.
+        val radio = if (similar.isEmpty()) async {
+            withTimeoutOrNull(4_000L) { YtMusicRepository.homeRecommendations(songs.first().videoId).getOrNull() }.orEmpty()
+        } else null
+        artist?.let {
+            val preview = withTimeoutOrNull(4_000L) { YtMusicRepository.artistPreview(it.browseId).getOrNull() }
+            if (accountScope == Innertube.responseCacheScope) {
+                more = discoveryAlbumCards(preview?.sections.orEmpty(), page.browseId)
+                // Do not repeat the artist's discography in the personalised row.
+                val exclude = more.mapNotNullTo(HashSet()) { card -> card.browseId } + page.browseId
+                similar = discoveryAlbumCards(page.sections, page.browseId).filter { card -> card.browseId !in exclude }
+            }
+        }
+        if (similar.isEmpty()) {
+            val related = radio?.await() ?: withTimeoutOrNull(4_000L) {
+                YtMusicRepository.homeRecommendations(songs.first().videoId).getOrNull()
+            }.orEmpty()
+            if (accountScope == Innertube.responseCacheScope) {
+                similar = recommendedAlbumCards(related, more.mapNotNullTo(HashSet()) { it.browseId } + page.browseId)
+            }
+        }
+    }
+    Column {
+        AlbumDiscoveryRow(stringResource(R.string.more_by_artist, artist?.name ?: songs.first().artist), more, palette, onClick, onLongPress)
+        AlbumDiscoveryRow(stringResource(R.string.similar_albums_for_you), similar, palette, onClick, onLongPress)
+    }
+}
+
+@Composable
+private fun AlbumDiscoveryRow(
+    title: String, cards: List<ShelfItem>, palette: ArtworkPalette,
+    onClick: (ShelfItem) -> Unit, onLongPress: ((ShelfItem) -> Unit)?,
+) {
+    if (cards.isEmpty()) return
+    Column(Modifier.padding(top = 22.dp)) {
+        SectionHeading(title, palette, horizontalPadding = ARTIST_CONTENT_GUTTER)
+        LazyRow(contentPadding = PaddingValues(horizontal = ARTIST_CONTENT_GUTTER),
+            horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            items(cards, key = { it.browseId!! }, contentType = { "album-card" }) { card ->
+                SectionCard(card, palette, { onClick(card) }, onLongPress = onLongPress?.let { { it(card) } })
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaylistArtistRow(
+    artists: List<com.music.bitchord.data.model.ArtistRef>, palette: ArtworkPalette,
+    onClick: (String, String) -> Unit,
+) {
+    Column(Modifier.padding(top = 22.dp)) {
+        SectionHeading(stringResource(R.string.featured_artists), palette, horizontalPadding = ARTIST_CONTENT_GUTTER)
+        LazyRow(contentPadding = PaddingValues(horizontal = ARTIST_CONTENT_GUTTER),
+            horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            items(artists, key = { it.browseId!! }, contentType = { "artist-portrait" }) { artist ->
+                val accountScope = Innertube.responseCacheScope
+                var portrait by remember(artist.browseId, accountScope) { mutableStateOf<String?>(null) }
+                // Only visible portraits request headers; the shared bounded cache coalesces revisits.
+                LaunchedEffect(artist.browseId, accountScope) {
+                    val preview = withTimeoutOrNull(4_000L) { YtMusicRepository.artistPreview(artist.browseId!!).getOrNull() }
+                    if (accountScope == Innertube.responseCacheScope) portrait = preview?.thumbnailUrl
+                }
+                Column(Modifier.width(96.dp).clip(RoundedCornerShape(12.dp))
+                    .clickable { onClick(artist.browseId!!, artist.name) }, horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.size(96.dp).clip(CircleShape).background(palette.elevated), contentAlignment = Alignment.Center) {
+                        if (portrait == null) Icon(Icons.Rounded.Person, null, Modifier.size(38.dp), tint = palette.onBackgroundVariant)
+                        AsyncImage(model = portrait.artworkAt(CARD_ART_PX), contentDescription = null,
+                            contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(artist.name, style = MaterialTheme.typography.titleSmall, color = palette.onBackground,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                }
+            }
+        }
     }
 }

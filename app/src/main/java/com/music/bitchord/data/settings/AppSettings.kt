@@ -1,6 +1,5 @@
 package com.music.bitchord.data.settings
 
-import com.music.bitchord.data.webdav.update
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
@@ -156,7 +155,7 @@ object AppSettings {
 
     private lateinit var prefs: SharedPreferences
 
-    /** Only for the Discord, WebDAV and SMB secrets — everything else on here is plain prefs. */
+    /** Only for the Discord and Last.fm credentials — everything else on here is plain prefs. */
     private lateinit var authStore: AuthStore
 
     /**
@@ -450,23 +449,6 @@ object AppSettings {
      */
     val fullBleedArtwork = MutableStateFlow(true)
 
-    /**
-     * Puts v1.5's backdrop back on the player: four quantised blobs drifting
-     * behind the whole screen, rather than the artwork's own colours hung off
-     * the sleeve's bottom edge.
-     *
-     * Off by default, because the current backdrop replaced it for two reasons
-     * that have not gone away — see [ArtworkMesh][com.music.bitchord.ui.player.ArtworkMesh]
-     * for the colour one (a cover that is nine-tenths black with a red stripe
-     * comes back from the quantiser as a red screen) and
-     * [ArtworkMeshBackdrop][com.music.bitchord.ui.player.ArtworkMeshBackdrop]
-     * for the cost one (blobs that drift are a full-screen blur redrawn while
-     * they move, where a mesh is drawn once per track and then composited).
-     * Kept as a switch because people asked for the old look back, and neither
-     * reason is one a listener has to agree with.
-     */
-    val legacyMeshGradient = MutableStateFlow(false)
-
     /** Restores the expanded player to the surface the listener left open. */
     val lastPlayerScreen = MutableStateFlow(LastPlayerScreen.MAIN)
 
@@ -480,7 +462,7 @@ object AppSettings {
     val syncedLyrics = MutableStateFlow(true)
 
     /** The databases [syncedLyrics] may ask. Empty is the same as off. */
-    val lyricsSources = MutableStateFlow(LyricsSource.offered.toSet())
+    val lyricsSources = MutableStateFlow(LyricsSource.defaults.toSet())
 
     /**
      * The order [lyricsSources] are asked in — see [LyricsRepository][com.music.bitchord.data.lyrics.LyricsRepository]:
@@ -544,6 +526,7 @@ object AppSettings {
     val downloadedMusicViewType = MutableStateFlow(LibraryViewType.LIST)
     /** Layout used by the Recents shelf on Play; compact tracks are the default. */
     val homeRecentsViewType = MutableStateFlow(LibraryViewType.LIST)
+    val excludedRecommendationLanguages = MutableStateFlow<Set<String>>(emptySet())
     val librarySort = MutableStateFlow(LibrarySort.DEFAULT)
 
     /**
@@ -555,36 +538,6 @@ object AppSettings {
 
     /** Empty means every MediaStore folder; otherwise this is a persisted SAF tree URI. */
     val localMusicFolderUri = MutableStateFlow("")
-
-    // ── WebDAV ────────────────────────────────────────────────────────────
-
-    /**
-     * Remote music library over WebDAV (e.g. Nextcloud's Music folder).
-     *
-     * The URL and username live in plain prefs like every other setting; the
-     * password is mirrored out of [AuthStore] so it stays encrypted at rest
-     * and out of backup exports — see [exportPrefs]. Empty URL means
-     * unconfigured, and the library simply reads as empty.
-     */
-    val webdavUrl = MutableStateFlow("")
-    val webdavUsername = MutableStateFlow("")
-    val webdavPassword = MutableStateFlow("")
-
-    // ── SMB ───────────────────────────────────────────────────────────────
-
-    /**
-     * Remote music library on an SMB file share (a NAS, a Windows box).
-     *
-     * Stored like the WebDAV settings: host, share, base folder and username
-     * in plain prefs, the password mirrored out of [AuthStore] so it stays
-     * encrypted at rest and out of backup exports. Empty host or share means
-     * unconfigured, and the library simply reads as empty.
-     */
-    val smbHost = MutableStateFlow("")
-    val smbShare = MutableStateFlow("")
-    val smbBasePath = MutableStateFlow("")
-    val smbUsername = MutableStateFlow("")
-    val smbPassword = MutableStateFlow("")
 
     /**
      * Browse ids of the playlists pinned to the top of the Library tab, in the
@@ -613,7 +566,7 @@ object AppSettings {
     val lastfmPrimaryArtistOnly = MutableStateFlow(false)
     val scrobbleMinDuration = MutableStateFlow(30)
     val scrobbleDelayPercent = MutableStateFlow(0.5f)
-    val scrobbleDelaySeconds = MutableStateFlow(180)
+    val scrobbleDelaySeconds = MutableStateFlow(240)
     val spotifySpdcToken = MutableStateFlow("")
 
     // ── Discord Rich Presence ───────────────────────────────────────────
@@ -739,9 +692,23 @@ object AppSettings {
     fun init(context: Context, authStore: AuthStore) {
         prefs = context.getSharedPreferences("bitchord_settings", Context.MODE_PRIVATE)
         this.authStore = authStore
+        migrateRetiredSettingsAndCredentials()
         com.music.bitchord.data.spotify.LocalPlaylistStore.init(context)
         readAll()
         watchConnection(context)
+    }
+
+    private fun migrateRetiredSettingsAndCredentials() {
+        // Move existing sessions before deleting their old plaintext entries.
+        val migrated = !prefs.contains(KEY_LASTFM_SESSION_KEY) && !prefs.contains(KEY_LASTFM_SECRET) ||
+            authStore.migrateLastfmCredentials(
+            prefs.getString(KEY_LASTFM_SESSION_KEY, null), prefs.getString(KEY_LASTFM_SECRET, null),
+        )
+        authStore.clearRetiredNetworkCredentials()
+        prefs.edit().apply {
+            prefs.all.keys.filter(RetiredSettings::isRetired).forEach(::remove)
+            if (migrated) { remove(KEY_LASTFM_SESSION_KEY); remove(KEY_LASTFM_SECRET) }
+        }.apply()
     }
 
     /**
@@ -821,6 +788,8 @@ object AppSettings {
         )
         stopOnTaskRemoved.value = prefs.getBoolean(KEY_STOP_ON_TASK_REMOVED, true)
         hideVolumeBar.value = prefs.getBoolean(KEY_HIDE_VOLUME_BAR, false)
+        excludedRecommendationLanguages.value = com.music.bitchord.data.RecommendationLanguages.canonical(
+            prefs.getStringSet(KEY_RECOMMENDATION_LANGUAGES, emptySet()).orEmpty())
         hideSongStatus.value = prefs.getBoolean(KEY_HIDE_SONG_STATUS, false)
         swipeToPlayNext.value = prefs.getBoolean(KEY_SWIPE_TO_PLAY_NEXT, false)
         dontRepeatSuggestions.value = prefs.getBoolean(KEY_DONT_REPEAT_SUGGESTIONS, false)
@@ -839,7 +808,6 @@ object AppSettings {
         animatedCanvas.value = prefs.getBoolean(KEY_ANIMATED_CANVAS, true)
         canvasOverCellular.value = prefs.getBoolean(KEY_CANVAS_OVER_CELLULAR, false)
         fullBleedArtwork.value = prefs.getBoolean(KEY_FULL_BLEED_ARTWORK, true)
-        legacyMeshGradient.value = prefs.getBoolean(KEY_LEGACY_MESH_GRADIENT, false)
         lastPlayerScreen.value = runCatching {
             LastPlayerScreen.valueOf(
                 prefs.getString(KEY_LAST_PLAYER_SCREEN, null) ?: LastPlayerScreen.MAIN.name,
@@ -855,16 +823,16 @@ object AppSettings {
         showCacheFolder.value = prefs.getBoolean(KEY_SHOW_CACHE_FOLDER, false)
         lastfmEnabled.value = prefs.getBoolean(KEY_LASTFM_ENABLED, false)
         lastfmUsername.value = prefs.getString(KEY_LASTFM_USERNAME, "").orEmpty()
-        lastfmSessionKey.value = prefs.getString(KEY_LASTFM_SESSION_KEY, "").orEmpty()
+        lastfmSessionKey.value = authStore.lastfmSessionKey.orEmpty()
         lastfmApiKey.value = prefs.getString(KEY_LASTFM_API_KEY, "").orEmpty().ifBlank { BuildConfig.LASTFM_API_KEY }
-        lastfmSecret.value = prefs.getString(KEY_LASTFM_SECRET, "").orEmpty().ifBlank { BuildConfig.LASTFM_SECRET }
+        lastfmSecret.value = authStore.lastfmSecret.orEmpty().ifBlank { BuildConfig.LASTFM_SECRET }
         lastfmEndpoint.value = prefs.getString(KEY_LASTFM_ENDPOINT, "").orEmpty()
         lastfmScrobbleEnabled.value = prefs.getBoolean(KEY_LASTFM_SCROBBLE_ENABLED, false)
         lastfmNowPlaying.value = prefs.getBoolean(KEY_LASTFM_NOW_PLAYING, false) && lastfmScrobbleEnabled.value
         lastfmPrimaryArtistOnly.value = prefs.getBoolean(KEY_LASTFM_PRIMARY_ARTIST_ONLY, false)
         scrobbleMinDuration.value = prefs.getInt(KEY_SCROBBLE_MIN_DURATION, 30)
         scrobbleDelayPercent.value = prefs.getFloat(KEY_SCROBBLE_DELAY_PERCENT, 0.5f)
-        scrobbleDelaySeconds.value = prefs.getInt(KEY_SCROBBLE_DELAY_SECONDS, 180)
+        scrobbleDelaySeconds.value = prefs.getInt(KEY_SCROBBLE_DELAY_SECONDS, 240)
         spotifySpdcToken.value = prefs.getString(KEY_SPOTIFY_SPDC_TOKEN, "").orEmpty()
         replayGenres.value = prefs.getBoolean(KEY_REPLAY_GENRES, true)
         filterNonMusicAudio.value = prefs.getBoolean(KEY_FILTER_NON_MUSIC_AUDIO, true)
@@ -878,26 +846,6 @@ object AppSettings {
             ?: LibrarySort.DEFAULT
         detailSongSorts.value = readDetailSongSorts()
         localMusicFolderUri.value = prefs.getString(KEY_LOCAL_MUSIC_FOLDER_URI, "").orEmpty()
-        webdavUrl.value = prefs.getString(KEY_WEBDAV_URL, "").orEmpty()
-        webdavUsername.value = prefs.getString(KEY_WEBDAV_USERNAME, "").orEmpty()
-        webdavPassword.value = authStore.webdavPassword.orEmpty()
-        smbHost.value = prefs.getString(KEY_SMB_HOST, "").orEmpty()
-        smbShare.value = prefs.getString(KEY_SMB_SHARE, "").orEmpty()
-        smbBasePath.value = prefs.getString(KEY_SMB_BASE_PATH, "").orEmpty()
-        smbUsername.value = prefs.getString(KEY_SMB_USERNAME, "").orEmpty()
-        smbPassword.value = authStore.smbPassword.orEmpty()
-        com.music.bitchord.data.smb.SmbAuth.update(
-            smbHost.value,
-            smbShare.value,
-            smbBasePath.value,
-            smbUsername.value,
-            smbPassword.value,
-        )
-        com.music.bitchord.data.webdav.WebDavAuth.update(
-            webdavUrl.value,
-            webdavUsername.value,
-            webdavPassword.value,
-        )
         pinnedPlaylists.value = readPinnedPlaylists()
         discordToken.value = authStore.discordToken.orEmpty()
         discordUsername.value = prefs.getString(KEY_DISCORD_USERNAME, "").orEmpty()
@@ -1299,7 +1247,7 @@ object AppSettings {
     /**
      * Stored as a joined list of names rather than a string set: a name that
      * no longer exists — a source dropped in a later build — has to fall out
-     * quietly, and the default when nothing has been saved is "all of them",
+     * quietly, and the default when nothing has been saved is the recommended set,
      * which a missing key and an empty set would otherwise be unable to tell
      * apart.
      *
@@ -1313,12 +1261,12 @@ object AppSettings {
      */
     private fun readLyricsSources(): Set<LyricsSource> {
         val stored = prefs.getString(KEY_LYRICS_SOURCES, null)
-            ?: return LyricsSource.offered.toSet()
+            ?: return LyricsSource.defaults.toSet()
         val chosen = stored.split(",").toSources()
         val seen = prefs.getString(KEY_LYRICS_SOURCES_SEEN, null)
             ?.split(",")?.toSources()
             ?: LEGACY_SOURCES
-        return (chosen + LyricsSource.entries.filter { it !in seen }).filterNot { it.hidden }.toSet()
+        return (chosen + LyricsSource.defaults.filter { it !in seen }).filterNot { it.hidden }.toSet()
     }
 
     private fun List<String>.toSources(): Set<LyricsSource> =
@@ -1378,7 +1326,7 @@ object AppSettings {
      * this is "start over on *which* lyrics", not "turn lyrics off".
      */
     fun resetLyricsSourceSettings() {
-        setLyricsSources(LyricsSource.offered.toSet())
+        setLyricsSources(LyricsSource.defaults.toSet())
         setLyricsSourceOrder(LyricsSource.offered)
         setPrioritizeSyllableSync(false)
     }
@@ -1398,10 +1346,6 @@ object AppSettings {
         prefs.edit().putBoolean(KEY_FULL_BLEED_ARTWORK, value).apply()
     }
 
-    fun setLegacyMeshGradient(value: Boolean) {
-        legacyMeshGradient.value = value
-        prefs.edit().putBoolean(KEY_LEGACY_MESH_GRADIENT, value).apply()
-    }
 
     fun setLastPlayerScreen(value: LastPlayerScreen) {
         if (lastPlayerScreen.value == value) return
@@ -1439,7 +1383,7 @@ object AppSettings {
 
     fun setLastfmSessionKey(value: String) {
         lastfmSessionKey.value = value
-        prefs.edit().putString(KEY_LASTFM_SESSION_KEY, value).apply()
+        authStore.lastfmSessionKey = value.ifBlank { null }
     }
 
     fun setLastfmApiKey(value: String) {
@@ -1449,7 +1393,7 @@ object AppSettings {
 
     fun setLastfmSecret(value: String) {
         lastfmSecret.value = value
-        prefs.edit().putString(KEY_LASTFM_SECRET, value).apply()
+        authStore.lastfmSecret = value.ifBlank { null }
     }
 
     fun setLastfmEndpoint(value: String) {
@@ -1643,6 +1587,12 @@ object AppSettings {
         prefs.edit().putString(KEY_DOWNLOADED_MUSIC_VIEW_TYPE, value.name).apply()
     }
 
+    fun setExcludedRecommendationLanguages(codes: Set<String>) {
+        val languages = com.music.bitchord.data.RecommendationLanguages.canonical(codes)
+        excludedRecommendationLanguages.value = languages
+        prefs.edit().putStringSet(KEY_RECOMMENDATION_LANGUAGES, languages).apply()
+    }
+
     fun setHomeRecentsViewType(value: LibraryViewType) {
         homeRecentsViewType.value = value
         prefs.edit().putString(KEY_HOME_RECENTS_VIEW_TYPE, value.name).apply()
@@ -1651,96 +1601,6 @@ object AppSettings {
     fun setLocalMusicFolderUri(value: String) {
         localMusicFolderUri.value = value
         prefs.edit().putString(KEY_LOCAL_MUSIC_FOLDER_URI, value).apply()
-    }
-
-    fun setWebDavUrl(value: String) {
-        val normalized = value.trim().trimEnd('/')
-        webdavUrl.value = normalized
-        prefs.edit().putString(KEY_WEBDAV_URL, normalized).apply()
-        publishWebDavAuth()
-    }
-
-    fun setWebDavUsername(value: String) {
-        val normalized = value.trim()
-        webdavUsername.value = normalized
-        prefs.edit().putString(KEY_WEBDAV_USERNAME, normalized).apply()
-        publishWebDavAuth()
-    }
-
-    /** Writes through to the encrypted store; pass "" to forget. */
-    fun setWebDavPassword(value: String) {
-        webdavPassword.value = value
-        authStore.webdavPassword = value.ifEmpty { null }
-        publishWebDavAuth()
-    }
-
-    fun clearWebDav() {
-        setWebDavUrl("")
-        setWebDavUsername("")
-        setWebDavPassword("")
-    }
-
-    fun setSmbHost(value: String) {
-        val normalized = value.trim()
-        smbHost.value = normalized
-        prefs.edit().putString(KEY_SMB_HOST, normalized).apply()
-        publishSmbAuth()
-    }
-
-    fun setSmbShare(value: String) {
-        val normalized = value.trim().trim('/')
-        smbShare.value = normalized
-        prefs.edit().putString(KEY_SMB_SHARE, normalized).apply()
-        publishSmbAuth()
-    }
-
-    fun setSmbBasePath(value: String) {
-        val normalized = value.trim().trim('/')
-        smbBasePath.value = normalized
-        prefs.edit().putString(KEY_SMB_BASE_PATH, normalized).apply()
-        publishSmbAuth()
-    }
-
-    fun setSmbUsername(value: String) {
-        val normalized = value.trim()
-        smbUsername.value = normalized
-        prefs.edit().putString(KEY_SMB_USERNAME, normalized).apply()
-        publishSmbAuth()
-    }
-
-    /** Writes through to the encrypted store; pass "" to forget. */
-    fun setSmbPassword(value: String) {
-        smbPassword.value = value
-        authStore.smbPassword = value.ifEmpty { null }
-        publishSmbAuth()
-    }
-
-    fun clearSmb() {
-        setSmbHost("")
-        setSmbShare("")
-        setSmbBasePath("")
-        setSmbUsername("")
-        setSmbPassword("")
-    }
-
-    private fun publishSmbAuth() {
-        if (!this::prefs.isInitialized || !this::authStore.isInitialized) return
-        com.music.bitchord.data.smb.SmbAuth.update(
-            smbHost.value,
-            smbShare.value,
-            smbBasePath.value,
-            smbUsername.value,
-            smbPassword.value,
-        )
-    }
-
-    private fun publishWebDavAuth() {
-        if (!this::prefs.isInitialized || !this::authStore.isInitialized) return
-        com.music.bitchord.data.webdav.WebDavAuth.update(
-            webdavUrl.value,
-            webdavUsername.value,
-            webdavPassword.value,
-        )
     }
 
     private fun readLocalMusicSort(key: String): LocalMusicSort =
@@ -1816,7 +1676,7 @@ object AppSettings {
      */
     fun exportPrefs(): Map<String, Any?> {
         if (!this::prefs.isInitialized) return emptyMap()
-        return prefs.all.filterKeys { it !in SECRETS && it !in DEVICE_LOCAL }
+        return prefs.all.filterKeys { it !in SECRETS && it !in DEVICE_LOCAL && !RetiredSettings.isRetired(it) }
     }
 
     /**
@@ -1833,7 +1693,7 @@ object AppSettings {
         val kept = prefs.all.filterKeys { it in SECRETS || it in DEVICE_LOCAL }
         prefs.edit().apply {
             clear()
-            val incoming = values.filterKeys { it !in SECRETS && it !in DEVICE_LOCAL }
+            val incoming = values.filterKeys { it !in SECRETS && it !in DEVICE_LOCAL && !RetiredSettings.isRetired(it) }
             (kept + incoming).forEach { (key, value) ->
                 when (value) {
                     is Boolean -> putBoolean(key, value)
@@ -1929,6 +1789,7 @@ object AppSettings {
     private const val KEY_SPEED = "playback_speed"
     private const val KEY_THEME = "theme_mode"
     private const val KEY_AUTOPLAY = "autoplay"
+    private const val KEY_RECOMMENDATION_LANGUAGES = "excluded_recommendation_languages"
     private const val KEY_SHUFFLE_ENABLED = "shuffle_enabled"
     private const val KEY_REPEAT_MODE = "repeat_mode"
     private const val KEY_NERD_STATS = "show_nerd_stats"
@@ -1951,7 +1812,6 @@ object AppSettings {
     private const val KEY_ANIMATED_CANVAS = "animated_canvas"
     private const val KEY_CANVAS_OVER_CELLULAR = "canvas_over_cellular"
     private const val KEY_FULL_BLEED_ARTWORK = "full_bleed_artwork"
-    private const val KEY_LEGACY_MESH_GRADIENT = "legacy_mesh_gradient"
     private const val KEY_LAST_PLAYER_SCREEN = "last_player_screen"
     private const val KEY_SYNCED_LYRICS = "synced_lyrics"
     private const val KEY_LYRICS_SOURCES = "lyrics_sources"
@@ -1970,12 +1830,6 @@ object AppSettings {
     private const val KEY_DOWNLOADED_MUSIC_VIEW_TYPE = "downloaded_music_view_type"
     private const val KEY_HOME_RECENTS_VIEW_TYPE = "home_recents_view_type"
     private const val KEY_LOCAL_MUSIC_FOLDER_URI = "local_music_folder_uri"
-    private const val KEY_WEBDAV_URL = "webdav_url"
-    private const val KEY_WEBDAV_USERNAME = "webdav_username"
-    private const val KEY_SMB_HOST = "smb_host"
-    private const val KEY_SMB_SHARE = "smb_share"
-    private const val KEY_SMB_BASE_PATH = "smb_base_path"
-    private const val KEY_SMB_USERNAME = "smb_username"
     private const val KEY_PINNED_PLAYLISTS = "pinned_playlists"
 
     private const val KEY_LASTFM_ENABLED = "lastfm_enabled"

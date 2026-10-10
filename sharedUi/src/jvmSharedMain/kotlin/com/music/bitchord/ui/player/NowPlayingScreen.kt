@@ -752,6 +752,11 @@ fun NowPlayingScreen(
     // every surface below reads the same value rather than each triggering
     // its own extraction.
     val remoteArt = rememberRemoteArtworkUrl(song)
+    var artworkOpen by remember(remoteArt) { mutableStateOf(false) }
+    if (artworkOpen && remoteArt != null) {
+        PlayerPlatform.host.ArtworkViewer(remoteArt, song?.title.orEmpty()) { artworkOpen = false }
+    }
+
     // This is produced by the palette's existing 128 px decode and cache. It
     // samples the upper band rather than the whole sleeve because that is what
     // lies beneath the status bar when the player expands to full bleed.
@@ -830,15 +835,9 @@ fun NowPlayingScreen(
     // frame of the fade, and the still art it governs is an AsyncImage whose
     // request is rebuilt on each pass and so would not be skipped.
     val canvasCover = remember(canvas?.url) { mutableFloatStateOf(0f) }
-    // v1.5's backdrop, kept behind a switch — see [PlayerSettings.legacyMeshGradient].
-    val legacyMesh by PlayerSettings.legacyMeshGradient.collectAsStateWithLifecycle()
     // The backdrop's colours, taken off the artwork's own arrangement rather
     // than quantised out of it — see [ArtworkMesh].
     //
-    // Only read for the backdrop that uses it. Each of these keeps a decode and
-    // a pixel readback of its own on every track change, and the two answer the
-    // same picture in two different ways, so whichever is not on screen is pure
-    // cost — the legacy path pays [rememberArtworkColors] instead.
     // Asked of every non-Spotify clip — see CanvasArtworkPlayer's
     // refreshFrameEveryMs. Spotify now occupies the full phone screen and has no
     // frame-derived backdrop to re-tint; other providers retain that treatment.
@@ -1332,10 +1331,7 @@ fun NowPlayingScreen(
     LaunchedEffect(spotifyCanvasPresentation, mixing) {
         if (spotifyCanvasPresentation && mixing) spotifyCanvasControlsOpen = true
     }
-    // Portrait clips always use the existing artwork mesh, even if the user
-    // selected the legacy backdrop for ordinary artwork.
-    val artMesh = if (legacyMesh && !canvasFirstPortrait) null else
-        key(song.videoId) { rememberArtworkMesh(remoteArt, canvasFrame, ART_PX) }
+    val artMesh = key(song.videoId) { rememberArtworkMesh(remoteArt, canvasFrame, ART_PX) }
     // Whether the banner is the presentation at all: full-bleed is on, and there
     // is something to blow out. The collapse is deliberately *not* part of this:
     // the sleeve goes from banner to thumbnail as one movement, rather than the
@@ -1814,12 +1810,13 @@ fun NowPlayingScreen(
                         onCanvasRenderedChange = { canvasRendered = it },
                         // A clip decoding behind a player on its way to the
                         // bar is work nobody sees — see [dockMoving].
-                        pausedForTransition = dockMoving,
+                        pausedForTransition = artworkOpen || dockMoving,
                         sleeveShape = landscapeArtShape,
                         // Let go of on the way to the mini player, whose
                         // cover sits flat in its bar.
                         shadowFraction = dockT,
                         modifier = artworkModifier
+                            .clickable(enabled = remoteArt != null, onClickLabel = "View album artwork") { artworkOpen = true }
                             .then(
                                 if (dock != null) {
                                     Modifier.onGloballyPositioned { dockFrame.landscapeArt = it }
@@ -2079,33 +2076,15 @@ fun NowPlayingScreen(
         // retained layers' alpha changes when a panel opens, so the full-cover
         // blur is neither rebuilt nor switched in on a hard frame boundary.
         // The tablet has no mirrored main-player treatment to crossfade from.
-        // Legacy mesh is the whole backdrop on every page, so the lyrics and
-        // queue panels must not crossfade the blurred artwork over it.
-        val legacyMeshBackdrop = !tabletArtworkBackdrop && !spotifyCanvasPresentation &&
-            legacyMesh && !canvasFirstPortrait
         val fullArtworkBackdropAlpha by animateFloatAsState(
             targetValue = if (
-                !legacyMeshBackdrop &&
                 (tabletArtworkBackdrop || lyricsOpen || queueOpen) &&
                 (tabletArtworkBackdrop || fullArtworkBlurImage != null)
             ) 1f else 0f,
             animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
             label = "fullArtworkBackdropCrossfade",
         )
-        if (legacyMeshBackdrop) {
-            // v1.5's backdrop, restored verbatim: no seam, because the blobs
-            // are not anchored to anything on screen — they fill the player and
-            // the artwork simply sits on top of them. Keyed on the track, so
-            // they drift when the player opens and on every skip, then rest.
-            // Position ticks recompose this screen twice a second and must not
-            // drag a full-screen blur along with them, which is why the palette
-            // is passed as one immutable value.
-            MeshGradientBackground(
-                palette = rememberArtworkColors(remoteArt, canvasFrame),
-                trackKey = song.videoId,
-                modifier = Modifier.graphicsLayer { alpha = 1f - fullArtworkBackdropAlpha },
-            )
-        } else if (!tabletArtworkBackdrop && !spotifyCanvasPresentation) {
+        if (!tabletArtworkBackdrop && !spotifyCanvasPresentation) {
             ArtworkMeshBackdrop(
                 mesh = artMesh,
                 seam = if (canvasFirstPortrait) renderedCanvasBottom else if (heroMode) heroHeight else 0.dp,
@@ -2131,7 +2110,7 @@ fun NowPlayingScreen(
                     // The panels asked first: a collapse a tap asked for is
                     // paused from the tap, and this screen doesn't then listen
                     // for the sleeve's first frame of movement as well.
-                    pausedForTransition = lyricsOpen || queueOpen || queueDragging ||
+                    pausedForTransition = artworkOpen || lyricsOpen || queueOpen || queueDragging ||
                         collapseStarted || dockMoving,
                     // Spotify's 9:16 Canvas is the phone background, so it
                     // covers every edge. Other providers retain the contained
@@ -2845,6 +2824,8 @@ fun NowPlayingScreen(
                                 drawContent()
                             }
                         }
+                        .clickable(enabled = remoteArt != null && !lyricsOpen && !queueOpen,
+                            onClickLabel = "View album artwork", onClick = { artworkOpen = true })
                         .graphicsLayer {
                             // The paused shrink and the swipe nudge belong to
                             // the full card alone. A banner shrinking or sliding
@@ -3037,7 +3018,7 @@ fun NowPlayingScreen(
                                 // The panels first: a collapse the tap asked
                                 // for is paused from the tap, and then never
                                 // asks after its first frame of movement.
-                                pausedForTransition = lyricsOpen || queueOpen || queueDragging ||
+                                pausedForTransition = artworkOpen || lyricsOpen || queueOpen || queueDragging ||
                                     collapseStarted || dockMoving,
                                 onRenderedChanged = { canvasRendered = it },
                                 onFrameCaptured = {

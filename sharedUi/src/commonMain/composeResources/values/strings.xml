@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">Lossless beta: original duration unavailable</string>
     <string name="lossless_beta_ineligible">Lossless beta: requires solo audio on Wi-Fi</string>
     <string name="lossless_beta_unavailable">Lossless beta: source unavailable</string>
+    <string name="home_play_my_mix">Play my mix</string>
+    <string name="home_mix_empty">Add some music to your library to start a mix.</string>
 </resources>

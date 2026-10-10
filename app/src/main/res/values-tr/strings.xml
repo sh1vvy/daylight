@@ -481,7 +481,6 @@
     <string name="sources_order_footer">Bir kaynakta parça yoksa veya ulaşılamıyorsa Daylight bir sonrakini dener. YouTube üzerindeki kaynaklar daha iyi bir sürüm döndürdüklerinde onun kaydının yerini alabilir.</string>
     <string name="sources_order_header">Kaynaklar, bu sırayla denenir</string>
     <string name="sources_quality_capped">Bu bağlantı Yüksek kalitenin altına ayarlandığından, akışlar bu sınıra uyacak şekilde yeniden kodlanır. İndirmeler etkilenmez.</string>
-    <string name="jiosaavn_mismatch_warning">Bir şarkının yanlış sürümünü eşleştirebilir. Riski sana ait olmak üzere etkinleştir.</string>
     <string name="enable_jiosaavn">JioSaavn etkinleştirilsin mi?</string>
     <string name="enable_anyway">Yine de etkinleştir</string>
     <string name="sources_subtitle">Sesin nereden geldiği ve kullanılan sıra</string>
@@ -615,33 +614,6 @@
     <string name="use_all_audio_folders_subtitle">Klasör sınırını kaldırır ve tüm cihazda müzik tarar</string>
     <string name="album">albüm</string>
     <string name="artist">sanatçı</string>
-    <string name="webdav">WebDAV</string>
-    <string name="webdav_subtitle">Sunucundaki müzikler</string>
-    <string name="webdav_not_configured">Kaynaklar bölümünden bir sunucu bağla</string>
-    <string name="webdav_empty">WebDAV sunucusunda ses dosyası bulunamadı. Ayarlar\'daki URL\'yi kontrol et.</string>
-    <string name="webdav_description">Daylight\'u bir WebDAV müzik klasörüne yönlendir — Nextcloud müzik dizinin ya da WebDAV destekleyen herhangi bir sunucu.</string>
-    <string name="webdav_server_url">Sunucu URL\'si</string>
-    <string name="webdav_server_url_hint">https://cloud.example.com/remote.php/dav/files/user/Music</string>
-    <string name="webdav_disconnect">Bağlantıyı kes</string>
-    <string name="webdav_test_failed">Ulaşılamadı: %1$s</string>
-    <string name="upload_to_webdav">WebDAV\'a yükle</string>
-    <string name="webdav_conflict_title">“%1$s” sunucuda zaten var</string>
-    <string name="webdav_conflict_message">Üzerine yazılsın mı, yoksa iki kopya da tutulsun mu?</string>
-    <string name="webdav_overwrite">Üzerine yaz</string>
-    <string name="webdav_keep_both">İkisini de tut</string>
-    <string name="webdav_skip">Atla</string>
-    <string name="webdav_apply_to_all">Tümüne uygula</string>
-    <string name="webdav_upload_summary">%1$d yüklendi · %2$d atlandı · %3$d başarısız</string>
-    <string name="smb">SMB</string>
-    <string name="smb_subtitle">Paylaşılan klasördeki müzikler</string>
-    <string name="smb_not_configured">Kaynaklar bölümünden bir paylaşım bağla</string>
-    <string name="smb_empty">SMB paylaşımında ses dosyası bulunamadı. Kaynaklar\'daki sunucuyu kontrol et.</string>
-    <string name="smb_description">Daylight\'u paylaşılan bir müzik klasörüne yönlendir — SMB kullanan bir NAS ya da Windows paylaşımı.</string>
-    <string name="smb_server_hint">nas.local veya 192.168.1.10:4445</string>
-    <string name="smb_share_hint">Paylaşım adı, ör. Music</string>
-    <string name="smb_folder_hint">Klasör (isteğe bağlı)</string>
-    <string name="smb_disconnect">Bağlantıyı kes</string>
-    <string name="smb_test_failed">Ulaşılamadı: %1$s</string>
     <string name="playlist">çalma listesi</string>
     <string name="playlist_action">Çalma Listesi</string>
     <string name="open">Aç</string>
@@ -840,10 +812,6 @@
     <string name="dolby_atmos_unavailable">Bu cihaz Atmos\'u desteklemiyor, parçalar normal versiyonda çalınacak</string>
 
     <string name="export_compatible_downloads">Uyumlu indirmeleri dışa aktar</string>
-
-    <string name="legacy_mesh_gradient">Klasik ağ gradyanı</string>
-
-    <string name="legacy_mesh_gradient_subtitle">v1.5\'teki oynatıcı arkasındaki akıcı renk geçişlerini geri getirir</string>
 
     <string name="lyrics_debug_logs">Şarkı sözü hata ayıklama günlükleri</string>
 
@@ -1285,4 +1253,26 @@
     <string name="quality_lossless_description">24 bit · 48 kHz’e kadar</string>
     <string name="quality_hi_res_description">Daha yüksek çözünürlüklü ses</string>
     <string name="automix_high_res_unavailable">Yüksek çözünürlüklü kayıpsız seste kullanılamaz</string>
+    <string name="lastfm_setup_pending">Last.fm, Daylight için hazırlanıyor. Gelecek bir sürümde kullanılabilecek.</string>
+    <string name="lastfm_browser_description">Dinleme geçmişini Last.fm’de tutmak için tarayıcında bağlan.</string>
+    <string name="lastfm_browser_return">Tarayıcında Daylight’a izin ver, ardından bağlantıyı tamamlamak için geri dön.</string>
+    <string name="lastfm_open_browser">Last.fm’i aç</string>
+    <string name="lastfm_finish_connecting">Bağlantıyı tamamla</string>
+    <string name="lastfm_disconnect">Last.fm bağlantısını kes</string>
+    <string name="edit_playlist">Çalma listesini düzenle</string>
+    <string name="choose_photo">Fotoğraf seç</string>
+    <string name="reset_playlist_cover">Kapağı sıfırla</string>
+    <string name="playlist_cover_local_note">Özel kapaklar bu cihazda kalır.</string>
+    <string name="playlist_image_error">Bu resim açılamadı. Başka bir fotoğraf deneyin.</string>
+    <string name="playlist_edit_error">Değişiklikler kaydedilemedi. Lütfen tekrar deneyin.</string>
+    <string name="home_play_my_mix">Miksimi çal</string>
+    <string name="home_mix_empty">Bir miks başlatmak için arşivine müzik ekle.</string>
+    <string name="more_by_artist">%1$s tarafından diğer albümler</string>
+    <string name="similar_albums_for_you">Senin için benzer albümler</string>
+    <string name="featured_artists">Çalma listesindeki sanatçılar</string>
+    <string name="recommendation_languages">Öneri dilleri</string>
+    <string name="recommendation_languages_all">Tüm diller</string>
+    <plurals name="recommendation_languages_hidden"><item quantity="one">Gizlenen diller: %1$d</item><item quantity="other">Gizlenen diller: %1$d</item></plurals>
+    <string name="recommendation_languages_hint">Önerilerdeki dilleri gizle. Kaydedilen müzik ve arama kullanılabilir kalır.</string>
+    <string name="recommendation_languages_reset">Tüm dilleri göster</string>
 </resources>

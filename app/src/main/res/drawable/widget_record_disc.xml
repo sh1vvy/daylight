@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A calm, album-free disc until real artwork reaches the shared image cache. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="256dp" android:height="138dp" android:viewportWidth="512" android:viewportHeight="276">
+    <path android:pathData="M0,20 A256,256 0,0 0,512 20 L512,0 L0,0 Z"
+        android:fillColor="@color/widget_material_on_container" />
+    <path android:pathData="M8,20 A248,248 0,0 0,504 20 M44,20 A212,212 0,0 0,468 20 M80,20 A176,176 0,0 0,432 20 M120,20 A136,136 0,0 0,392 20"
+        android:strokeColor="@color/widget_material_wave" android:strokeWidth="1.5" android:fillColor="#00000000" />
+    <path android:pathData="M206,20 A50,50 0,1 0,306 20 A50,50 0,1 0,206 20"
+        android:fillColor="#FFE4E2E6" />
+    <path android:pathData="M221,20 A35,35 0,1 0,291 20 A35,35 0,1 0,221 20"
+        android:fillColor="#FFBCBABE" />
+    <path android:pathData="M247,20 A9,9 0,1 0,265 20 A9,9 0,1 0,247 20"
+        android:fillColor="#FF29262C" />
+</vector>

@@ -438,7 +438,6 @@
     <string name="sources_order_footer">Jika suatu sumber tidak memiliki trek atau tidak dapat dijangkau, Daylight mencoba sumber berikutnya. Sumber di atas YouTube dapat menggantikan rekamannya saat menghasilkan versi yang lebih baik.</string>
     <string name="sources_order_header">Sumber, dicoba dalam urutan ini</string>
     <string name="sources_quality_capped">Koneksi ini diatur di bawah Kualitas tinggi, sehingga stream ditranskode agar sesuai dengan batas tersebut. Unduhan tidak terpengaruh.</string>
-    <string name="jiosaavn_mismatch_warning">Bisa mencocokkan versi lagu yang salah. Aktifkan dengan risiko sendiri.</string>
     <string name="enable_jiosaavn">Aktifkan JioSaavn?</string>
     <string name="enable_anyway">Tetap aktifkan</string>
     <string name="sources_subtitle">Dari mana audio berasal dan urutan yang digunakan</string>
@@ -567,33 +566,6 @@
     <string name="use_all_audio_folders_subtitle">Menghapus batas folder dan memindai musik di seluruh perangkat</string>
     <string name="album">album</string>
     <string name="artist">artis</string>
-    <string name="webdav">WebDAV</string>
-    <string name="webdav_subtitle">Musik di server kamu</string>
-    <string name="webdav_not_configured">Hubungkan server di Sumber</string>
-    <string name="webdav_empty">Tidak ada file audio di server WebDAV. Periksa URL di Setelan.</string>
-    <string name="webdav_description">Arahkan Daylight ke folder musik WebDAV — direktori Musik Nextcloud kamu atau server apa pun yang mendukung WebDAV.</string>
-    <string name="webdav_server_url">URL server</string>
-    <string name="webdav_server_url_hint">https://cloud.example.com/remote.php/dav/files/user/Music</string>
-    <string name="webdav_disconnect">Putuskan</string>
-    <string name="webdav_test_failed">Tidak bisa dijangkau: %1$s</string>
-    <string name="upload_to_webdav">Unggah ke WebDAV</string>
-    <string name="webdav_conflict_title">“%1$s” sudah ada di server</string>
-    <string name="webdav_conflict_message">Timpa, atau simpan kedua salinan?</string>
-    <string name="webdav_overwrite">Timpa</string>
-    <string name="webdav_keep_both">Simpan keduanya</string>
-    <string name="webdav_skip">Lewati</string>
-    <string name="webdav_apply_to_all">Terapkan ke semua</string>
-    <string name="webdav_upload_summary">%1$d terunggah · %2$d dilewati · %3$d gagal</string>
-    <string name="smb">SMB</string>
-    <string name="smb_subtitle">Musik di folder berbagi</string>
-    <string name="smb_not_configured">Hubungkan folder berbagi di Sumber</string>
-    <string name="smb_empty">Tidak ada file audio di folder berbagi SMB. Periksa server di Sumber.</string>
-    <string name="smb_description">Arahkan Daylight ke folder musik bersama — NAS atau folder berbagi Windows lewat SMB.</string>
-    <string name="smb_server_hint">nas.local or 192.168.1.10:4445</string>
-    <string name="smb_share_hint">Nama share, mis. Music</string>
-    <string name="smb_folder_hint">Folder (opsional)</string>
-    <string name="smb_disconnect">Putuskan</string>
-    <string name="smb_test_failed">Tidak bisa dijangkau: %1$s</string>
     <string name="playlist">playlist</string>
     <string name="open">Buka</string>
     <string name="open_playlist">Buka playlist</string>
@@ -823,10 +795,6 @@
     <string name="dolby_atmos_unavailable">Perangkat ini tidak mendukung Atmos, lagu diputar dalam versi standar</string>
 
     <string name="export_compatible_downloads">Ekspor unduhan yang kompatibel</string>
-
-    <string name="legacy_mesh_gradient">Gradien mesh klasik</string>
-
-    <string name="legacy_mesh_gradient_subtitle">Kembalikan efek warna mengalir di belakang pemutar dari v1.5</string>
 
     <string name="liquid_glass">Kaca Cair</string>
 
@@ -1305,4 +1273,26 @@
     <string name="quality_lossless_description">24-bit · hingga 48 kHz</string>
     <string name="quality_hi_res_description">Audio beresolusi lebih tinggi</string>
     <string name="automix_high_res_unavailable">Tidak tersedia dengan Lossless Resolusi Tinggi</string>
+    <string name="lastfm_setup_pending">Last.fm sedang disiapkan untuk Daylight dan akan tersedia pada versi mendatang.</string>
+    <string name="lastfm_browser_description">Hubungkan melalui browser untuk menyimpan riwayat mendengarkan di Last.fm.</string>
+    <string name="lastfm_browser_return">Izinkan Daylight di browser, lalu kembali untuk menyelesaikan koneksi.</string>
+    <string name="lastfm_open_browser">Buka Last.fm</string>
+    <string name="lastfm_finish_connecting">Selesaikan koneksi</string>
+    <string name="lastfm_disconnect">Putuskan Last.fm</string>
+    <string name="edit_playlist">Edit playlist</string>
+    <string name="choose_photo">Pilih foto</string>
+    <string name="reset_playlist_cover">Reset sampul</string>
+    <string name="playlist_cover_local_note">Sampul khusus tetap di perangkat ini.</string>
+    <string name="playlist_image_error">Gambar tidak dapat dibuka. Coba foto lain.</string>
+    <string name="playlist_edit_error">Perubahan tidak dapat disimpan. Coba lagi.</string>
+    <string name="home_play_my_mix">Putar mix saya</string>
+    <string name="home_mix_empty">Tambahkan musik ke koleksi untuk memulai mix.</string>
+    <string name="more_by_artist">Lainnya dari %1$s</string>
+    <string name="similar_albums_for_you">Album serupa untukmu</string>
+    <string name="featured_artists">Artis dalam playlist</string>
+    <string name="recommendation_languages">Bahasa rekomendasi</string>
+    <string name="recommendation_languages_all">Semua bahasa</string>
+    <plurals name="recommendation_languages_hidden"><item quantity="one">Bahasa disembunyikan: %1$d</item><item quantity="other">Bahasa disembunyikan: %1$d</item></plurals>
+    <string name="recommendation_languages_hint">Sembunyikan bahasa dari rekomendasi. Musik tersimpan dan pencarian tetap tersedia.</string>
+    <string name="recommendation_languages_reset">Tampilkan semua bahasa</string>
 </resources>

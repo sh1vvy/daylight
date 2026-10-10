@@ -51,73 +51,48 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun LastfmLoginAlert(
     hazeState: HazeState,
-    usernameInput: String,
-    onUsernameInputChange: (String) -> Unit,
-    passwordInput: String,
-    onPasswordInputChange: (String) -> Unit,
+    configured: Boolean,
+    awaitingApproval: Boolean,
     error: String?,
     loading: Boolean,
-    onSignIn: () -> Unit,
+    onOpenBrowser: () -> Unit,
+    onFinish: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 19.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+        Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Last.fm", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
             Text(
-                text = stringResource(R.string.lastfm_login),
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.W600),
-                color = MaterialTheme.colorScheme.onSurface,
+                text = error ?: stringResource(when {
+                    !configured -> R.string.lastfm_setup_pending
+                    awaitingApproval -> R.string.lastfm_browser_return
+                    else -> R.string.lastfm_browser_description
+                }),
+                modifier = Modifier.padding(top = 8.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-            )
-            Text(
-                text = error ?: stringResource(R.string.lastfm_login_description),
-                modifier = Modifier.padding(top = 4.dp, bottom = 14.dp),
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 17.sp),
-                color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-            )
-            PillTextField(
-                value = usernameInput,
-                onValueChange = onUsernameInputChange,
-                placeholder = stringResource(R.string.username),
-                enabled = !loading,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            )
-            Spacer(Modifier.height(8.dp))
-            PillTextField(
-                value = passwordInput,
-                onValueChange = onPasswordInputChange,
-                placeholder = stringResource(R.string.password),
-                enabled = !loading,
-                isPassword = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(
-                    onDone = { if (usernameInput.isNotBlank() && passwordInput.isNotBlank()) onSignIn() },
-                ),
             )
         }
+        if (configured) {
+            AlertRule()
+            AlertAction(
+                label = stringResource(if (loading) R.string.signing_in else if (awaitingApproval) R.string.lastfm_finish_connecting else R.string.lastfm_open_browser),
+                emphasised = true,
+                enabled = !loading,
+                onClick = if (awaitingApproval) onFinish else onOpenBrowser,
+            )
+            if (awaitingApproval) {
+                AlertRule()
+                AlertAction(label = stringResource(R.string.lastfm_open_browser), emphasised = false,
+                    enabled = !loading, onClick = onOpenBrowser)
+            }
+        }
         AlertRule()
-        AlertAction(
-            label = if (loading) stringResource(R.string.signing_in) else stringResource(R.string.sign_in),
-            emphasised = true,
-            onClick = onSignIn,
-            enabled = !loading && usernameInput.isNotBlank() && passwordInput.isNotBlank(),
-        )
-        AlertRule()
-        AlertAction(
-            label = stringResource(R.string.cancel),
-            emphasised = false,
-            onClick = onDismiss,
-            enabled = !loading,
-        )
+        AlertAction(label = stringResource(R.string.cancel), emphasised = false, onClick = onDismiss)
     }
 }
 
@@ -372,112 +347,6 @@ fun ServerEditorAlert(
     }
 }
 
-/**
- * One field of a hosted server editor: the saved value it opens with, the
- * hint, and how the keyboard behaves on it.
- */
-data class FieldConfig(
-    val initial: String,
-    val placeholder: String,
-    val keyboardType: KeyboardType = KeyboardType.Text,
-    val isPassword: Boolean = false,
-)
-
-/**
- * A server editor that owns its own state: field values, the last test
- * result and the testing flag. The caller hands over fixed field configs
- * plus what test and save mean for those values, and gets back the same
- * frosted card as [ServerEditorAlert] — without the dozen remembered states
- * each host otherwise repeats.
- *
- * The configs are fixed per call site, so remembering once per opening is
- * sound; the host leaves composition on dismiss, which is when the next
- * opening starts over from the saved values.
- */
-@OptIn(ExperimentalHazeMaterialsApi::class)
-@Composable
-fun ServerEditorHost(
-    hazeState: HazeState,
-    title: String,
-    description: String,
-    fields: List<FieldConfig>,
-    canSubmit: (List<String>) -> Boolean,
-    testFailedRes: Int,
-    onTest: suspend (List<String>) -> Result<Unit>,
-    onSave: (List<String>) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val states = remember { fields.map { mutableStateOf(it.initial) } }
-    var status by remember { mutableStateOf<String?>(null) }
-    var statusIsGood by remember { mutableStateOf(false) }
-    var testing by remember { mutableStateOf(false) }
-    val values = states.map { it.value }
-    ServerEditorAlert(
-        hazeState = hazeState,
-        title = title,
-        description = description,
-        fields = fields.mapIndexed { index, field ->
-            EditorField(
-                value = states[index].value,
-                onChange = { states[index].value = it; status = null },
-                placeholder = field.placeholder,
-                keyboardType = field.keyboardType,
-                isPassword = field.isPassword,
-            )
-        },
-        status = status,
-        statusIsGood = statusIsGood,
-        testing = testing,
-        canSubmit = canSubmit(values),
-        onTest = {
-            testing = true
-            status = null
-            scope.launch {
-                onTest(values).fold(
-                    onSuccess = {
-                        status = context.getString(R.string.connected)
-                        statusIsGood = true
-                    },
-                    onFailure = {
-                        status = context.getString(
-                            testFailedRes,
-                            it.message ?: context.getString(R.string.failed),
-                        )
-                        statusIsGood = false
-                    },
-                )
-                testing = false
-            }
-        },
-        onSave = { onSave(values) },
-        onDismiss = onDismiss,
-    )
-}
-
-/**
- * Add or edit a source that has an address — the addon editor.
- *
- * The same frosted card every other alert in this app uses, rather than the
- * Material `AlertDialog` this replaced. That one put a filled `OutlinedTextField`
- * and a row of cramped text buttons in the middle of a screen where nothing
- * else looks like that, and it read as a stock widget dropped into somebody
- * else's design.
- *
- * One field and up to four stacked actions. There is deliberately no name
- * field: an addon states its own name in its manifest, so asking the user to
- * invent one is asking for information the addon is about to supply anyway —
- * and a blank field would leave the row showing a bare hostname next to a
- * perfectly good published name.
- *
- * [status] is the one thing here that no other alert in the file needs:
- * testing an address has *three* outcomes rather than the usual two, and "it
- * answered, but not with something this app can use" is the one worth reading
- * — so a result replaces the description in place, coloured by [statusIsGood],
- * the way [LastfmLoginAlert] surfaces a failed sign-in.
- */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun AddonEditorAlert(
     hazeState: HazeState,
@@ -528,79 +397,6 @@ fun AddonEditorAlert(
         onRemove = onRemove,
         onDismiss = onDismiss,
     )
-}
-
-/**
- * A name clash mid-upload: the server already holds a file under the name a
- * track would land as.
- *
- * Three stacked outcomes rather than a yes/no — overwriting destroys the
- * server copy, so the non-destructive answer leads as the emphasised action.
- * [showApplyToAll] is only true mid-batch, where one answer can carry every
- * clash still queued behind this one.
- */
-@OptIn(ExperimentalHazeMaterialsApi::class)
-@Composable
-fun WebDavConflictAlert(
-    hazeState: HazeState,
-    fileName: String,
-    showApplyToAll: Boolean,
-    applyToAll: Boolean,
-    onApplyToAllChange: (Boolean) -> Unit,
-    onOverwrite: () -> Unit,
-    onKeepBoth: () -> Unit,
-    onSkip: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 19.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = stringResource(R.string.webdav_conflict_title, fileName),
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.W600),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = stringResource(R.string.webdav_conflict_message),
-                modifier = Modifier.padding(top = 4.dp, bottom = 14.dp),
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 17.sp),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-            )
-        }
-        AlertRule()
-        AlertAction(
-            label = stringResource(R.string.webdav_keep_both),
-            emphasised = true,
-            onClick = onKeepBoth,
-        )
-        AlertRule()
-        AlertAction(
-            label = stringResource(R.string.webdav_overwrite),
-            emphasised = false,
-            onClick = onOverwrite,
-        )
-        AlertRule()
-        AlertAction(
-            label = stringResource(R.string.webdav_skip),
-            emphasised = false,
-            onClick = onSkip,
-        )
-        if (showApplyToAll) {
-            AlertRule()
-            ChoiceRow(
-                label = stringResource(R.string.webdav_apply_to_all),
-                detail = null,
-                checked = applyToAll,
-                onClick = { onApplyToAllChange(!applyToAll) },
-            )
-        }
-    }
 }
 
 /**

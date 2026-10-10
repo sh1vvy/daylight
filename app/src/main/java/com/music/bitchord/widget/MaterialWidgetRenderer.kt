@@ -32,7 +32,7 @@ internal object MaterialWidgetRenderer {
 
     fun forget(ids: IntArray) { ids.forEach(generations::remove) }
 
-    fun renderAsync(context: Context, ids: IntArray, fallbackWidth: Float, pill: Boolean, finish: () -> Unit = {}): Job {
+    fun renderAsync(context: Context, ids: IntArray, fallbackWidth: Float, pill: Boolean, record: Boolean = false, finish: () -> Unit = {}): Job {
         val app = context.applicationContext
         // Reserve versions before dispatch, so a slow old fetch cannot overwrite a new pause/track/resize.
         val version = sequence.incrementAndGet()
@@ -41,11 +41,13 @@ internal object MaterialWidgetRenderer {
             try {
                 val manager = AppWidgetManager.getInstance(app)
                 val snapshot = MediaWidgetSnapshot.load(app)
-                val cached = MediaWidgetArt.peek(snapshot.artworkUrl)
-                push(app, manager, ids, version, snapshot, cached, fallbackWidth, pill)
+                val cached = if (record) RecordWidgetArt.peek(snapshot.artworkUrl) else MediaWidgetArt.peek(snapshot.artworkUrl)
+                push(app, manager, ids, version, snapshot, cached, fallbackWidth, pill, record)
                 if (cached == null && !snapshot.artworkUrl.isNullOrBlank()) {
-                    val cover = withTimeoutOrNull(6_000L) { MediaWidgetArt.cover(app, snapshot.artworkUrl) }
-                    if (cover != null) push(app, manager, ids, version, snapshot, cover, fallbackWidth, pill)
+                    val cover = withTimeoutOrNull(6_000L) {
+                        if (record) RecordWidgetArt.cover(app, snapshot.artworkUrl) else MediaWidgetArt.cover(app, snapshot.artworkUrl)
+                    }
+                    if (cover != null) push(app, manager, ids, version, snapshot, cover, fallbackWidth, pill, record)
                 }
             } catch (e: Exception) {
                 Log.w("DaylightWidget", "Unable to update widgets", e)
@@ -69,6 +71,8 @@ internal object MaterialWidgetRenderer {
                     val ids = manager.getAppWidgetIds(ComponentName(app, provider))
                     if (ids.isNotEmpty()) renders += renderAsync(app, ids, fallback, pill)
                 }
+                val recordIds = manager.getAppWidgetIds(ComponentName(app, MediaWidgetRecord::class.java))
+                if (recordIds.isNotEmpty()) renders += renderAsync(app, recordIds, 160f, pill = false, record = true)
                 renders.joinAll()
             } catch (e: Exception) {
                 Log.w("DaylightWidget", "Unable to refresh widgets", e)
@@ -80,14 +84,17 @@ internal object MaterialWidgetRenderer {
 
     private fun push(
         context: Context, manager: AppWidgetManager, ids: IntArray, version: Long,
-        snapshot: MediaWidgetSnapshot, cover: Bitmap?, fallbackWidth: Float, pill: Boolean,
+        snapshot: MediaWidgetSnapshot, cover: Bitmap?, fallbackWidth: Float, pill: Boolean, record: Boolean,
     ) {
         for (id in ids) {
             if (generations[id] != version) continue
             val remoteViews = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 // The launcher switches these in portrait/landscape and while resizing without
-                // waking the app. One 256px bitmap object is shared by every branch of the map.
-                val sizes = if (pill) listOf(
+                // waking the app. One small artwork bitmap is shared by every branch of the map.
+                val sizes = if (record) listOf(
+                    SizeF(110f, 110f), SizeF(130f, 160f), SizeF(160f, 160f),
+                    SizeF(180f, 200f), SizeF(260f, 110f), SizeF(260f, 200f),
+                ) else if (pill) listOf(
                     SizeF(180f, 56f), SizeF(240f, 56f), SizeF(340f, 56f),
                     SizeF(460f, 56f), SizeF(260f, 96f),
                     SizeF(180f, 190f), SizeF(260f, 190f), SizeF(300f, 190f),
@@ -95,9 +102,10 @@ internal object MaterialWidgetRenderer {
                     SizeF(110f, 110f), SizeF(164f, 110f), SizeF(260f, 110f),
                     SizeF(110f, 190f), SizeF(164f, 190f), SizeF(260f, 190f), SizeF(300f, 190f),
                 )
-                RemoteViews(sizes.associateWith { size -> views(context, snapshot, cover, size, pill) })
+                RemoteViews(sizes.associateWith { size -> if (record) recordViews(context, snapshot, cover, size) else views(context, snapshot, cover, size, pill) })
             } else {
-                views(context, snapshot, cover, measuredSize(context, manager, id, fallbackWidth, pill), pill)
+                val size = measuredSize(context, manager, id, fallbackWidth, pill, record)
+                if (record) recordViews(context, snapshot, cover, size) else views(context, snapshot, cover, size, pill)
             }
             // The artwork wait above can overlap a newer state; validate immediately before IPC.
             if (generations[id] != version) continue
@@ -106,12 +114,27 @@ internal object MaterialWidgetRenderer {
         }
     }
 
-    private fun measuredSize(context: Context, manager: AppWidgetManager, id: Int, fallback: Float, pill: Boolean): SizeF {
+    private fun measuredSize(context: Context, manager: AppWidgetManager, id: Int, fallback: Float, pill: Boolean, record: Boolean): SizeF {
         val options = manager.getAppWidgetOptions(id)
         val landscape = context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         val width = options.getInt(if (landscape) AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH else AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
         val height = options.getInt(if (landscape) AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT else AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT)
-        return SizeF(width.takeIf { it > 0 }?.toFloat() ?: fallback, height.takeIf { it > 0 }?.toFloat() ?: if (pill) 96f else 190f)
+        return SizeF(width.takeIf { it > 0 }?.toFloat() ?: fallback,
+            height.takeIf { it > 0 }?.toFloat() ?: if (record) 160f else if (pill) 96f else 190f)
+    }
+
+    internal fun recordViews(context: Context, snapshot: MediaWidgetSnapshot, cover: Bitmap?, size: SizeF): RemoteViews {
+        val views = RecordWidgetRenderer.views(context, snapshot, cover, size)
+        val open = openPlayer(context)
+        views.setOnClickPendingIntent(android.R.id.background, open)
+        views.setOnClickPendingIntent(R.id.widget_root, open)
+        bindControl(views, context, R.id.widget_toggle, MediaWidgetActions.ACTION_TOGGLE, snapshot, true, open,
+            context.getString(if (!snapshot.hasTrack) R.string.widget_open_bitchord else if (snapshot.isPlaying) R.string.widget_pause else R.string.widget_play))
+        bindControl(views, context, R.id.widget_previous, MediaWidgetActions.ACTION_PREVIOUS, snapshot, snapshot.hasPrevious, open,
+            context.getString(R.string.widget_previous))
+        bindControl(views, context, R.id.widget_next, MediaWidgetActions.ACTION_NEXT, snapshot, snapshot.hasNext, open,
+            context.getString(R.string.widget_next))
+        return views
     }
 
     private fun views(context: Context, snapshot: MediaWidgetSnapshot, cover: Bitmap?, size: SizeF, pill: Boolean): RemoteViews {

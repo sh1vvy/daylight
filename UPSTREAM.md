@@ -14,5 +14,6 @@ Daylight updates use its own repository. The upstream party server, presence rep
 
 - BitChord — Kushagra Singh and contributors.
 - Lyrics animation — binimum.
+- Spring-following lyric motion — adapted from [Accompanist Lyrics UI](https://github.com/6xingyv/accompanist-lyrics-ui), maintained by 6xingyv (Simon Scholz), under [Apache-2.0](docs/licenses/Accompanist-Lyrics-UI-Apache-2.0.txt). Daylight adaptation dated 10 October 2026.
 - Lyrics providers inherited from BitChord — lrc.red, BiniLyrics, BetterLyrics, PaxSenix, LyricsPlus, SimpMusic, Unison, Megalobiz, KuGou, LRCLIB, Musixmatch, and Genius.
 - Other dependency licenses and credits are retained in the source and Git history.

@@ -369,28 +369,8 @@ private const val SCROLL_LEAD_MAX_MS = 500L
 private val LYRIC_EASING = CubicBezierEasing(0.41f, 0f, 0.12f, 0.99f)
 private const val LYRIC_SETTLE_MS = 400
 
-/**
- * How the rows fan out as the panel moves between lines.
- *
- * They do not travel as a block. Each row after the one being scrolled to sets
- * off slightly later than the row before it, up to a few rows back, so the
- * spacing opens as the panel leaves and closes as it arrives. A block of text
- * sliding rigidly is a list being scrolled; the same lines arriving one behind
- * another is the panel handing over.
- *
- * Deliberately under half of what the renderer this came from uses. Its lines
- * carry the whole scroll themselves, so a long delay only means arriving late;
- * here the list has already moved underneath them, and the same delay reads as
- * the rows being dragged rather than following.
- */
-private const val STAGGER_STEPS = 3
-private const val STAGGER_FRACTION = 0.06f
-
-/** One handover: how far the panel is going, and how long it is taking. */
-private class ScrollRun(val id: Int, val delta: Float, val durationMs: Int) {
-    /** The last row to arrive does so this long after the panel sets off. */
-    val spanMs: Float get() = durationMs * (1f + STAGGER_FRACTION * STAGGER_STEPS)
-}
+/** One automatic handover, shared by the list and its bounded spring trail. */
+private class ScrollRun(val id: Int, val delta: Float, val durationMs: Int)
 
 /**
  * How long before a line lands the panel starts moving to it — and how long
@@ -1548,6 +1528,7 @@ internal fun LyricsPanel(
     onTogglePick: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val foreground = rememberIsForeground()
     val panelPlaying = isPlaying && active
     val clock = rememberLyricClock(trackKey, playhead, panelPlaying)
     val subReveal = rememberSubLyricsReveal(subLines, trackKey)
@@ -1675,13 +1656,26 @@ internal fun LyricsPanel(
     // Animatable is sixty animations to start and stop on every handover.
     var run by remember(lines) { mutableStateOf(ScrollRun(0, 0f, LYRIC_SETTLE_MS)) }
     val since = remember(lines) { mutableFloatStateOf(0f) }
-    LaunchedEffect(run.id) {
-        if (run.id == 0) return@LaunchedEffect
-        animate(
-            initialValue = 0f,
-            targetValue = run.spanMs,
-            animationSpec = tween(run.spanMs.toInt(), easing = LinearEasing),
-        ) { value, _ -> since.floatValue = value }
+    val springTrail = remember(lines) { LyricSpringTrail() }
+    LaunchedEffect(run.id, browsing, reduceAnimation, active, foreground) {
+        if (run.id == 0 || browsing || reduceAnimation || !active || !foreground) {
+            springTrail.clear(); since.floatValue = 0f
+            return@LaunchedEffect
+        }
+        springTrail.begin(run.delta)
+        var start = 0L
+        var previous = 0L
+        do {
+            androidx.compose.runtime.withFrameNanos { frame ->
+                if (start == 0L) { start = frame; previous = frame }
+                val elapsed = (frame - start) / 1_000_000f
+                val target = run.delta * LYRIC_EASING.transform((elapsed / run.durationMs).coerceIn(0f, 1f))
+                springTrail.step(target, ((frame - previous) / 1_000_000_000f).coerceAtLeast(0.001f))
+                previous = frame
+                since.floatValue = elapsed
+            }
+        } while (since.floatValue < run.durationMs || (!springTrail.settled() && since.floatValue < 2400f))
+        springTrail.clear(); since.floatValue = -1f
     }
     // Keyed to the track, not to [lines]: toggling the translation replaces
     // every line while the reader's place in the song is unchanged, and a reset
@@ -1695,7 +1689,7 @@ internal fun LyricsPanel(
     // browse on their own terms.
     // A newer line replaces an unfinished automatic scroll. Only a user's
     // browsing gesture should suspend following, not our own animation.
-    LaunchedEffect(focusLine, browsing, controlsOpen, active) {
+    LaunchedEffect(focusLine, browsing, controlsOpen, active, reduceAnimation) {
         if (active && isSynced && !browsing &&
             focusLine >= 0 && focusLine in lines.indices
         ) {
@@ -1703,7 +1697,7 @@ internal fun LyricsPanel(
             // Keep the same top anchor whether the playback controls are visible or hidden.
             val visible = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == focusLine }
             when {
-                !placed -> {
+                (!placed || reduceAnimation) -> {
                     listState.scrollToItem(focusLine, scrollOffset = 0)
                     placed = true
                 }
@@ -1725,8 +1719,11 @@ internal fun LyricsPanel(
                 }
                 // Somewhere off screen — after a seek, or a long instrumental
                 // scrolled past. How far is not known without laying the rows
-                // out, so this hands back to the list's own staged scroll.
-                else -> listState.animateScrollToItem(focusLine, scrollOffset = 0)
+                // out, so place the new anchor directly and clear any old trail.
+                else -> {
+                    springTrail.clear()
+                    listState.scrollToItem(focusLine, scrollOffset = 0)
+                }
             }
         }
     }
@@ -1960,8 +1957,6 @@ internal fun LyricsPanel(
                 // Rows behind the one being scrolled to are the ones that
                 // fan out; the ones it is moving away from arrive together.
                 val behind = if (run.delta >= 0f) index - focusLine else focusLine - index
-                val staggerDelay = behind.coerceIn(0, STAGGER_STEPS) *
-                    STAGGER_FRACTION * run.durationMs
                 val interaction = remember { MutableInteractionSource() }
                 val pressed by interaction.collectIsPressedAsState()
                 val scale by animateFloatAsState(
@@ -2011,19 +2006,9 @@ internal fun LyricsPanel(
                         // Rows with nothing to catch up on never read the clock
                         // at all, so a handover only invalidates the handful of
                         // layers that are actually fanning out.
-                        translationY = if (staggerDelay <= 0f) {
-                            0f
-                        } else {
-                            val elapsed = since.floatValue
-                            run.delta * (
-                                LYRIC_EASING.transform(
-                                    (elapsed / run.durationMs).coerceIn(0f, 1f),
-                                ) - LYRIC_EASING.transform(
-                                    ((elapsed - staggerDelay) / run.durationMs)
-                                        .coerceIn(0f, 1f),
-                                )
-                                )
-                        }
+                        translationY = if (reduceAnimation || browsing || since.floatValue < 0f) 0f
+                            else springTrail.offset(behind)
+
                     }
                     .blur(blur, BlurredEdgeTreatment.Unbounded)
                     .clip(RoundedCornerShape(10.dp))

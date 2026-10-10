@@ -58,7 +58,7 @@ import com.music.bitchord.data.stats.ReplayPeriod
 import com.music.bitchord.data.stats.ReplaySummary
 import com.music.bitchord.ui.components.PAGE_GUTTER
 import com.music.bitchord.ui.icons.BitChordIcons
-import com.music.bitchord.ui.player.MeshGradientBackground
+import com.music.bitchord.ui.player.ArtworkColorBackdrop
 import com.music.bitchord.ui.player.rememberArtworkColors
 import com.music.bitchord.ui.theme.AccentRed
 
@@ -130,7 +130,7 @@ fun ReplayScreen(
     }
 
     Box(modifier.fillMaxSize()) {
-        MeshGradientBackground(palette = palette, trackKey = leadArtwork, animated = false)
+        ArtworkColorBackdrop(palette = palette, trackKey = leadArtwork, animated = false)
         // The mesh is built to sit behind a player, where the only thing over it
         // is a handful of large controls. A page of ranked lists needs a good
         // deal more separation than that, so most of it is put back under ink.

@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.music.bitchord.sharedui.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import com.music.bitchord.ui.player.MeshGradientBackground
+import com.music.bitchord.ui.player.ArtworkColorBackdrop
 import com.music.bitchord.ui.player.rememberArtworkColors
 import java.util.Locale
 
@@ -79,7 +79,7 @@ import java.util.Locale
  *
  * Sampled from the artwork this card is about, so no two people's cards look
  * alike and each one is lit by the record it is describing. It is drawn once
- * and held still — [MeshGradientBackground]'s `animated = false` — rather
+ * and held still — [ArtworkColorBackdrop]'s `animated = false` — rather
  * than crossfading or drifting, since a row of these redrawing a blurred
  * layer every time a card is opened or swiped past is the expensive case the
  * class note there warns about, multiplied by however many cards are on
@@ -106,7 +106,7 @@ fun ReplayCreditCard(
             .clip(CardShape)
             .clickable(onClick = onClick),
     ) {
-        MeshGradientBackground(
+        ArtworkColorBackdrop(
             palette = palette,
             trackKey = artworkUrl ?: label,
             blurRadius = 34.dp,

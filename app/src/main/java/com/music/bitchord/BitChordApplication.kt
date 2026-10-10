@@ -17,10 +17,8 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.music.bitchord.ui.player.AndroidPlayerHost
 import com.music.bitchord.ui.player.PlayerPlatform
 import com.music.bitchord.data.canvas.CanvasCache
-import com.music.bitchord.data.smb.SmbCoverFetcher
 import com.music.bitchord.data.remote.ImageCacheKeys
 import com.music.bitchord.data.remote.CoalescingImageRequests
-import com.music.bitchord.data.webdav.WebDavCoilAuth
 import com.music.bitchord.data.spotify.SpotifySessionTokens
 import com.music.bitchord.playback.AudioCache
 import com.music.bitchord.playback.LastPlayed
@@ -109,6 +107,7 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory {
             CoroutineScope(Dispatchers.IO).launch { Innertube.ensureSessionScope() }
         }
         com.music.bitchord.data.library.LibraryPlaylistOrderStore.init(this)
+        com.music.bitchord.data.library.PlaylistCoverStore.init(this)
         AppSettings.init(this, authStore)
         // Before anything resolves a track: an addon with `checkValidLossless`
         // is gated on this, and the gate reads "no" until it has looked.
@@ -160,17 +159,7 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory {
      */
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader.Builder(context)
-            // Covers on the WebDAV server need the credential or every one
-            // of them 401s — which reads as "this track has no artwork".
-            // Coil's own transport never sees Http.client's interceptor, so
-            // the header is attached per request instead. See WebDavCoilAuth.
-            .components {
-                add(WebDavCoilAuth())
-                add(CoalescingImageRequests())
-                // Covers filed on the SMB share; anything else falls
-                // through to Coil's own fetchers. See SmbCoverFetcher.
-                add(SmbCoverFetcher.Factory())
-            }
+            .components { add(CoalescingImageRequests()) }
             .memoryCache {
                 MemoryCache.Builder()
                     .maxSizeBytes(ImageCacheKeys.memoryBudget(Runtime.getRuntime().maxMemory()))

@@ -438,7 +438,6 @@
     <string name="sources_order_footer">ソースにトラックがない、またはアクセスできない場合、Daylightは次のソースを試します。YouTubeより上のソースは、より良いバージョンが見つかった場合にその録音を置き換えられます。</string>
     <string name="sources_order_header">ソース（この順番で試行）</string>
     <string name="sources_quality_capped">この接続は「高音質」より低く設定されているため、ストリームはその上限に合わせてトランスコードされます。ダウンロードには影響しません。</string>
-    <string name="jiosaavn_mismatch_warning">曲の別バージョンに一致してしまうことがあります。自己責任で有効にしてください。</string>
     <string name="enable_jiosaavn">JioSaavnを有効にしますか？</string>
     <string name="enable_anyway">有効にする</string>
     <string name="sources_subtitle">音声の取得元と使用する順序</string>
@@ -567,33 +566,6 @@
     <string name="use_all_audio_folders_subtitle">フォルダの制限を解除し、デバイス全体の音楽をスキャンします</string>
     <string name="album">アルバム</string>
     <string name="artist">アーティスト</string>
-    <string name="webdav">WebDAV</string>
-    <string name="webdav_subtitle">サーバー上の音楽</string>
-    <string name="webdav_not_configured">「ソース」でサーバーを接続してください</string>
-    <string name="webdav_empty">WebDAVサーバーに音声ファイルが見つかりません。設定のURLを確認してください。</string>
-    <string name="webdav_description">DaylightをWebDAVの音楽フォルダーに接続します — NextcloudのMusicフォルダーや、WebDAVに対応した任意のサーバーを使えます。</string>
-    <string name="webdav_server_url">サーバーURL</string>
-    <string name="webdav_server_url_hint">https://cloud.example.com/remote.php/dav/files/user/Music</string>
-    <string name="webdav_disconnect">接続を解除</string>
-    <string name="webdav_test_failed">接続できません: %1$s</string>
-    <string name="upload_to_webdav">WebDAVにアップロード</string>
-    <string name="webdav_conflict_title">「%1$s」はすでにサーバーにあります</string>
-    <string name="webdav_conflict_message">上書きしますか？それとも両方残しますか？</string>
-    <string name="webdav_overwrite">上書き</string>
-    <string name="webdav_keep_both">両方残す</string>
-    <string name="webdav_skip">スキップ</string>
-    <string name="webdav_apply_to_all">すべてに適用</string>
-    <string name="webdav_upload_summary">アップロード %1$d · スキップ %2$d · 失敗 %3$d</string>
-    <string name="smb">SMB</string>
-    <string name="smb_subtitle">共有フォルダーの音楽</string>
-    <string name="smb_not_configured">「ソース」で共有フォルダーを接続してください</string>
-    <string name="smb_empty">SMB共有に音声ファイルが見つかりません。「ソース」でサーバーを確認してください。</string>
-    <string name="smb_description">Daylightを共有の音楽フォルダーに接続します — SMB対応のNASやWindows共有を使えます。</string>
-    <string name="smb_server_hint">nas.local or 192.168.1.10:4445</string>
-    <string name="smb_share_hint">共有名（例: Music）</string>
-    <string name="smb_folder_hint">フォルダー（任意）</string>
-    <string name="smb_disconnect">接続を解除</string>
-    <string name="smb_test_failed">接続できません: %1$s</string>
     <string name="playlist">プレイリスト</string>
     <string name="open">開く</string>
     <string name="open_playlist">プレイリストを開く</string>
@@ -939,10 +911,6 @@
     <string name="dolby_atmos_subtitle">利用可能な場合は、より臨場感のあるサラウンド バージョンの曲を再生します。</string>
 
     <string name="dolby_atmos_unavailable">このデバイスは Atmos を再生できないため、通常バージョンで再生されます</string>
-
-    <string name="legacy_mesh_gradient">従来のメッシュ グラデーション</string>
-
-    <string name="legacy_mesh_gradient_subtitle">v1.5 のプレーヤー背面の流れるカラー アニメーションを復元します</string>
 
     <string name="liquid_glass">リキッド グラス</string>
 
@@ -1306,4 +1274,26 @@
     <string name="quality_lossless_description">24ビット · 最大48 kHz</string>
     <string name="quality_hi_res_description">より高解像度のオーディオ</string>
     <string name="automix_high_res_unavailable">ハイレゾロスレスでは利用できません</string>
+    <string name="lastfm_setup_pending">Daylight 向けに Last.fm を準備中です。今後のビルドで利用できるようになります。</string>
+    <string name="lastfm_browser_description">ブラウザで接続して、Last.fm に再生履歴を保存します。</string>
+    <string name="lastfm_browser_return">ブラウザで Daylight を許可してから戻り、接続を完了してください。</string>
+    <string name="lastfm_open_browser">Last.fm を開く</string>
+    <string name="lastfm_finish_connecting">接続を完了</string>
+    <string name="lastfm_disconnect">Last.fm を切断</string>
+    <string name="edit_playlist">プレイリストを編集</string>
+    <string name="choose_photo">写真を選択</string>
+    <string name="reset_playlist_cover">カバーをリセット</string>
+    <string name="playlist_cover_local_note">カスタムカバーはこの端末に保存されます。</string>
+    <string name="playlist_image_error">画像を開けませんでした。別の写真を選んでください。</string>
+    <string name="playlist_edit_error">変更を保存できませんでした。もう一度お試しください。</string>
+    <string name="home_play_my_mix">マイミックスを再生</string>
+    <string name="home_mix_empty">ミックスを始めるには、ライブラリに音楽を追加してください。</string>
+    <string name="more_by_artist">%1$sのその他の作品</string>
+    <string name="similar_albums_for_you">あなたへのおすすめアルバム</string>
+    <string name="featured_artists">プレイリストのアーティスト</string>
+    <string name="recommendation_languages">おすすめの言語</string>
+    <string name="recommendation_languages_all">すべての言語</string>
+    <plurals name="recommendation_languages_hidden"><item quantity="one">非表示の言語：%1$d</item><item quantity="other">非表示の言語：%1$d</item></plurals>
+    <string name="recommendation_languages_hint">おすすめから言語を非表示にします。保存した音楽や検索は引き続き利用できます。</string>
+    <string name="recommendation_languages_reset">すべての言語を表示</string>
 </resources>

@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">Lossless beta: không có thời lượng bản gốc</string>
     <string name="lossless_beta_ineligible">Lossless beta: cần âm thanh ngoài Jam qua Wi-Fi</string>
     <string name="lossless_beta_unavailable">Lossless beta: nguồn không khả dụng</string>
+    <string name="home_play_my_mix">Phát mix của tôi</string>
+    <string name="home_mix_empty">Thêm nhạc vào thư viện để bắt đầu mix.</string>
 </resources>

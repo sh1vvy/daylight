@@ -158,6 +158,7 @@ object InnertubeParser {
     }
 
     private fun parseBrowseItem(renderer: JsonObject): BrowseItem? {
+        if (renderer.isPodcast()) return null
         val endpoint = renderer.o("navigationEndpoint").o("browseEndpoint") ?: return null
         val browseId = endpoint.s("browseId") ?: return null
         val pageType = endpoint.o("browseEndpointContextSupportedConfigs")
@@ -285,7 +286,7 @@ object InnertubeParser {
         // Whole shelves like "Video charts" carry nothing but video
         // compilations — each card would fail its own video check on the
         // way to a dead-end page, so the shelf is dropped outright.
-        if (VIDEO_WORD.containsMatchIn(title)) return null
+        if (VIDEO_WORD.containsMatchIn(title) || isPodcastShelf(title)) return null
         val items = carousel.a("contents").orEmpty().mapNotNull { item ->
             parseTwoRowItem(item.o("musicTwoRowItemRenderer"))
                 ?: parseResponsiveListItem(item.o("musicResponsiveListItemRenderer"))
@@ -303,7 +304,7 @@ object InnertubeParser {
 
     private fun plainShelf(shelf: JsonObject): HomeShelf? {
         val title = shelf.o("title").runs()
-        if (VIDEO_WORD.containsMatchIn(title)) return null
+        if (VIDEO_WORD.containsMatchIn(title) || isPodcastShelf(title)) return null
         val items = shelf.a("contents").orEmpty().mapNotNull {
             parseResponsiveListItem(it.o("musicResponsiveListItemRenderer"))
         }.filterNot { it.isVideo }
@@ -563,7 +564,7 @@ object InnertubeParser {
     data class LibraryItemPage(val items: List<ShelfItem>, val continuation: String?)
 
     /**
-     * The cards on a library feed — saved playlists, albums, artists, podcasts.
+     * The music cards on a library feed — saved playlists, albums and artists.
      *
      * Library pages remember whether the account last used the grid or the list
      * view, and serve `musicTwoRowItemRenderer` cards for one and
@@ -610,6 +611,7 @@ object InnertubeParser {
         fallback: Credits = Credits(),
     ): Song? {
         if (renderer == null) return null
+        if (renderer.isPodcast()) return null
         val videoId = renderer.o("playlistItemData").s("videoId")
             ?: renderer.o("overlay")
                 .o("musicItemThumbnailOverlayRenderer").o("content")
@@ -698,6 +700,7 @@ object InnertubeParser {
      * from the All tab while remaining first in the Songs tab.
      */
     private fun parseCardShelfSong(renderer: JsonObject): Song? {
+        if (renderer.isPodcast()) return null
         val videoId = renderer.o("onTap").o("watchEndpoint").s("videoId") ?: return null
         val title = renderer.o("title").runs()
         if (title.isBlank()) return null
@@ -766,6 +769,7 @@ object InnertubeParser {
 
     /** Artist, album and playlist cards use the same promoted-search container as a song. */
     private fun parseCardShelfBrowse(renderer: JsonObject): BrowseItem? {
+        if (renderer.isPodcast()) return null
         val endpoint = renderer.o("onTap").o("browseEndpoint") ?: return null
         val browseId = endpoint.s("browseId") ?: return null
         val pageType = endpoint.o("browseEndpointContextSupportedConfigs")
@@ -1189,6 +1193,7 @@ object InnertubeParser {
     fun parseWatchQueue(root: JsonElement): List<Song> {
         val out = LinkedHashMap<String, Song>()
         collectRenderers(root, "playlistPanelVideoRenderer").forEach { renderer ->
+            if (renderer.isPodcast()) return@forEach
             val videoId = renderer.s("videoId") ?: return@forEach
             val title = renderer.o("title").runs()
             if (title.isBlank()) return@forEach
@@ -1432,6 +1437,7 @@ object InnertubeParser {
 
     private fun parseTwoRowItem(renderer: JsonObject?): ShelfItem? {
         if (renderer == null) return null
+        if (renderer.isPodcast()) return null
         val title = renderer.o("title").runs()
         if (title.isBlank()) return null
         val endpoint = renderer.o("navigationEndpoint")
@@ -1529,6 +1535,41 @@ object InnertubeParser {
     )
     /** Header lines that name the artist, in either header shape. */
     private val HEADER_CREDIT_LINES = listOf("straplineTextOne", "subtitle")
+    /** Provider types work in every language; labels cover older untyped rows. */
+    private fun JsonObject.isPodcast(): Boolean {
+        fun podcastEndpoint(node: JsonElement?): Boolean = when (node) {
+            is JsonObject -> node.any { (key, value) ->
+                ((key == "musicVideoType" || key == "pageType") &&
+                    (value as? JsonPrimitive)?.contentOrNull?.contains("PODCAST") == true) ||
+                    (key == "browseId" && (value as? JsonPrimitive)?.contentOrNull?.let { id ->
+                        id.startsWith("MPSP") || id in PODCAST_BROWSE_IDS
+                    } == true) || podcastEndpoint(value)
+            }
+            is JsonArray -> node.any(::podcastEndpoint)
+            else -> false
+        }
+        // Only inspect the row's own navigation. A song's menu or recommendation
+        // can link to a show without changing the type of the song itself.
+        if (podcastEndpoint(this["navigationEndpoint"]) || podcastEndpoint(this["onTap"]) ||
+            podcastEndpoint(this["overlay"]) || s("musicVideoType")?.contains("PODCAST") == true) return true
+        val subtitle = o("subtitle").runs().ifBlank {
+            a("flexColumns")?.getOrNull(1).o("musicResponsiveListItemFlexColumnRenderer").o("text").runs()
+        }
+        return subtitle.split(" • ").firstOrNull()?.trim()?.lowercase(Locale.ROOT) in PODCAST_KINDS
+    }
+
+    private val PODCAST_KINDS = setOf("podcast", "episode")
+    // Provider identifiers, independent of the listener's language and title.
+    // https://github.com/sigma67/ytmusicapi/blob/main/ytmusicapi/mixins/library.py
+    private val PODCAST_BROWSE_IDS = setOf(
+        "FEmusic_library_non_music_audio_list", "FEmusic_library_non_music_audio_channels_list",
+        "VLRDPN", "RDPN", "VLSE", "SE",
+    )
+    private val PODCAST_SHELVES = setOf(
+        "your shows", "new episodes", "podcasts", "recommended podcasts", "episodes for you",
+    )
+    private fun isPodcastShelf(title: String): Boolean = title.trim().lowercase(Locale.ROOT) in PODCAST_SHELVES
+
     private val TYPE_WORDS = setOf(
         "song", "video", "album", "single", "ep", "artist",
         "playlist", "podcast", "episode",

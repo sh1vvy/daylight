@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">Beta bezstratna: brak długości oryginału</string>
     <string name="lossless_beta_ineligible">Beta bezstratna: wymaga audio poza Jam przez Wi-Fi</string>
     <string name="lossless_beta_unavailable">Beta bezstratna: źródło niedostępne</string>
+    <string name="home_play_my_mix">Odtwórz mój miks</string>
+    <string name="home_mix_empty">Dodaj muzykę do biblioteki, aby rozpocząć miks.</string>
 </resources>

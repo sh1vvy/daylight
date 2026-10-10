@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">เบต้าไม่สูญเสีย: ไม่ทราบความยาวต้นฉบับ</string>
     <string name="lossless_beta_ineligible">เบต้าไม่สูญเสีย: ต้องใช้เสียงนอก Jam ผ่าน Wi-Fi</string>
     <string name="lossless_beta_unavailable">เบต้าไม่สูญเสีย: แหล่งเสียงไม่พร้อมใช้งาน</string>
+    <string name="home_play_my_mix">เล่นมิกซ์ของฉัน</string>
+    <string name="home_mix_empty">เพิ่มเพลงในคลังเพื่อเริ่มมิกซ์</string>
 </resources>

@@ -127,14 +127,10 @@ enum class SourceKind(
         rank = 1,
     ),
 
+    // Serialization tombstone for older source configurations. Never initialized.
     JIOSAAVN(
-        label = "JioSaavn",
-        detail = "Optional JioSaavn streams up to 320kbps AAC/MP4. Catalogue matching can select the wrong song.",
-        labels = listOf("High Quality", "320kbps"),
-        needsServer = false,
-        canServeLossless = false,
-        worthPrefetching = true,
-        rank = 2,
+        label = "Retired source", detail = "", labels = emptyList(),
+        needsServer = false, canServeLossless = false, rank = Int.MAX_VALUE,
     ),
 
     /**

@@ -80,7 +80,7 @@ fun autoplayQueueNeedsRefresh(
  * carry YouTube ids, so they are matched on YouTube before the radio request.
  */
 suspend fun youtubeSeedFor(song: Song): String? {
-    if (SourceRegistry.parseTrackKey(song.videoId) == null) return song.videoId
+    if (song.localUri == null && SourceRegistry.parseTrackKey(song.videoId) == null && !song.videoId.startsWith("local:")) return song.videoId
     val target = TrackMatcher.targetOf(song)
     val query = TrackMatcher.queries(target).firstOrNull() ?: return null
     return YtMusicRepository.search(query, SearchFilter.SONGS)

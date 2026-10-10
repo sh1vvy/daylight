@@ -33,6 +33,23 @@ class BoundedRequestCache<K, V>(
         require(ttlMs >= 0 && maxEntries > 0 && maxWeight > 0)
     }
 
+    /** A valid response can paint the UI immediately, before any coroutine is scheduled. */
+    fun peek(key: K): V? = synchronized(lock) {
+        entries[key]?.let { entry ->
+            if (now() < entry.expiresAt) return@synchronized entry.value
+            remove(key)
+        }
+        null
+    }
+
+    /** Retains a completed UI page, including its updated continuation token. */
+    fun put(key: K, value: V) = synchronized(lock) {
+        // A newer page must not be overwritten by an older producer.
+        pending.remove(key)
+        remove(key)
+        retain(key, value)
+    }
+
     suspend fun get(key: K, produce: suspend () -> V): V {
         val request = synchronized(lock) {
             entries[key]?.let { entry ->

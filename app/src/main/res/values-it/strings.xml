@@ -499,7 +499,6 @@
     <string name="sources_order_footer">Se una sorgente non ha un brano o non è raggiungibile, Daylight prova la successiva. Le sorgenti sopra YouTube possono sostituire la sua registrazione quando restituiscono una versione migliore.</string>
     <string name="sources_order_header">Sorgenti, provate in quest\'ordine</string>
     <string name="sources_quality_capped">Questa connessione è impostata sotto Alta qualità, quindi gli stream vengono transcodificati per rispettare questo limite. I download non ne risentono.</string>
-    <string name="jiosaavn_mismatch_warning">Potrebbe trovare la versione sbagliata di un brano. Attivalo a tuo rischio.</string>
     <string name="enable_jiosaavn">Attivare JioSaavn?</string>
     <string name="enable_anyway">Attiva comunque</string>
     <string name="sources_subtitle">Da dove proviene l\'audio e l\'ordine usato</string>
@@ -633,33 +632,6 @@
     <string name="use_all_audio_folders_subtitle">Rimuove il limite delle cartelle e cerca musica in tutto il dispositivo</string>
     <string name="album">album</string>
     <string name="artist">artista</string>
-    <string name="webdav">WebDAV</string>
-    <string name="webdav_subtitle">Musica sul tuo server</string>
-    <string name="webdav_not_configured">Collega un server in Sorgenti</string>
-    <string name="webdav_empty">Nessun file audio trovato sul server WebDAV. Controlla l\'URL nelle Impostazioni.</string>
-    <string name="webdav_description">Collega Daylight a una cartella musicale WebDAV: la tua cartella Musica di Nextcloud o qualsiasi server compatibile WebDAV.</string>
-    <string name="webdav_server_url">URL del server</string>
-    <string name="webdav_server_url_hint">https://cloud.example.com/remote.php/dav/files/user/Music</string>
-    <string name="webdav_disconnect">Disconnetti</string>
-    <string name="webdav_test_failed">Impossibile raggiungerlo: %1$s</string>
-    <string name="upload_to_webdav">Carica su WebDAV</string>
-    <string name="webdav_conflict_title">«%1$s» è già sul server</string>
-    <string name="webdav_conflict_message">Sovrascriverlo o tenere entrambe le copie?</string>
-    <string name="webdav_overwrite">Sovrascrivi</string>
-    <string name="webdav_keep_both">Tieni entrambi</string>
-    <string name="webdav_skip">Salta</string>
-    <string name="webdav_apply_to_all">Applica a tutti</string>
-    <string name="webdav_upload_summary">%1$d caricati · %2$d saltati · %3$d non riusciti</string>
-    <string name="smb">SMB</string>
-    <string name="smb_subtitle">Musica su una condivisione di rete</string>
-    <string name="smb_not_configured">Collega una condivisione in Sorgenti</string>
-    <string name="smb_empty">Nessun file audio trovato sulla condivisione SMB. Controlla il server in Sorgenti.</string>
-    <string name="smb_description">Collega Daylight a una cartella musicale condivisa: un NAS o una condivisione Windows via SMB.</string>
-    <string name="smb_server_hint">nas.local or 192.168.1.10:4445</string>
-    <string name="smb_share_hint">Nome condivisione, es. Music</string>
-    <string name="smb_folder_hint">Cartella (facoltativa)</string>
-    <string name="smb_disconnect">Disconnetti</string>
-    <string name="smb_test_failed">Impossibile raggiungerlo: %1$s</string>
     <string name="playlist">playlist</string>
     <string name="playlist_action">Playlist</string>
     <string name="open">Apri</string>
@@ -858,10 +830,6 @@
     <string name="dolby_atmos_unavailable">Questo dispositivo non supporta Atmos, i brani saranno riprodotti nella versione standard</string>
 
     <string name="export_compatible_downloads">Esporta download compatibili</string>
-
-    <string name="legacy_mesh_gradient">Gradiente fluido classico</string>
-
-    <string name="legacy_mesh_gradient_subtitle">Ripristina le sfumature di colore animate dietro il lettore della v1.5</string>
 
     <string name="lyrics_debug_logs">Log di debug dei testi</string>
 
@@ -1267,4 +1235,26 @@
     <string name="quality_lossless_description">24 bit · fino a 48 kHz</string>
     <string name="quality_hi_res_description">Audio a risoluzione superiore</string>
     <string name="automix_high_res_unavailable">Non disponibile con Lossless ad alta risoluzione</string>
+    <string name="lastfm_setup_pending">Last.fm è in fase di configurazione per Daylight e sarà disponibile in una versione futura.</string>
+    <string name="lastfm_browser_description">Connettiti nel browser per salvare la cronologia di ascolto su Last.fm.</string>
+    <string name="lastfm_browser_return">Autorizza Daylight nel browser, poi torna per completare la connessione.</string>
+    <string name="lastfm_open_browser">Apri Last.fm</string>
+    <string name="lastfm_finish_connecting">Completa connessione</string>
+    <string name="lastfm_disconnect">Disconnetti Last.fm</string>
+    <string name="edit_playlist">Modifica playlist</string>
+    <string name="choose_photo">Scegli foto</string>
+    <string name="reset_playlist_cover">Ripristina copertina</string>
+    <string name="playlist_cover_local_note">Le copertine personalizzate restano su questo dispositivo.</string>
+    <string name="playlist_image_error">Impossibile aprire questa immagine. Prova un’altra foto.</string>
+    <string name="playlist_edit_error">Impossibile salvare le modifiche. Riprova.</string>
+    <string name="home_play_my_mix">Riproduci il mio mix</string>
+    <string name="home_mix_empty">Aggiungi musica alla libreria per avviare un mix.</string>
+    <string name="more_by_artist">Altro di %1$s</string>
+    <string name="similar_albums_for_you">Album simili per te</string>
+    <string name="featured_artists">Artisti della playlist</string>
+    <string name="recommendation_languages">Lingue dei suggerimenti</string>
+    <string name="recommendation_languages_all">Tutte le lingue</string>
+    <plurals name="recommendation_languages_hidden"><item quantity="one">Lingue nascoste: %1$d</item><item quantity="other">Lingue nascoste: %1$d</item></plurals>
+    <string name="recommendation_languages_hint">Nascondi le lingue dai suggerimenti. La musica salvata e la ricerca restano disponibili.</string>
+    <string name="recommendation_languages_reset">Mostra tutte le lingue</string>
 </resources>

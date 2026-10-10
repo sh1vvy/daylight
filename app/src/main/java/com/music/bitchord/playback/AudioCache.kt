@@ -593,7 +593,7 @@ object AudioCache {
             else -> StreamChoice.of(mediaId)?.sourceConfigId
         }
         val kind = configId?.let { SourceRegistry.config(it)?.kind }
-        return if (kind == SourceKind.JIOSAAVN) Origin.JIOSAAVN else Origin.OTHER
+        return Origin.OTHER
     }
 
     /** Writes what the folder shows about a track into [mutations]. */
@@ -717,7 +717,7 @@ object AudioCache {
     private val Origin.label: String
         get() = when (this) {
             Origin.YOUTUBE -> SourceKind.YOUTUBE.label
-            Origin.JIOSAAVN -> SourceKind.JIOSAAVN.label
+            Origin.JIOSAAVN -> "Cached audio"
             Origin.LOSSLESS -> "Lossless"
             Origin.OTHER -> "Addon"
         }

@@ -38,10 +38,17 @@ internal data class MediaWidgetSnapshot(
     val isLiked: Boolean = false,
     /** Whether shuffle is on. Drawn by the 4×1 widget's Shuffle. */
     val shuffleEnabled: Boolean = false,
-    /** Loading is a state label; widgets never poll playback or animate a timer. */
+    /** Loading is a state label; widgets never poll the player. */
     val isLoading: Boolean = false,
     /** Host-only Jam transport; Like remains a personal action. */
     val controlsLocked: Boolean = false,
+    /** Positions are published on player events, never on per-second UI ticks. */
+    val positionMs: Long = 0L,
+    val durationMs: Long = 0L,
+    val capturedAtElapsedMs: Long = 0L,
+    val capturedAtEpochMs: Long = 0L,
+    /** Actual playback at 1×. A loading transport can show pause while this clock stays still. */
+    val clockRunning: Boolean = false,
 ) {
     /** Whether there is a track to draw at all. */
     val hasTrack: Boolean get() = mediaId != null
@@ -80,6 +87,11 @@ internal data class MediaWidgetSnapshot(
                 .putBoolean(KEY_SHUFFLE, snapshot.shuffleEnabled)
                 .putBoolean(KEY_LOADING, snapshot.isLoading)
                 .putBoolean(KEY_CONTROLS_LOCKED, snapshot.controlsLocked)
+                .putLong(KEY_POSITION_MS, snapshot.positionMs)
+                .putLong(KEY_DURATION_MS, snapshot.durationMs)
+                .putLong(KEY_CAPTURED_ELAPSED_MS, snapshot.capturedAtElapsedMs)
+                .putLong(KEY_CAPTURED_EPOCH_MS, snapshot.capturedAtEpochMs)
+                .putBoolean(KEY_CLOCK_RUNNING, snapshot.clockRunning)
                 .apply()
         }
 
@@ -105,6 +117,11 @@ internal data class MediaWidgetSnapshot(
                     shuffleEnabled = prefs.getBoolean(KEY_SHUFFLE, false),
                     isLoading = prefs.getBoolean(KEY_LOADING, false),
                     controlsLocked = prefs.getBoolean(KEY_CONTROLS_LOCKED, false),
+                    positionMs = prefs.getLong(KEY_POSITION_MS, 0L),
+                    durationMs = prefs.getLong(KEY_DURATION_MS, 0L),
+                    capturedAtElapsedMs = prefs.getLong(KEY_CAPTURED_ELAPSED_MS, 0L),
+                    capturedAtEpochMs = prefs.getLong(KEY_CAPTURED_EPOCH_MS, 0L),
+                    clockRunning = prefs.getBoolean(KEY_CLOCK_RUNNING, false),
                 )
             }
             return EMPTY
@@ -124,5 +141,10 @@ internal data class MediaWidgetSnapshot(
         private const val KEY_SHUFFLE = "shuffle"
         private const val KEY_LOADING = "loading"
         private const val KEY_CONTROLS_LOCKED = "controls_locked"
+        private const val KEY_POSITION_MS = "position_ms"
+        private const val KEY_DURATION_MS = "duration_ms"
+        private const val KEY_CAPTURED_ELAPSED_MS = "captured_elapsed_ms"
+        private const val KEY_CAPTURED_EPOCH_MS = "captured_epoch_ms"
+        private const val KEY_CLOCK_RUNNING = "clock_running"
     }
 }

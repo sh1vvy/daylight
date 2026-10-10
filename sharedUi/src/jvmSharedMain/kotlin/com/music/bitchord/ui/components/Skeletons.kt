@@ -177,35 +177,16 @@ private fun HeroShelfSkeleton() {
 fun LazyListScope.recentlyPlayedSkeleton(listLayout: Boolean) {
     item(key = "skeleton:recently-played") {
         Column(Modifier.padding(bottom = 26.dp)) {
-            RecentsHeaderSkeleton()
-            if (listLayout) {
-                BoxWithConstraints {
-                    val columnWidth = trackColumnWidth(maxWidth)
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        userScrollEnabled = false,
-                    ) {
-                        item {
-                            Column(Modifier.width(columnWidth)) {
-                                repeat(4) { index -> CompactSongRowSkeleton(index) }
+            SectionHeaderSkeleton()
+            BoxWithConstraints {
+                LazyRow(contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp), userScrollEnabled = false) {
+                    item {
+                        Column(Modifier.width((maxWidth - PAGE_GUTTER * 2 - 18.dp).coerceAtLeast(200.dp)),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            repeat(3) {
+                                ShimmerBox(Modifier.fillMaxWidth().height(68.dp), RoundedCornerShape(20.dp))
                             }
-                        }
-                    }
-                }
-            } else {
-                BoxWithConstraints {
-                    val cardWidth = heroCardWidth(maxWidth)
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        userScrollEnabled = false,
-                    ) {
-                        items(2) {
-                            ShimmerBox(
-                                modifier = Modifier.width(cardWidth).aspectRatio(HERO_CARD_RATIO),
-                                shape = RoundedCornerShape(18.dp),
-                            )
                         }
                     }
                 }

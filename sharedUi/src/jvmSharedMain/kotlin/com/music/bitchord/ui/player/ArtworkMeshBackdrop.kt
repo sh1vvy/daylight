@@ -56,7 +56,7 @@ import kotlin.random.Random
  * The artwork's own colours, upside down and reduced to a mesh, for the player
  * to stand on.
  *
- * [MeshGradientBackground] answers a different question: it asks the quantiser
+ * [ArtworkColorBackdrop] answers a different question: it asks the quantiser
  * what colours a sleeve is *about* and paints four blobs of them. That is why a
  * cover that is nine-tenths black with a red stripe came out as a red screen —
  * the quantiser reports red because red is the interesting answer, and nothing
@@ -302,7 +302,7 @@ fun rememberArtworkMesh(
  * per read and off the main thread.
  *
  * The old backdrop paid a 60Hz blur permanently, for blobs orbiting behind a
- * screen nobody was looking at; see [MeshGradientBackground]'s note. This pays
+ * screen nobody was looking at; see [ArtworkColorBackdrop]'s note. This pays
  * it in bursts, and only while a clip is actually on screen and playing.
  */
 @Composable

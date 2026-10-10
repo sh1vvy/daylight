@@ -1,5 +1,7 @@
 package com.music.bitchord.ui.screens
 
+import com.music.bitchord.ui.components.libraryCoverMotion
+
 import com.music.bitchord.ui.components.contextClick
 import com.music.bitchord.ui.AppUi
 import com.music.bitchord.sharedui.resources.*
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -39,6 +42,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.ui.platform.testTag
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.Composable
@@ -87,7 +94,6 @@ import com.music.bitchord.ui.components.PlayingAccent
 import com.music.bitchord.ui.components.PullToRefresh
 import com.music.bitchord.ui.components.SHELF_CARD_WIDTH
 import com.music.bitchord.ui.components.SearchPlayingBars
-import com.music.bitchord.ui.components.SignInBanner
 import com.music.bitchord.ui.components.feedMoreSkeleton
 import com.music.bitchord.ui.components.feedSkeleton
 import com.music.bitchord.ui.components.recentlyPlayedSkeleton
@@ -96,19 +102,26 @@ import com.music.bitchord.ui.components.thumbnailBorder
 import com.music.bitchord.ui.components.trackColumnWidth
 import com.music.bitchord.ui.components.homeShelfKeys
 import com.music.bitchord.ui.components.shelfItemKeys
-import com.music.bitchord.ui.player.MeshGradientBackground
+import com.music.bitchord.ui.components.rememberCoverSourceValue
+import com.music.bitchord.ui.player.ArtworkColorBackdrop
 import com.music.bitchord.ui.player.MeshPalette
 
 /** How far the Listen now heading and feed sit above the shared top inset. */
 private val HOME_TITLE_LIFT = 28.dp
 
 private const val RECENTS_TITLE = "Recents"
-private const val RECENT_TRACKS_PER_COLUMN = 4
+private const val RECENT_TRACKS_PER_COLUMN = 3
+
+/** Track taps still play music; artist cards keep their existing navigation. */
+private fun ShelfItem.collectionCoverKey(key: String?): String? = key?.takeIf {
+    videoId == null && !thumbnailUrl.isNullOrBlank() && !browseId.isNullOrBlank() &&
+        browseId?.startsWith("UC") != true
+}
 
 private fun ShelfItem.matchesCurrentlyPlaying(song: Song?): Boolean {
     song ?: return false
     if (videoId == null) return false
-    return videoId == song.videoId || (title == song.title && subtitle == song.artist)
+    return videoId == song.videoId
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -126,8 +139,7 @@ fun HomeScreen(
     contentPadding: PaddingValues,
     /** The page's heading, or null for none — the desktop's pages carry no heading. */
     title: String?,
-    signedIn: Boolean = true,
-    onSignIn: (() -> Unit)? = null,
+    signedIn: Boolean = false,
     /**
      * Holding a card rather than tapping it. Every card on the feed answers,
      * whichever kind it is: the caller reads the item the same way it does for
@@ -145,13 +157,21 @@ fun HomeScreen(
      * there every shelf is the ordinary row.
      */
     leadHero: Boolean = true,
+    brandContent: (@Composable () -> Unit)? = null,
+    recommendedTracks: List<ShelfItem> = emptyList(),
+    onPlayMix: (() -> Unit)? = null,
+    mixLoading: Boolean = false,
     currentSong: Song? = null,
     isPlaying: Boolean = false,
 ) {
-    val recentsViewType by AppUi.host.homeRecentsViewType.collectAsStateWithLifecycle()
-    val shelves = (state as? UiState.Success)?.data.orEmpty()
+    val recentsViewType = LibraryViewType.LIST
+    val visibleState = rememberCoverSourceValue("home-feed", state)
+    val visibleRecommendations = rememberCoverSourceValue("home-recommendations", recommendedTracks)
+    val visibleRecentsLoading = rememberCoverSourceValue("home-recents-loading", recentlyPlayedLoading)
+    val sourceShelves = (visibleState as? UiState.Success)?.data.orEmpty()
+    val shelves = remember(sourceShelves, visibleRecommendations) { homeQuickPickShelves(sourceShelves, visibleRecommendations).filter { it.items.isNotEmpty() }.map { it.copy(subtitle = "") } }
     val shelfKeys = remember(shelves) { homeShelfKeys(shelves) }
-    val recentsPending = recentlyPlayedLoading && shelves.none { it.title.equals(RECENTS_TITLE, ignoreCase = true) }
+    val recentsPending = visibleRecentsLoading && sourceShelves.none { it.title.equals(RECENTS_TITLE, ignoreCase = true) } && shelves.none { it.title == QUICK_PICKS_TITLE }
 
     MaterialTheme(colorScheme = daylightHomeColorScheme(MaterialTheme.colorScheme, LocalPinkCloud.current)) {
         Box(modifier = modifier.fillMaxSize()) {
@@ -177,14 +197,9 @@ fun HomeScreen(
                     },
                 ) {
                     if (title != null) {
-                        item(key = "home-title", contentType = "home-title") { HomeTitle(title) }
+                        item(key = "home-title", contentType = "home-title") { HomeTitle(brandContent) }
                     }
-                    if (!signedIn && onSignIn != null) {
-                        item(key = "sign-in", contentType = "sign-in") {
-                            SignInBanner(onSignIn = onSignIn, modifier = Modifier.padding(bottom = 8.dp))
-                        }
-                    }
-                    when (state) {
+                    when (visibleState) {
                         is UiState.Loading -> {
                             if (recentsPending) {
                                 recentlyPlayedSkeleton(listLayout = recentsViewType == LibraryViewType.LIST)
@@ -197,7 +212,7 @@ fun HomeScreen(
                             }
                         }
                         is UiState.Error -> item(key = "feed-error", contentType = "message") {
-                            MessageState(state.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
+                            MessageState(visibleState.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
                         }
                         is UiState.Success -> {
                             if (recentsPending) {
@@ -207,7 +222,7 @@ fun HomeScreen(
                             // Recently Played lands, every real shelf must retain its
                             // compact-card layout instead of briefly becoming a hero.
                             itemsIndexedShelves(
-                                shelves = state.data,
+                                shelves = shelves,
                                 shelfKeys = shelfKeys,
                                 onItemClick = onItemClick,
                                 onItemLongPress = onItemLongPress,
@@ -215,15 +230,9 @@ fun HomeScreen(
                                 isPlaying = isPlaying,
                                 firstIsHero = leadHero && !recentsPending,
                                 recentsViewType = recentsViewType,
-                                onRecentsViewTypeToggle = {
-                                    AppUi.host.setHomeRecentsViewType(
-                                        if (recentsViewType == LibraryViewType.LIST) {
-                                            LibraryViewType.GRID
-                                        } else {
-                                            LibraryViewType.LIST
-                                        },
-                                    )
-                                },
+                                onRecentsViewTypeToggle = {},
+                                onPlayMix = onPlayMix.takeIf { signedIn },
+                                mixLoading = mixLoading,
                             )
                             if (loadingMore) feedMoreSkeleton()
                         }
@@ -267,9 +276,16 @@ private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
     firstIsHero: Boolean = true,
     recentsViewType: LibraryViewType,
     onRecentsViewTypeToggle: () -> Unit,
+    onPlayMix: (() -> Unit)? = null,
+    mixLoading: Boolean = false,
 ) {
+    // An empty/loading account feed can still start its saved music. When picks
+    // exist, the action belongs immediately after that section.
+    if (shelves.none { it.title == QUICK_PICKS_TITLE } && onPlayMix != null) {
+        playMyMixItem(onPlayMix, mixLoading)
+    }
     shelves.forEachIndexed { index, shelf ->
-        val recents = index == 0 && shelf.title.equals(RECENTS_TITLE, ignoreCase = true)
+        val recents = index == 0 && shelf.title == QUICK_PICKS_TITLE
         val hero = index == 0 && firstIsHero && !recents
         item(
             key = shelfKeys[index],
@@ -289,6 +305,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
                     isPlaying = isPlaying,
                     viewType = recentsViewType,
                     onViewTypeToggle = onRecentsViewTypeToggle,
+                    coverKeyPrefix = shelfKeys[index],
                 )
             } else if (hero) {
                 HeroShelf(
@@ -297,6 +314,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
                     onItemLongPress = onItemLongPress,
                     currentSong = currentSong,
                     isPlaying = isPlaying,
+                    coverKeyPrefix = shelfKeys[index],
                 )
             } else {
                 Shelf(
@@ -306,13 +324,31 @@ private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
                     currentSong = currentSong,
                     isPlaying = isPlaying,
                     softCards = true,
+                    coverKeyPrefix = shelfKeys[index],
                 )
             }
+        }
+        if (recents && onPlayMix != null) playMyMixItem(onPlayMix, mixLoading)
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.playMyMixItem(onClick: () -> Unit, loading: Boolean) {
+    item(key = "daylight-mix", contentType = "daylight-mix") {
+        FilledTonalButton(
+            onClick = onClick, enabled = !loading,
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier.padding(horizontal = PAGE_GUTTER).padding(bottom = 24.dp)
+                .fillMaxWidth().heightIn(min = 54.dp).testTag("home-play-my-mix"),
+        ) {
+            if (loading) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            else Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(10.dp))
+            Text(stringResource(Res.string.home_play_my_mix), style = MaterialTheme.typography.titleMedium)
         }
     }
 }
 
-/** The same four-rows-per-page treatment used by an artist's Top songs. */
+/** Three roomy song rows per page, with a small hint of the next page. */
 @Composable
 private fun RecentShelf(
     shelf: HomeShelf,
@@ -322,19 +358,20 @@ private fun RecentShelf(
     isPlaying: Boolean,
     viewType: LibraryViewType,
     onViewTypeToggle: () -> Unit,
+    coverKeyPrefix: String,
 ) {
     val columns = remember(shelf.items) { shelf.items.chunked(RECENT_TRACKS_PER_COLUMN) }
     val itemKeys = remember(shelf.items) { shelfItemKeys(shelf.items) }
     Column(Modifier.padding(bottom = 26.dp)) {
         RecentSectionHeader(
-            title = shelf.title,
-            subtitle = shelf.subtitle,
+            title = stringResource(Res.string.shelf_quick_picks),
+            subtitle = "",
             viewType = viewType,
             onViewTypeToggle = onViewTypeToggle,
         )
         if (viewType == LibraryViewType.LIST) {
             BoxWithConstraints {
-                val columnWidth = trackColumnWidth(maxWidth)
+                val columnWidth = (maxWidth - PAGE_GUTTER * 2 - 18.dp).coerceAtLeast(200.dp)
                 ShelfRow(
                     contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -343,15 +380,16 @@ private fun RecentShelf(
                         columns,
                         key = { index, _ -> itemKeys[index * RECENT_TRACKS_PER_COLUMN] },
                         contentType = { _, _ -> "recent-column" },
-                    ) { _, column ->
-                        Column(Modifier.width(columnWidth)) {
-                            column.forEach { item ->
+                    ) { columnIndex, column ->
+                        Column(Modifier.width(columnWidth), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            column.forEachIndexed { rowIndex, item ->
                                 RecentTrackRow(
                                     item = item,
                                     onClick = { onItemClick(item) },
                                     onLongPress = onItemLongPress?.let { { it(item) } },
                                     isCurrent = item.matchesCurrentlyPlaying(currentSong),
                                     isPlaying = item.matchesCurrentlyPlaying(currentSong) && isPlaying,
+                                    coverKey = item.collectionCoverKey("$coverKeyPrefix:recent:${itemKeys[columnIndex * RECENT_TRACKS_PER_COLUMN + rowIndex]}"),
                                 )
                             }
                         }
@@ -369,7 +407,7 @@ private fun RecentShelf(
                         shelf.items,
                         key = { index, _ -> itemKeys[index] },
                         contentType = { _, _ -> "hero-card" },
-                    ) { _, item ->
+                    ) { itemIndex, item ->
                         HeroCard(
                             item = item,
                             onClick = { onItemClick(item) },
@@ -377,6 +415,7 @@ private fun RecentShelf(
                             modifier = Modifier.width(cardWidth),
                             isCurrent = item.matchesCurrentlyPlaying(currentSong),
                             isPlaying = item.matchesCurrentlyPlaying(currentSong) && isPlaying,
+                            coverKey = item.collectionCoverKey("$coverKeyPrefix:recent-grid:${itemKeys[itemIndex]}"),
                         )
                     }
                 }
@@ -416,31 +455,7 @@ private fun RecentSectionHeader(
                 )
             }
         }
-        Spacer(Modifier.width(8.dp))
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .clickable(onClick = onViewTypeToggle),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = if (viewType == LibraryViewType.LIST) {
-                    BitChordIcons.GridView
-                } else {
-                    BitChordIcons.ListView
-                },
-                contentDescription = stringResource(
-                    if (viewType == LibraryViewType.LIST) {
-                        Res.string.switch_to_grid_view
-                    } else {
-                        Res.string.switch_to_list_view
-                    },
-                ),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(19.dp),
-            )
-        }
+
     }
 }
 
@@ -451,16 +466,28 @@ private fun RecentTrackRow(
     onLongPress: (() -> Unit)?,
     isCurrent: Boolean,
     isPlaying: Boolean,
+    coverKey: String?,
 ) {
-    CompactTrackRow(
-        title = item.title,
-        subtitle = item.subtitle,
-        thumbnailUrl = item.thumbnailUrl,
-        onClick = onClick,
-        onLongPress = onLongPress,
-        isCurrent = isCurrent,
-        isPlaying = isPlaying,
-    )
+    val coverMotion = com.music.bitchord.ui.components.LocalLibraryCoverMotion.current
+    androidx.compose.material3.Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f),
+    ) {
+        CompactTrackRow(
+            title = item.title,
+            subtitle = item.subtitle,
+            thumbnailUrl = item.thumbnailUrl,
+            onClick = {
+                if (coverKey != null) item.browseId?.let { coverMotion?.onSelectCard?.invoke(it, coverKey, 7f) }
+                onClick()
+            },
+            onLongPress = onLongPress,
+            isCurrent = isCurrent,
+            isPlaying = isPlaying,
+            artworkModifier = Modifier.libraryCoverMotion(item.browseId, coverKey, 7f),
+            modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+        )
+    }
 }
 
 /**
@@ -477,9 +504,11 @@ fun CompactTrackRow(
     onLongPress: (() -> Unit)?,
     isCurrent: Boolean = false,
     isPlaying: Boolean = false,
+    artworkModifier: Modifier = Modifier,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
             .contextClick(onLongPress)
@@ -492,6 +521,7 @@ fun CompactTrackRow(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
+                    .then(artworkModifier)
                     .size(48.dp)
                     .clip(RoundedCornerShape(7.dp))
                     .thumbnailBorder(RoundedCornerShape(7.dp))
@@ -524,38 +554,21 @@ fun CompactTrackRow(
 
 /** Daylight's flat butterfly and wordmark lead the warm home surface. */
 @Composable
-private fun HomeTitle(title: String, modifier: Modifier = Modifier) {
-    val brandStyle = MaterialTheme.typography.titleMedium
-    val logoHeight = with(LocalDensity.current) { (brandStyle.fontSize * 1.5f).toDp() }
-    Column(modifier = modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp)) {
-        Row(
-            modifier = Modifier.padding(bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Icon(
-                painter = painterResource(Res.drawable.ic_logo),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.height(logoHeight).aspectRatio(LOGO_ASPECT),
-            )
-            Text(
-                text = "Daylight",
-                style = brandStyle,
-                letterSpacing = 0.8.sp,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.displayLarge,
-            color = MaterialTheme.colorScheme.onBackground,
+private fun HomeTitle(brandContent: (@Composable () -> Unit)?, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth().padding(horizontal = PAGE_GUTTER, vertical = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Icon(
+            painter = painterResource(Res.drawable.ic_logo), contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.width(38.dp).aspectRatio(LOGO_ASPECT).testTag("home-butterfly"),
         )
-        Text(
-            text = stringResource(Res.string.home_tagline),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+        Spacer(Modifier.width(24.dp))
+        if (brandContent != null) brandContent() else Text(
+            text = "daylight", style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground,
         )
     }
 }
@@ -787,6 +800,7 @@ private fun HeroShelf(
     onItemLongPress: ((ShelfItem) -> Unit)? = null,
     currentSong: Song? = null,
     isPlaying: Boolean = false,
+    coverKeyPrefix: String,
 ) {
     val itemKeys = remember(shelf.items) { shelfItemKeys(shelf.items) }
     Column(Modifier.padding(bottom = 26.dp)) {
@@ -806,7 +820,7 @@ private fun HeroShelf(
                     shelf.items,
                     key = { index, _ -> itemKeys[index] },
                     contentType = { _, _ -> "hero-card" },
-                ) { _, item ->
+                ) { itemIndex, item ->
                     HeroCard(
                         item = item,
                         onClick = { onItemClick(item) },
@@ -814,6 +828,7 @@ private fun HeroShelf(
                         modifier = Modifier.width(cardWidth),
                         isCurrent = item.matchesCurrentlyPlaying(currentSong),
                         isPlaying = item.matchesCurrentlyPlaying(currentSong) && isPlaying,
+                        coverKey = item.collectionCoverKey("$coverKeyPrefix:hero:${itemKeys[itemIndex]}"),
                     )
                 }
             }
@@ -831,7 +846,9 @@ private fun HeroCard(
     modifier: Modifier = Modifier,
     isCurrent: Boolean = false,
     isPlaying: Boolean = false,
+    coverKey: String? = null,
 ) {
+    val coverMotion = com.music.bitchord.ui.components.LocalLibraryCoverMotion.current
     Box(
         modifier = modifier
             .aspectRatio(HERO_CARD_RATIO)
@@ -839,14 +856,17 @@ private fun HeroCard(
             .clip(RoundedCornerShape(24.dp))
             .border(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f), RoundedCornerShape(24.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
+            .longPressMenuClickable(onClick = {
+                if (coverKey != null) item.browseId?.let { coverMotion?.onSelectCard?.invoke(it, coverKey, 24f) }
+                onClick()
+            }, onLongClick = onLongPress)
             .contextClick(onLongPress),
     ) {
         AsyncImage(
             model = item.thumbnailUrl.artworkAt(HEADER_ART_PX),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().libraryCoverMotion(item.browseId, coverKey, 24f),
         )
         if (isCurrent && isPlaying) SearchPlayingBars(Modifier.align(Alignment.Center))
         Column(
@@ -900,6 +920,7 @@ internal fun Shelf(
     currentSong: Song? = null,
     isPlaying: Boolean = false,
     softCards: Boolean = false,
+    coverKeyPrefix: String? = null,
 ) {
     val itemKeys = remember(shelf.items) { shelfItemKeys(shelf.items) }
     Column(Modifier.padding(bottom = 26.dp)) {
@@ -913,7 +934,7 @@ internal fun Shelf(
                 shelf.items,
                 key = { index, _ -> itemKeys[index] },
                 contentType = { _, _ -> "shelf-card" },
-            ) { _, item ->
+            ) { itemIndex, item ->
                 ShelfCard(
                     item = item,
                     onClick = { onItemClick(item) },
@@ -921,6 +942,7 @@ internal fun Shelf(
                     isCurrent = item.matchesCurrentlyPlaying(currentSong),
                     isPlaying = item.matchesCurrentlyPlaying(currentSong) && isPlaying,
                     softCard = softCards,
+                    libraryCardKey = coverKeyPrefix?.let { "$it:shelf:${itemKeys[itemIndex]}" },
                 )
             }
         }
@@ -1004,7 +1026,7 @@ private fun ServiceCard(colors: List<Color>, trackKey: String, icon: ImageVector
             .clip(RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        MeshGradientBackground(
+        ArtworkColorBackdrop(
             palette = palette,
             trackKey = trackKey,
             continuous = true,
@@ -1031,7 +1053,13 @@ internal fun ShelfCard(
     isCurrent: Boolean = false,
     isPlaying: Boolean = false,
     softCard: Boolean = false,
+    /** Library supplies an occurrence key; cards on other feeds stay unchanged. */
+    libraryCardKey: String? = null,
+    /** Four-column Library cards use two title lines and omit the owner line. */
+    compact: Boolean = false,
 ) {
+    val libraryMotion = com.music.bitchord.ui.components.LocalLibraryCoverMotion.current
+    val coverKey = item.collectionCoverKey(libraryCardKey)
     val cardShape = RoundedCornerShape(20.dp)
     val artworkShape = RoundedCornerShape(if (softCard) 14.dp else 12.dp)
     Column(
@@ -1046,7 +1074,12 @@ internal fun ShelfCard(
                     Modifier
                 },
             )
-            .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
+            .longPressMenuClickable(onClick = {
+                if (coverKey != null) {
+                    item.browseId?.let { libraryMotion?.onSelectCard?.invoke(it, coverKey, if (softCard) 14f else 12f) }
+                }
+                onClick()
+            }, onLongClick = onLongPress)
             .contextClick(onLongPress)
             .then(if (softCard) Modifier.padding(8.dp) else Modifier),
     ) {
@@ -1060,7 +1093,7 @@ internal fun ShelfCard(
                         .clip(RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    MeshGradientBackground(
+                    ArtworkColorBackdrop(
                         palette = palette,
                         trackKey = "local:downloads",
                         continuous = true,
@@ -1084,22 +1117,13 @@ internal fun ShelfCard(
                 trackKey = "local:cache",
                 icon = Icons.Rounded.Cached,
             )
-            "local:webdav" -> ServiceCard(
-                colors = listOf(Color(0xFF3A1C71), Color(0xFFD76D77)),
-                trackKey = "local:webdav",
-                icon = Icons.Rounded.Folder,
-            )
-            "local:smb" -> ServiceCard(
-                colors = listOf(Color(0xFF0F2027), Color(0xFF2C5364)),
-                trackKey = "local:smb",
-                icon = Icons.Rounded.Storage,
-            )
             else -> {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
-                        .clip(artworkShape)
+                        .libraryCoverMotion(item.browseId, coverKey, if (softCard) 14f else 12f)
+                        .then(if (libraryMotion?.source != true || coverKey == null) Modifier.clip(artworkShape) else Modifier)
                         .then(
                             if (softCard) {
                                 Modifier.border(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.06f), artworkShape)
@@ -1119,7 +1143,7 @@ internal fun ShelfCard(
                 }
             }
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -1135,20 +1159,23 @@ internal fun ShelfCard(
             }
             Text(
                 text = item.title,
-                style = MaterialTheme.typography.titleMedium,
+                style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.titleMedium,
                 color = if (isCurrent) PlayingAccent else MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
+                minLines = if (compact) 2 else 1,
+                maxLines = if (compact) 2 else 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
             )
         }
-        val displaySubtitle = localizeCardSubtitle(item.subtitle)
-        Text(
-            text = displaySubtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (!compact) {
+            val displaySubtitle = localizeCardSubtitle(item.subtitle)
+            Text(
+                text = displaySubtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }

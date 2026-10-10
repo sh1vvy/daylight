@@ -72,5 +72,18 @@ fun CreditsScreen(
                 modifier = Modifier.fillMaxWidth().padding(18.dp),
             )
         }
+        SettingsGroup(header = "Accompanist Lyrics UI") {
+            Text(
+                text = buildAnnotatedString {
+                    withLink(LinkAnnotation.Url("https://github.com/6xingyv/accompanist-lyrics-ui", linkStyles)) {
+                        append("Accompanist Lyrics UI")
+                    }
+                    append(" · Apache License 2.0")
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.fillMaxWidth().padding(18.dp),
+            )
+        }
     }
 }

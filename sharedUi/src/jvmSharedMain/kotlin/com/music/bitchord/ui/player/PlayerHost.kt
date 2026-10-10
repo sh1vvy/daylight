@@ -92,6 +92,9 @@ interface PlayerHost {
     /** Casting to a network receiver. Absent, and so never drawn, where the platform has none. */
     val castState: StateFlow<CastUi> get() = NoCast
 
+    @Composable
+    fun ArtworkViewer(url: String, title: String, onDismiss: () -> Unit) = Unit
+
     /** The device picker the output drawer's Cast row opens, in the pipeline dialog's card. */
     @Composable
     fun CastDialog(hazeState: HazeState, onDismiss: () -> Unit) = Unit
@@ -144,7 +147,6 @@ interface PlayerSettingsSource {
     val hideSongStatus: StateFlow<Boolean>
     val hideVolumeBar: StateFlow<Boolean>
     val lastPlayerScreen: StateFlow<LastPlayerScreen>
-    val legacyMeshGradient: StateFlow<Boolean>
     val lyricsBlur: StateFlow<Boolean>
     val showLyricsLanguageButtons: StateFlow<Boolean>
     val lyricsOffsetMs: StateFlow<Int>

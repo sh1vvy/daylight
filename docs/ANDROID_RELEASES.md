@@ -14,6 +14,16 @@ Both assets are universal APKs, supporting arm64, ARMv7 and x86_64. The public
 APK uses the release build’s R8 optimizations. The development APK retains its
 existing package and signer so an in-place update preserves library and settings.
 
+## Internal canaries
+
+Public Dev updates resume with **0.2.2-dev.7**, Android code **27**, following
+eight internal canaries through **0.2.2-canary.8**, code **26**. This Dev release
+updates the same package and signer and restores public Dev update checks.
+Internal canaries disable their update checker and remain manually installed.
+Do not publish, tag or push a canary without the owner requesting it. Leave the
+stable release and website download badge unchanged. Future public Dev updates
+continue at **dev.8** with a code greater than every installed Dev or canary.
+
 ## Development updates
 
 Shivvy has requested that ongoing updates be published to **Daylight Dev** until

@@ -49,19 +49,49 @@ object YtMusicRepository {
     // bounded at 24 pages / 4,000 song and suggestion rows.
     private val browsePages = browsePageCache(entries = 8, rows = 1_200)
     private val continuationPages = browsePageCache(entries = 16, rows = 2_800)
+    private val artistPreviews = BoundedRequestCache<BrowseKey, ArtistPage>(
+        scope = browseScope, ttlMs = 600_000L, maxEntries = 32, maxWeight = 640,
+        weightOf = { 1 + it.sections.sumOf { shelf -> shelf.items.size } },
+    )
+
+    /** Header and a bounded discography, without paging through all the artist's songs. */
+    suspend fun artistPreview(browseId: String): Result<ArtistPage> = call("artist:preview") {
+        require(browseId.startsWith("UC"))
+        artistPreviews.get(BrowseKey(Innertube.responseCacheScope, Innertube.currentLanguage, browseId, false)) {
+            InnertubeParser.parseArtistPage(Innertube.browse(browseId)).let { page ->
+                page.copy(songs = emptyList(), sections = page.sections.take(6).map { it.copy(items = it.items.take(20)) })
+            }
+        }
+    }
+
+    private val homeRadio = BoundedRequestCache<BrowseKey, List<Song>>(
+        scope = browseScope, ttlMs = 600_000L, maxEntries = 4, maxWeight = 96,
+        weightOf = { it.size },
+    )
+
+    /** A bounded, account-scoped discovery pool; Home never fetches the whole feed twice. */
+    suspend fun homeRecommendations(seedVideoId: String): Result<List<Song>> = call("home:discovery") {
+        homeRadio.get(BrowseKey(Innertube.responseCacheScope, Innertube.currentLanguage, seedVideoId, false)) {
+            InnertubeParser.parseWatchQueue(Innertube.next(seedVideoId))
+                .filter { it.videoId != seedVideoId && !it.isVideo }
+                .distinctBy { it.videoId }.take(24)
+        }
+    }
 
     private fun browsePageCache(entries: Int, rows: Int) = BoundedRequestCache<BrowseKey, SongPage>(
         scope = browseScope,
         ttlMs = 60_000L,
         maxEntries = entries,
         maxWeight = rows,
-        weightOf = { it.songs.size + it.suggested.size },
+        weightOf = { it.songs.size + it.suggested.size + it.sections.sumOf { shelf -> shelf.items.size } },
     )
 
     /** Pull-to-refresh and writes must not reuse a previous playlist snapshot. */
     fun clearBrowseCache() {
         browsePages.clear()
         continuationPages.clear()
+        homeRadio.clear()
+        artistPreviews.clear()
     }
     private val moodGenreShelfCache = ConcurrentHashMap<String, List<HomeShelf>>()
     // Includes unchanged video fallbacks as well as successful matches. The
@@ -313,6 +343,34 @@ object YtMusicRepository {
         val continuation: String?,
     )
 
+    // First pages, anonymous previews and text suggestions have separate budgets.
+    // Backspacing and returning to a filter reuse these short-lived responses;
+    // concurrent readers share one request and abandoned work is cancelled.
+    private val searchPages = BoundedRequestCache<SearchRequestKey, SearchPage>(
+        browseScope, ttlMs = 120_000L, maxEntries = 16, maxWeight = 480,
+        weightOf = { it.rows.size },
+    )
+    private val typeaheadPages = BoundedRequestCache<SearchRequestKey, SearchPage>(
+        browseScope, ttlMs = 45_000L, maxEntries = 12, maxWeight = 360,
+        weightOf = { it.rows.size },
+    )
+    private val suggestionPages = BoundedRequestCache<SearchRequestKey, List<String>>(
+        browseScope, ttlMs = 60_000L, maxEntries = 32, maxWeight = 256,
+        weightOf = { it.size },
+    )
+
+    fun cachedSearchTypeahead(input: String): SearchPage? =
+        typeaheadPages.peek(SearchRequestKey.current(input))
+
+    fun cachedSearchSuggestions(input: String): List<String>? =
+        suggestionPages.peek(SearchRequestKey.current(input))
+
+    fun clearSearchCache() {
+        searchPages.clear()
+        typeaheadPages.clear()
+        suggestionPages.clear()
+    }
+
     /**
      * Fetches only the first search page. Publishing it immediately keeps the
      * search responsive; the UI asks [searchContinuation] for later pages as
@@ -320,11 +378,17 @@ object YtMusicRepository {
      */
     suspend fun searchPage(query: String, filter: SearchFilter): Result<SearchPage> =
         call("search:${filter.name}") {
-            InnertubeParser.parseSearchPage(
-                Innertube.search(query, filter.params),
-                includeVideos = filter == SearchFilter.VIDEOS,
-            ).let { page ->
-                SearchPage(page.rows.distinctBy { it.identityKey() }, page.continuation)
+            // A guest's ALL preview and confirmed result have the same
+            // identity. Join the preview request instead of starting it twice.
+            // Signed-in confirmation stays separate from anonymous previews.
+            val pages = if (Innertube.cookie == null && filter == SearchFilter.ALL) typeaheadPages else searchPages
+            pages.get(SearchRequestKey.current(query, filter)) {
+                InnertubeParser.parseSearchPage(
+                    Innertube.search(query.trim(), filter.params),
+                    includeVideos = filter == SearchFilter.VIDEOS,
+                ).let { page ->
+                    SearchPage(page.rows.distinctBy { it.identityKey() }, page.continuation)
+                }
             }
         }
 
@@ -358,7 +422,9 @@ object YtMusicRepository {
      */
     suspend fun searchSuggestions(input: String): Result<List<String>> =
         call("suggest") {
-            InnertubeParser.parseSearchSuggestions(Innertube.searchSuggestions(input))
+            suggestionPages.get(SearchRequestKey.current(input)) {
+                InnertubeParser.parseSearchSuggestions(Innertube.searchSuggestions(input.trim()))
+            }
         }
 
     /**
@@ -375,11 +441,15 @@ object YtMusicRepository {
      */
     suspend fun searchTypeahead(input: String): Result<SearchPage> =
         call("typeahead:$input") {
-            InnertubeParser.parseSearchPage(
-                Innertube.searchTypeahead(input),
-                includeVideos = false,
-            ).let { page ->
-                SearchPage(page.rows.distinctBy { it.identityKey() }, page.continuation)
+            typeaheadPages.get(SearchRequestKey.current(input)) {
+                InnertubeParser.parseSearchPage(
+                    Innertube.searchTypeahead(input.trim()),
+                    includeVideos = false,
+                ).let { page ->
+                    // Keep this first page's continuation so a guest can
+                    // promote it to a confirmed search without another fetch.
+                    SearchPage(page.rows.distinctBy { it.identityKey() }, page.continuation)
+                }
             }
         }
 
@@ -497,8 +567,7 @@ object YtMusicRepository {
      * The whole library in one shot — requires a signed-in session.
      *
      * YouTube Music has no single "my library" feed: Liked Music is the `LM`
-     * auto-playlist, the songs added to the library are a separate feed, and
-     * every saved collection has its own browse id. They're fetched in
+     * auto-playlist and every saved collection has its own browse id. They're fetched in
      * parallel and a feed that fails or is simply empty (a fresh account has
      * no saved albums) is dropped rather than failing the whole page.
      */
@@ -511,7 +580,6 @@ object YtMusicRepository {
             // liked without holding this page open behind the whole list —
             // see [syncLikedMusic] and MainViewModel's fetchLibrary.
             val liked = async { browseSongs(LIKED_MUSIC).getOrNull() }
-            val added = async { runCatching { songsPaged(LIBRARY_SONGS) }.getOrDefault(emptyList()) }
             val shelves = LIBRARY_FEEDS
                 .map { (title, browseId) ->
                     async {
@@ -527,10 +595,9 @@ object YtMusicRepository {
             LikeState.seedLiked(likedIds)
             LibraryPage(
                 likedSongs = likedSongs,
-                // Thumbs-up'd tracks are also in the library feed; only what
-                // the "Liked Music" list doesn't already cover is worth a
-                // second section.
-                librarySongs = added.await().filterNot { it.videoId in likedIds },
+                // The tab opens liked music through Liked songs. The separate added-
+                // tracks feed has no reader here; don't page through it on refresh.
+                librarySongs = emptyList(),
                 shelves = shelves,
                 likedContinuation = likedPage?.continuation,
             )
@@ -657,6 +724,7 @@ object YtMusicRepository {
         val backingPlaylistId: String? = null,
         /** Playlist author returned by its own header, never by a track. */
         val creator: PlaylistCreator? = null,
+        val sections: List<HomeShelf> = emptyList(),
     )
 
     /**
@@ -672,6 +740,11 @@ object YtMusicRepository {
         val metadata = browsePage(browseId)
         if (!browseId.startsWith("MPREb")) metadata else albumPageOf(metadata)
     }
+
+    /** Reuse a recent, account/language-scoped first page without another request. */
+    fun cachedBrowseSongs(browseId: String): SongPage? = browsePages.peek(
+        BrowseKey(Innertube.responseCacheScope, Innertube.currentLanguage, browseId, false),
+    )
 
     private suspend fun browsePage(id: String, continuation: Boolean = false): SongPage =
         (if (continuation) continuationPages else browsePages).get(
@@ -705,6 +778,7 @@ object YtMusicRepository {
             header = metadata.header,
             description = metadata.description,
             creator = null,
+            sections = metadata.sections,
         )
     }
 
@@ -731,6 +805,10 @@ object YtMusicRepository {
         val library = InnertubeParser.parseLibraryState(response)
         val header = InnertubeParser.parseBrowseHeader(response)
         val backingPlaylistId = if (album) InnertubeParser.parseAlbumPlaylistId(response) else null
+        val sections = if (album) InnertubeParser.parseHomeContinuation(response).mapNotNull { shelf ->
+            val albums = shelf.items.filter { it.browseId?.startsWith("MPREb") == true && it.videoId == null }
+            shelf.copy(items = albums.take(20)).takeIf { albums.isNotEmpty() }
+        }.take(4) else emptyList()
         // A playlist page is scoped to its own shelf so its "Suggested
         // tracks" never read as songs the user added — see
         // parsePlaylistShelf. Anything else (album, library, history) has no
@@ -740,6 +818,7 @@ object YtMusicRepository {
                 shelf.songs, shelf.continuation, shelf.suggested, library, header = header,
                 description = InnertubeParser.parseDescription(response),
                 backingPlaylistId = backingPlaylistId,
+                sections = sections,
             )
         }
         return SongPage(
@@ -752,6 +831,7 @@ object YtMusicRepository {
             header = header,
             description = InnertubeParser.parseDescription(response),
             backingPlaylistId = backingPlaylistId,
+                sections = sections,
         )
     }
 
@@ -843,9 +923,6 @@ object YtMusicRepository {
      */
     const val LIKED_MUSIC = "VLLM"
 
-    /** Songs explicitly added to the library — distinct from Liked Music. */
-    private const val LIBRARY_SONGS = "FEmusic_liked_videos"
-
     /** Saved and own playlists; also what the "add to playlist" picker lists. */
     private const val LIBRARY_PLAYLISTS = "FEmusic_liked_playlists"
 
@@ -866,7 +943,6 @@ object YtMusicRepository {
         "Albums" to "FEmusic_liked_albums",
         "Artists" to "FEmusic_library_corpus_track_artists",
         "Subscriptions" to "FEmusic_library_corpus_artists",
-        "Podcasts" to "FEmusic_library_non_music_audio_list",
     )
 
     // ---- Writes -------------------------------------------------------------

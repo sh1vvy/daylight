@@ -9,9 +9,14 @@ import com.music.bitchord.data.settings.LibrarySort
 fun HomeShelf.isPlaylistLibraryShelf(): Boolean = title == YtMusicRepository.PLAYLISTS_SHELF ||
     (items.isNotEmpty() && items.all { it.browseId?.isPlaylistLibraryId() == true })
 
-private fun String.isPlaylistLibraryId(): Boolean = startsWith("local:playlist:") ||
+private fun String.isPlaylistLibraryId(): Boolean = this == "LM" || startsWith("local:playlist:") ||
     startsWith("spotify:playlist:") || startsWith("PL") ||
     (startsWith("VL") && !startsWith("VLOLAK") && !startsWith("VLMPRE"))
+
+/** Liked songs has its own shortcut; identify the system collection by id, never its translated name. */
+internal fun HomeShelf.withoutLikedMusic(): HomeShelf = copy(items = items.filterNot {
+    it.browseId == YtMusicRepository.LIKED_MUSIC || it.browseId == "LM"
+})
 
 /** Deleting an item or changing another shelf must not reveal an older playlist. */
 internal fun HomeShelf.newestCreatedPlaylistId(createdPlaylistIds: List<String>): String? {

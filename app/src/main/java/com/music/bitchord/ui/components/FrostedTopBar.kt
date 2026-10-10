@@ -17,6 +17,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +61,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -446,16 +449,29 @@ private fun artworkPageSurface(
         .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape)
 }
 
-/**
- * The account affordance at the right end of the bar.
- *
- * It is the signed-in Google account's own photo — the same one YouTube Music
- * shows there — and tapping it opens Settings, where the account lives. Signed
- * out, or before the account menu has come back, it falls back to a person
- * glyph on a filled circle so the tap target never disappears.
- *
- * The photo keeps its circular crop without an outline.
- */
+/** Compact guest sign-in, beside the profile circle on Home. */
+@Composable
+fun TopBarSignInButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    // Match the avatar's visible height while retaining a comfortable tap target.
+    Box(
+        modifier = modifier.height(48.dp).clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 2.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier.height(AVATAR_SIZE).clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(horizontal = 12.dp).testTag("home-sign-in-pill"),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                stringResource(R.string.sign_in), style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+            )
+        }
+    }
+}
+
 @Composable
 fun TopBarAccountButton(
     account: Account?,
@@ -501,7 +517,8 @@ fun TopBarAccountButton(
                 modifier = Modifier
                     .size(AVATAR_SIZE)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .testTag("default-profile-avatar"),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(

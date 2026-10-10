@@ -19,8 +19,9 @@ class WidgetPlaybackRecoveryTest {
             mediaId = "track", title = "A song", artist = "An artist", artworkUrl = "content://art",
             isPlaying = true, hasPrevious = true, hasNext = false,
             isLiked = true, shuffleEnabled = true, isLoading = true, controlsLocked = true,
+            positionMs = 45_000L, durationMs = 180_000L, clockRunning = true,
         )
-        assertEquals(snapshot.copy(isPlaying = false, isLoading = false), snapshot.afterAppUpgrade())
+        assertEquals(snapshot.copy(isPlaying = false, isLoading = false, clockRunning = false), snapshot.afterAppUpgrade())
     }
 
     @Test fun emptyWidgetStaysEmptyAfterUpgrade() {

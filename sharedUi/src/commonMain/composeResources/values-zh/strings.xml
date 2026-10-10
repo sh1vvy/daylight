@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">无损测试版：无法获取原始时长</string>
     <string name="lossless_beta_ineligible">无损测试版：需要通过 Wi-Fi 在 Jam 外播放音频</string>
     <string name="lossless_beta_unavailable">无损测试版：音源不可用</string>
+    <string name="home_play_my_mix">播放我的混合歌单</string>
+    <string name="home_mix_empty">请先将音乐添加到音乐库，再开始播放混合歌单。</string>
 </resources>

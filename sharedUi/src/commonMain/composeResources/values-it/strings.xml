@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">Lossless beta: durata originale non disponibile</string>
     <string name="lossless_beta_ineligible">Lossless beta: richiede audio fuori dai Jam su Wi-Fi</string>
     <string name="lossless_beta_unavailable">Lossless beta: sorgente non disponibile</string>
+    <string name="home_play_my_mix">Riproduci il mio mix</string>
+    <string name="home_mix_empty">Aggiungi musica alla libreria per avviare un mix.</string>
 </resources>

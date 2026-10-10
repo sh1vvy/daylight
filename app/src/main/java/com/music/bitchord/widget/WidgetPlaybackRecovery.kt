@@ -10,4 +10,4 @@ internal fun widgetToggleDecision(playWhenReady: Boolean, ended: Boolean): Widge
 }
 
 /** APK replacement stops the old process, but the last track and transport options remain useful. */
-internal fun MediaWidgetSnapshot.afterAppUpgrade(): MediaWidgetSnapshot = copy(isPlaying = false, isLoading = false)
+internal fun MediaWidgetSnapshot.afterAppUpgrade(): MediaWidgetSnapshot = copy(isPlaying = false, isLoading = false, clockRunning = false)

@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">Kayıpsız beta: özgün süre bilinmiyor</string>
     <string name="lossless_beta_ineligible">Kayıpsız beta: Wi-Fi üzerinden Jam dışında ses gerekli</string>
     <string name="lossless_beta_unavailable">Kayıpsız beta: kaynak kullanılamıyor</string>
+    <string name="home_play_my_mix">Miksimi çal</string>
+    <string name="home_mix_empty">Bir miks başlatmak için arşivine müzik ekle.</string>
 </resources>

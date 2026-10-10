@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">Bêta sans perte : durée originale indisponible</string>
     <string name="lossless_beta_ineligible">Bêta sans perte : audio hors Jam sur Wi-Fi requis</string>
     <string name="lossless_beta_unavailable">Bêta sans perte : source indisponible</string>
+    <string name="home_play_my_mix">Écouter mon mix</string>
+    <string name="home_mix_empty">Ajoutez de la musique à votre bibliothèque pour lancer un mix.</string>
 </resources>

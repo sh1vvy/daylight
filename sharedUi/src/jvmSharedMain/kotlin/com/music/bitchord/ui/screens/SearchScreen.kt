@@ -887,9 +887,8 @@ private fun BrowseRow(item: BrowseItem, onClick: () -> Unit, onLongPress: (() ->
 }
 
 /**
- * Filter pills rather than a tab row: squarish rounded rectangles, the selected
- * one inverted. They scroll horizontally so a long label set never squeezes the
- * text, and the gutter padding sits inside the scroll so it scrolls with them.
+ * Capsule filters, with the selected one inverted. They scroll horizontally so
+ * a long label set never squeezes the text, with the gutter inside the scroll.
  */
 @Composable
 private fun SearchFilterTabs(filter: SearchFilter, onFilterChange: (SearchFilter) -> Unit) {
@@ -932,5 +931,4 @@ private fun SearchFilterTabs(filter: SearchFilter, onFilterChange: (SearchFilter
     }
 }
 
-/** Rounded, but well short of a capsule — the corner reads as a cut, not a curve. */
-private val FILTER_PILL_SHAPE = RoundedCornerShape(12.dp)
+private val FILTER_PILL_SHAPE = CircleShape

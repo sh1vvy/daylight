@@ -762,39 +762,6 @@ fun PullToRefresh(
     }
 }
 
-/** A soft Home card for the optional account connection. */
-@Composable
-fun SignInBanner(onSignIn: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        onClick = onSignIn,
-        modifier = modifier.fillMaxWidth().padding(horizontal = PAGE_GUTTER, vertical = 8.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-        shadowElevation = 2.dp,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(
-                    text = stringResource(Res.string.sign_in_youtube_music),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = stringResource(Res.string.personalized_recommendations),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            Button(onClick = onSignIn) { Text(stringResource(Res.string.sign_in)) }
-        }
-    }
-}
-
 @Composable
 fun MessageState(
     message: String,

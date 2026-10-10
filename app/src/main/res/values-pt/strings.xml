@@ -418,7 +418,6 @@
     <string name="sources_order_footer">Se uma fonte não tiver a faixa, o Daylight tenta a próxima. Fontes acima do YouTube podem substituí-lo quando encontram uma versão melhor.</string>
     <string name="sources_order_header">Fontes, tentadas nesta ordem</string>
     <string name="sources_quality_capped">Esta conexão está definida abaixo de Alta qualidade, então os fluxos são transcodificados. Downloads não são afetados.</string>
-    <string name="jiosaavn_mismatch_warning">Pode encontrar a versão errada de uma música. Ative por sua conta e risco.</string>
     <string name="enable_jiosaavn">Ativar JioSaavn?</string>
     <string name="enable_anyway">Ativar mesmo assim</string>
     <string name="sources_subtitle">De onde vem o áudio e a ordem usada</string>
@@ -539,33 +538,6 @@
     <string name="use_all_audio_folders_subtitle">Remove o limite da pasta e varre músicas em todo o dispositivo</string>
     <string name="album">álbum</string>
     <string name="artist">artista</string>
-    <string name="webdav">WebDAV</string>
-    <string name="webdav_subtitle">Música no seu servidor</string>
-    <string name="webdav_not_configured">Conecte um servidor em Fontes</string>
-    <string name="webdav_empty">Nenhum arquivo de áudio encontrado no servidor WebDAV. Verifique a URL nas Configurações.</string>
-    <string name="webdav_description">Conecte o Daylight a uma pasta de música WebDAV: seu diretório de Música do Nextcloud ou qualquer servidor compatível com WebDAV.</string>
-    <string name="webdav_server_url">URL do servidor</string>
-    <string name="webdav_server_url_hint">https://cloud.example.com/remote.php/dav/files/user/Music</string>
-    <string name="webdav_disconnect">Desconectar</string>
-    <string name="webdav_test_failed">Não foi possível acessar: %1$s</string>
-    <string name="upload_to_webdav">Enviar para o WebDAV</string>
-    <string name="webdav_conflict_title">“%1$s” já está no servidor</string>
-    <string name="webdav_conflict_message">Substituir ou manter as duas cópias?</string>
-    <string name="webdav_overwrite">Substituir</string>
-    <string name="webdav_keep_both">Manter as duas</string>
-    <string name="webdav_skip">Pular</string>
-    <string name="webdav_apply_to_all">Aplicar a todas</string>
-    <string name="webdav_upload_summary">%1$d enviadas · %2$d puladas · %3$d com falha</string>
-    <string name="smb">SMB</string>
-    <string name="smb_subtitle">Música em um compartilhamento de rede</string>
-    <string name="smb_not_configured">Conecte um compartilhamento em Fontes</string>
-    <string name="smb_empty">Nenhum arquivo de áudio encontrado no compartilhamento SMB. Verifique o servidor em Fontes.</string>
-    <string name="smb_description">Conecte o Daylight a uma pasta de música compartilhada: um NAS ou compartilhamento do Windows via SMB.</string>
-    <string name="smb_server_hint">nas.local or 192.168.1.10:4445</string>
-    <string name="smb_share_hint">Nome do compartilhamento, ex. Music</string>
-    <string name="smb_folder_hint">Pasta (opcional)</string>
-    <string name="smb_disconnect">Desconectar</string>
-    <string name="smb_test_failed">Não foi possível acessar: %1$s</string>
     <string name="playlist">playlist</string>
     <string name="open">Abrir</string>
     <string name="open_playlist">Abrir playlist</string>
@@ -849,10 +821,6 @@
     <string name="dolby_atmos_unavailable">Este dispositivo não suporta Atmos, as músicas tocarão na versão padrão</string>
 
     <string name="export_compatible_downloads">Exportar downloads compatíveis</string>
-
-    <string name="legacy_mesh_gradient">Gradiente de malha clássico</string>
-
-    <string name="legacy_mesh_gradient_subtitle">Traz de volta os tons suaves em movimento da v1.5</string>
 
     <string name="liquid_glass">Vidro Líquido</string>
 
@@ -1333,4 +1301,26 @@
     <string name="quality_lossless_description">24 bits · até 48 kHz</string>
     <string name="quality_hi_res_description">Áudio de maior resolução</string>
     <string name="automix_high_res_unavailable">Indisponível com áudio sem perdas de alta resolução</string>
+    <string name="lastfm_setup_pending">O Last.fm está sendo configurado para o Daylight. Estará disponível em uma próxima versão.</string>
+    <string name="lastfm_browser_description">Conecte-se pelo navegador para salvar seu histórico no Last.fm.</string>
+    <string name="lastfm_browser_return">Autorize o Daylight no navegador e volte para concluir a conexão.</string>
+    <string name="lastfm_open_browser">Abrir Last.fm</string>
+    <string name="lastfm_finish_connecting">Concluir conexão</string>
+    <string name="lastfm_disconnect">Desconectar Last.fm</string>
+    <string name="edit_playlist">Editar playlist</string>
+    <string name="choose_photo">Escolher foto</string>
+    <string name="reset_playlist_cover">Redefinir capa</string>
+    <string name="playlist_cover_local_note">As capas personalizadas ficam neste dispositivo.</string>
+    <string name="playlist_image_error">Não foi possível abrir a imagem. Tente outra foto.</string>
+    <string name="playlist_edit_error">Não foi possível salvar as alterações. Tente novamente.</string>
+    <string name="home_play_my_mix">Reproduzir meu mix</string>
+    <string name="home_mix_empty">Adicione músicas à sua biblioteca para começar um mix.</string>
+    <string name="more_by_artist">Mais de %1$s</string>
+    <string name="similar_albums_for_you">Álbuns semelhantes para você</string>
+    <string name="featured_artists">Artistas da playlist</string>
+    <string name="recommendation_languages">Idiomas das recomendações</string>
+    <string name="recommendation_languages_all">Todos os idiomas</string>
+    <plurals name="recommendation_languages_hidden"><item quantity="one">Idiomas ocultos: %1$d</item><item quantity="other">Idiomas ocultos: %1$d</item></plurals>
+    <string name="recommendation_languages_hint">Oculte idiomas das recomendações. Sua música salva e a busca continuam disponíveis.</string>
+    <string name="recommendation_languages_reset">Mostrar todos os idiomas</string>
 </resources>

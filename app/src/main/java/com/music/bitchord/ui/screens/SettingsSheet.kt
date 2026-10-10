@@ -8,6 +8,15 @@ import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -114,6 +123,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import com.music.bitchord.ui.components.AppMotionEasing
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.painter.Painter
@@ -124,6 +135,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -190,8 +202,6 @@ fun SettingsScreen(
     onLyricsSources: () -> Unit,
     onListenTogether: () -> Unit,
     onAppLanguage: () -> Unit,
-    onWebDav: () -> Unit,
-    onSmb: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
@@ -220,7 +230,6 @@ fun SettingsScreen(
     val animatedCanvas by AppSettings.animatedCanvas.collectAsStateWithLifecycle()
     val canvasOverCellular by AppSettings.canvasOverCellular.collectAsStateWithLifecycle()
     val fullBleedArtwork by AppSettings.fullBleedArtwork.collectAsStateWithLifecycle()
-    val legacyMeshGradient by AppSettings.legacyMeshGradient.collectAsStateWithLifecycle()
     val syncedLyrics by AppSettings.syncedLyrics.collectAsStateWithLifecycle()
     val lyricsSources by AppSettings.lyricsSources.collectAsStateWithLifecycle()
     val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
@@ -279,6 +288,8 @@ fun SettingsScreen(
         mutableStateOf(SettingsCategoryExpansion())
     }
     var picking by remember { mutableStateOf<QualityTarget?>(null) }
+    val excludedLanguages by AppSettings.excludedRecommendationLanguages.collectAsStateWithLifecycle()
+    var pickingRecommendationLanguages by remember { mutableStateOf(false) }
     var pickingDownloadQuality by remember { mutableStateOf(false) }
     var pickingAutomixPerformance by remember { mutableStateOf(false) }
     // What the last export or import did, shown on the row that did it rather
@@ -499,25 +510,6 @@ fun SettingsScreen(
                     )
                 }
             }
-            val legacyMeshGradientTitle = stringResource(R.string.legacy_mesh_gradient)
-            row(legacyMeshGradientTitle, "background", "player") {
-                SettingsRow(
-                    icon = Icons.Rounded.Gradient,
-                    title = legacyMeshGradientTitle,
-                    subtitle = stringResource(R.string.legacy_mesh_gradient_subtitle),
-                    trailing = {
-                        Switch(
-                            checked = legacyMeshGradient,
-                            onCheckedChange = AppSettings::setLegacyMeshGradient,
-                            colors = SwitchDefaults.colors(
-                                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                checkedBorderColor = MaterialTheme.colorScheme.primary,
-                            ),
-                        )
-                    },
-                    onClick = { AppSettings.setLegacyMeshGradient(!legacyMeshGradient) },
-                )
-            }
             val animatedCoverArtTitle = stringResource(R.string.animated_cover_art)
             row(animatedCoverArtTitle, "animated", "video", "artwork") {
                 SettingsRow(
@@ -553,6 +545,13 @@ fun SettingsScreen(
                 }
             }
 
+            val recommendationLanguagesTitle = stringResource(R.string.recommendation_languages)
+            row(recommendationLanguagesTitle, "recommendations", "feed", "languages") {
+                SettingsRow(icon = Icons.Rounded.Tune, title = recommendationLanguagesTitle,
+                    subtitle = if (excludedLanguages.isEmpty()) stringResource(R.string.recommendation_languages_all)
+                        else pluralStringResource(R.plurals.recommendation_languages_hidden, excludedLanguages.size, excludedLanguages.size),
+                    onClick = { pickingRecommendationLanguages = true })
+            }
             val appLanguageTitle = stringResource(R.string.app_language)
             row(appLanguageTitle, "locale", "translate") {
                 val selectedLanguage = AppCompatDelegate.getApplicationLocales().get(0)?.language
@@ -1149,25 +1148,6 @@ fun SettingsScreen(
                 )
             }
 
-            val webDavTitle = stringResource(R.string.webdav)
-            row(webDavTitle, "server", "cloud", "nextcloud", "folder") {
-                SettingsRow(
-                    icon = Icons.Rounded.Cloud,
-                    title = webDavTitle,
-                    subtitle = stringResource(R.string.webdav_subtitle),
-                    onClick = onWebDav,
-                )
-            }
-            val smbTitle = stringResource(R.string.smb)
-            row(smbTitle, "server", "nas", "network", "share", "folder") {
-                SettingsRow(
-                    icon = Icons.Rounded.Lan,
-                    title = smbTitle,
-                    subtitle = stringResource(R.string.smb_subtitle),
-                    onClick = onSmb,
-                )
-            }
-
             val cacheUnlimited = cacheLimitBytes == AppSettings.UNLIMITED_CACHE_LIMIT_BYTES
             // One slider stop above the largest fixed size represents Unlimited.
             val cacheLimitMb = if (cacheUnlimited) {
@@ -1469,6 +1449,11 @@ fun SettingsScreen(
                 },
             )
         }
+    }
+
+    if (pickingRecommendationLanguages) {
+        RecommendationLanguageSheet(excludedLanguages, onDismiss = { pickingRecommendationLanguages = false },
+            onSave = { AppSettings.setExcludedRecommendationLanguages(it); pickingRecommendationLanguages = false })
     }
 
     if (pickingDownloadQuality) {
@@ -2125,6 +2110,7 @@ private fun CollapsibleSettingsGroup(
     val scope = SettingsGroupScope(search, header, summary)
     scope.content()
     if (scope.entries.isEmpty()) return
+    val reduceMotion by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
     SettingsGroup(topSpacing = 12.dp) {
         SettingsCategoryHeader(
             icon = icon,
@@ -2133,7 +2119,13 @@ private fun CollapsibleSettingsGroup(
             expanded = expanded,
             onClick = onToggle.takeUnless { search.active },
         )
-        if (expanded) {
+        AnimatedVisibility(
+            visible = expanded,
+            enter = if (reduceMotion) EnterTransition.None else
+                expandVertically(tween(240, easing = AppMotionEasing)) + fadeIn(tween(160)),
+            exit = if (reduceMotion) ExitTransition.None else
+                shrinkVertically(tween(200, easing = AppMotionEasing)) + fadeOut(tween(120)),
+        ) {
             SettingsEntries(scope.entries)
         }
     }
@@ -2147,6 +2139,12 @@ private fun SettingsCategoryHeader(
     expanded: Boolean,
     onClick: (() -> Unit)?,
 ) {
+    val reduceMotion by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = if (reduceMotion) snap() else tween(200, easing = AppMotionEasing),
+        label = "settings category",
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -2180,13 +2178,13 @@ private fun SettingsCategoryHeader(
         }
         Spacer(Modifier.width(10.dp))
         Icon(
-            imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+            imageVector = Icons.Rounded.ExpandMore,
             contentDescription = stringResource(
                 if (expanded) R.string.settings_collapse_category else R.string.settings_expand_category,
                 title,
             ),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(20.dp).rotate(chevronRotation),
         )
     }
 }

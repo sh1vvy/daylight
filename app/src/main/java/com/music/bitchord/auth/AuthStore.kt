@@ -10,8 +10,7 @@ import android.content.SharedPreferences
  * the Discord integration — that account's own bearer token. Neither is a
  * password: the Google one is typed into accounts.google.com inside a WebView,
  * and the Discord one is read out of a completed login session. But both grant
- * full access to their account, so they don't go in the plain prefs the
- * scrobbler tokens use.
+ * full access to their account, so they don't go in plain preferences. Last.fm session keys and shared secrets live here too.
  *
  * A restored file whose keyset this device can't unwrap is recreated, and a
  * Keystore that can't be used at all degrades to plain prefs rather than
@@ -96,23 +95,25 @@ class AuthStore(context: Context) {
         get() = prefs.getString(KEY_DISCORD_TOKEN, null)
         set(value) = prefs.edit().putString(KEY_DISCORD_TOKEN, value).apply()
 
-    /**
-     * The WebDAV server password. Encrypted like every other credential here:
-     * a backup export carries the server URL and username in plain prefs, but
-     * never this.
-     */
-    var webdavPassword: String?
-        get() = prefs.getString(KEY_WEBDAV_PASSWORD, null)
-        set(value) = prefs.edit().putString(KEY_WEBDAV_PASSWORD, value).apply()
+    var lastfmSessionKey: String?
+        get() = prefs.getString("lastfm_session_key", null)
+        set(value) = prefs.edit().putString("lastfm_session_key", value).apply()
 
-    /**
-     * The SMB share password. Encrypted like every other credential here:
-     * exports carry the server, share and username in plain prefs, but never
-     * this.
-     */
-    var smbPassword: String?
-        get() = prefs.getString(KEY_SMB_PASSWORD, null)
-        set(value) = prefs.edit().putString(KEY_SMB_PASSWORD, value).apply()
+    var lastfmSecret: String?
+        get() = prefs.getString("lastfm_secret", null)
+        set(value) = prefs.edit().putString("lastfm_secret", value).apply()
+
+    /** Commit the destination before allowing the caller to erase legacy credentials. */
+    fun migrateLastfmCredentials(session: String?, secret: String?): Boolean {
+        return prefs.edit().apply {
+            if (lastfmSessionKey.isNullOrBlank() && !session.isNullOrBlank()) putString("lastfm_session_key", session)
+            if (lastfmSecret.isNullOrBlank() && !secret.isNullOrBlank()) putString("lastfm_secret", secret)
+        }.commit()
+    }
+
+    fun clearRetiredNetworkCredentials() {
+        prefs.edit().remove("webdav_password").remove("smb_password").apply()
+    }
 
     /**
      * The channel the listener chose to act as, if they chose one.
@@ -221,7 +222,5 @@ class AuthStore(context: Context) {
         private const val KEY_CHANNEL_NAME = "channel_name"
         private const val KEY_CHANNEL_AUTH_USER = "channel_auth_user"
         private const val KEY_DISCORD_TOKEN = "discord_token"
-        private const val KEY_WEBDAV_PASSWORD = "webdav_password"
-        private const val KEY_SMB_PASSWORD = "smb_password"
     }
 }

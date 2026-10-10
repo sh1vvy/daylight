@@ -156,6 +156,7 @@ fun BrowseActionsSheet(
     isPinned: Boolean = false,
     onTogglePin: (() -> Unit)? = null,
     onRename: ((String) -> Unit)? = null,
+    onEditPlaylist: (() -> Unit)? = null,
     /**
      * Opens the reorder sheet for one of the account's own playlists — set
      * under the same rule as [onRename], since YouTube refuses to rearrange a
@@ -282,7 +283,9 @@ fun BrowseActionsSheet(
                     onClick = it,
                 )
             }
-            if (onRename != null) {
+            if (onEditPlaylist != null) {
+                ActionRow(Icons.Rounded.Edit, stringResource(R.string.edit_playlist), onClick = onEditPlaylist)
+            } else if (onRename != null) {
                 ActionRow(Icons.Rounded.Edit, stringResource(R.string.rename)) {
                     if (menu && onRenameInSheet != null) {
                         onRenameInSheet()

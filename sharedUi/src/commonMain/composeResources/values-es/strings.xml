@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">Beta sin pérdida: duración original no disponible</string>
     <string name="lossless_beta_ineligible">Beta sin pérdida: requiere audio sin Jam por Wi-Fi</string>
     <string name="lossless_beta_unavailable">Beta sin pérdida: fuente no disponible</string>
+    <string name="home_play_my_mix">Reproducir mi mix</string>
+    <string name="home_mix_empty">Añade música a tu biblioteca para iniciar un mix.</string>
 </resources>

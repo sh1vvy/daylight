@@ -73,7 +73,7 @@ import com.music.bitchord.data.model.HEADER_ART_PX
 import com.music.bitchord.data.model.ROW_ART_PX
 import com.music.bitchord.data.model.artworkAt
 import com.music.bitchord.data.stats.ReplaySummary
-import com.music.bitchord.ui.player.MeshGradientBackground
+import com.music.bitchord.ui.player.ArtworkColorBackdrop
 import com.music.bitchord.ui.player.MeshPalette
 import com.music.bitchord.ui.player.rememberArtworkColors
 import com.music.bitchord.ui.theme.AccentRed
@@ -319,7 +319,7 @@ private fun Stage(
         // about and rotated per card — so no two backdrops in the run are the
         // same colour. Keyed on the page as well as the artwork, or a card
         // sharing a cover with the one before it would not crossfade at all.
-        MeshGradientBackground(palette = palette, trackKey = page.name, animated = false)
+        ArtworkColorBackdrop(palette = palette, trackKey = page.name, animated = false)
         // Enough ink for white type, weighted to the top where the headline sits
         // and to the foot where the controls do.
         //

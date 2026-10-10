@@ -438,7 +438,6 @@
     <string name="sources_order_footer">如果某个来源没有该曲目或无法访问，Daylight 会尝试下一个来源。排在 YouTube 之前的来源如果返回更好的版本，可以替换其录音。</string>
     <string name="sources_order_header">来源，按此顺序尝试</string>
     <string name="sources_quality_capped">此连接的设置低于高品质，因此串流会被转码以符合该限制，下载不受影响。</string>
-    <string name="jiosaavn_mismatch_warning">可能匹配到歌曲的错误版本。启用风险自负。</string>
     <string name="enable_jiosaavn">启用 JioSaavn？</string>
     <string name="enable_anyway">仍然启用</string>
     <string name="sources_subtitle">音频的来源及使用顺序</string>
@@ -567,33 +566,6 @@
     <string name="use_all_audio_folders_subtitle">取消文件夹限制，扫描整个设备上的音乐</string>
     <string name="album">专辑</string>
     <string name="artist">艺人</string>
-    <string name="webdav">WebDAV</string>
-    <string name="webdav_subtitle">你服务器上的音乐</string>
-    <string name="webdav_not_configured">请在“来源”中连接服务器</string>
-    <string name="webdav_empty">WebDAV 服务器上没有找到音频文件。请在设置中检查 URL。</string>
-    <string name="webdav_description">将 Daylight 指向一个 WebDAV 音乐文件夹 — 你的 Nextcloud 音乐目录或任何支持 WebDAV 的服务器。</string>
-    <string name="webdav_server_url">服务器 URL</string>
-    <string name="webdav_server_url_hint">https://cloud.example.com/remote.php/dav/files/user/Music</string>
-    <string name="webdav_disconnect">断开连接</string>
-    <string name="webdav_test_failed">无法连接：%1$s</string>
-    <string name="upload_to_webdav">上传到 WebDAV</string>
-    <string name="webdav_conflict_title">“%1$s”已在服务器上</string>
-    <string name="webdav_conflict_message">要覆盖，还是保留两份？</string>
-    <string name="webdav_overwrite">覆盖</string>
-    <string name="webdav_keep_both">保留两份</string>
-    <string name="webdav_skip">跳过</string>
-    <string name="webdav_apply_to_all">全部应用</string>
-    <string name="webdav_upload_summary">已上传 %1$d · 已跳过 %2$d · 失败 %3$d</string>
-    <string name="smb">SMB</string>
-    <string name="smb_subtitle">共享文件夹中的音乐</string>
-    <string name="smb_not_configured">请在“来源”中连接共享</string>
-    <string name="smb_empty">SMB 共享中没有找到音频文件。请在“来源”中检查服务器。</string>
-    <string name="smb_description">将 Daylight 指向一个共享音乐文件夹 — 支持 SMB 的 NAS 或 Windows 共享。</string>
-    <string name="smb_server_hint">nas.local or 192.168.1.10:4445</string>
-    <string name="smb_share_hint">共享名称，例如 Music</string>
-    <string name="smb_folder_hint">文件夹（可选）</string>
-    <string name="smb_disconnect">断开连接</string>
-    <string name="smb_test_failed">无法连接：%1$s</string>
     <string name="playlist">播放列表</string>
     <string name="open">打开</string>
     <string name="open_playlist">打开播放列表</string>
@@ -823,10 +795,6 @@
     <string name="dolby_atmos_unavailable">此设备不支持杜比全景声，歌曲将以普通版本播放</string>
 
     <string name="export_compatible_downloads">导出兼容的下载</string>
-
-    <string name="legacy_mesh_gradient">经典网格渐变</string>
-
-    <string name="legacy_mesh_gradient_subtitle">恢复 v1.5 中播放器背后的流动色块效果</string>
 
     <string name="liquid_glass">液态玻璃 (Liquid Glass)</string>
 
@@ -1305,4 +1273,26 @@
     <string name="quality_lossless_description">24 位 · 最高 48 kHz</string>
     <string name="quality_hi_res_description">更高解析度音频</string>
     <string name="automix_high_res_unavailable">高解析度无损下不可用</string>
+    <string name="lastfm_setup_pending">正在为 Daylight 配置 Last.fm，将在后续版本中提供。</string>
+    <string name="lastfm_browser_description">在浏览器中连接，以在 Last.fm 保存收听记录。</string>
+    <string name="lastfm_browser_return">在浏览器中授权 Daylight，然后返回完成连接。</string>
+    <string name="lastfm_open_browser">打开 Last.fm</string>
+    <string name="lastfm_finish_connecting">完成连接</string>
+    <string name="lastfm_disconnect">断开 Last.fm</string>
+    <string name="edit_playlist">编辑播放列表</string>
+    <string name="choose_photo">选择照片</string>
+    <string name="reset_playlist_cover">重置封面</string>
+    <string name="playlist_cover_local_note">自定义封面仅保存在此设备上。</string>
+    <string name="playlist_image_error">无法打开此图片，请尝试其他照片。</string>
+    <string name="playlist_edit_error">无法保存更改，请重试。</string>
+    <string name="home_play_my_mix">播放我的混合歌单</string>
+    <string name="home_mix_empty">请先将音乐添加到音乐库，再开始播放混合歌单。</string>
+    <string name="more_by_artist">%1$s的更多作品</string>
+    <string name="similar_albums_for_you">为你推荐的相似专辑</string>
+    <string name="featured_artists">播放列表中的艺人</string>
+    <string name="recommendation_languages">推荐语言</string>
+    <string name="recommendation_languages_all">所有语言</string>
+    <plurals name="recommendation_languages_hidden"><item quantity="one">已隐藏的语言：%1$d</item><item quantity="other">已隐藏的语言：%1$d</item></plurals>
+    <string name="recommendation_languages_hint">从推荐中隐藏语言。已保存的音乐和搜索仍然可用。</string>
+    <string name="recommendation_languages_reset">显示所有语言</string>
 </resources>

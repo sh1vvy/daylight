@@ -1,6 +1,5 @@
 package com.music.bitchord.ui.screens
 
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,7 +12,7 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Folder
-import androidx.compose.material.icons.rounded.Lan
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,13 +30,11 @@ import com.music.bitchord.R
 import com.music.bitchord.sharedui.resources.Res
 import com.music.bitchord.sharedui.resources.spotify_logo
 import com.music.bitchord.data.model.ShelfItem
+import com.music.bitchord.data.YtMusicRepository
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.download.Downloads
 import com.music.bitchord.download.SavedCollection
 import com.music.bitchord.ui.components.PAGE_GUTTER
-import com.music.bitchord.ui.components.ReplayCardRowSkeleton
-import com.music.bitchord.ui.replay.ReplayCardRow
-import com.music.bitchord.ui.replay.ReplayHeroCard
 import com.music.bitchord.ui.replay.ReplayStoryPage
 import com.music.bitchord.ui.icons.BitChordIcons
 
@@ -45,15 +42,11 @@ import com.music.bitchord.ui.icons.BitChordIcons
 // sits on its "On device" shelf, and the way in to Replay at its head.
 
 /**
- * The phone's folders, drawn as a list under the Replay cards: Downloads and
- * Local Music, the song cache when Settings has it shown, and the two remote
- * libraries it can reach.
+ * Music shortcuts under Replay: liked songs, downloads, device files, the
+ * optional cache folder and connected Spotify library.
  */
 @Composable
 fun libraryLinks(): List<LibraryLink> {
-    val webdavConfigured by AppSettings.webdavUrl.collectAsStateWithLifecycle()
-    val smbHost by AppSettings.smbHost.collectAsStateWithLifecycle()
-    val smbShare by AppSettings.smbShare.collectAsStateWithLifecycle()
     val showCacheFolder by AppSettings.showCacheFolder.collectAsStateWithLifecycle()
     val spotifyConnected by AppSettings.spotifySpdcToken.collectAsStateWithLifecycle()
     fun link(icon: ImageVector, title: String, subtitle: String, browseId: String) = LibraryLink(
@@ -68,6 +61,12 @@ fun libraryLinks(): List<LibraryLink> {
     )
     return listOfNotNull(
         link(
+            Icons.Rounded.MusicNote,
+            stringResource(R.string.auto_liked),
+            "",
+            YtMusicRepository.LIKED_MUSIC,
+        ),
+        link(
             Icons.Rounded.Download,
             stringResource(R.string.downloads),
             stringResource(R.string.downloaded_songs),
@@ -80,26 +79,13 @@ fun libraryLinks(): List<LibraryLink> {
             "local:all",
         ),
         // Opt-in from Settings → Storage: what the song cache is holding from
-        // YouTube and JioSaavn. See [com.music.bitchord.playback.AudioCache.cachedSongs].
+        // streaming sources. See [com.music.bitchord.playback.AudioCache.cachedSongs].
         link(
             Icons.Rounded.Storage,
             stringResource(R.string.cached_songs),
             stringResource(R.string.cached_songs_subtitle),
             CACHE_FOLDER_BROWSE_ID,
         ).takeIf { showCacheFolder },
-        // Only once set up in Sources; unconfigured, they'd just be dead ends.
-        link(
-            Icons.Rounded.Cloud,
-            stringResource(R.string.webdav),
-            stringResource(R.string.webdav_subtitle),
-            com.music.bitchord.data.webdav.WebDavConfig.BROWSE_ID,
-        ).takeIf { webdavConfigured.isNotBlank() },
-        link(
-            Icons.Rounded.Lan,
-            stringResource(R.string.smb),
-            stringResource(R.string.smb_subtitle),
-            com.music.bitchord.data.smb.SmbConfig.BROWSE_ID,
-        ).takeIf { smbHost.isNotBlank() && smbShare.isNotBlank() },
         // Only while signed in to Spotify in Settings → Accounts; it opens that
         // account's playlists rather than a browse page.
         link(
@@ -143,58 +129,25 @@ const val SPOTIFY_BROWSE_ID = "app:spotify"
 /** The Cached songs folder's page id — one of the `local:` device folders. */
 const val CACHE_FOLDER_BROWSE_ID = "local:cache"
 
-/**
- * Replay is always reachable, including before the first listening session.
- * The headline cards below it still open their specific charts directly.
- */
+/** Replay stays reachable without reading or repeating its charts in Library. */
 @Composable
-fun LibraryReplayEntry(
-    cards: List<ReplayHeroCard>,
-    loading: Boolean,
-    holder: String,
-    memberSince: String?,
-    onOpenReplay: (ReplayStoryPage) -> Unit,
-) {
-    Column(Modifier.padding(bottom = 10.dp)) {
-        Surface(
-            onClick = { onOpenReplay(ReplayStoryPage.INTRO) },
-            shape = RoundedCornerShape(22.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = PAGE_GUTTER, vertical = 8.dp),
+fun LibraryReplayEntry(onOpenReplay: (ReplayStoryPage) -> Unit) {
+    Surface(
+        onClick = { onOpenReplay(ReplayStoryPage.INTRO) },
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = PAGE_GUTTER, vertical = 8.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.padding(18.dp),
-            ) {
-                Icon(
-                    Icons.Rounded.AutoAwesome,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(26.dp),
-                )
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(R.string.your_replay), style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        stringResource(R.string.replay_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Icon(BitChordIcons.ChevronRight, contentDescription = null, modifier = Modifier.size(20.dp))
-            }
-        }
-        if (loading) {
-            ReplayCardRowSkeleton()
-        } else if (cards.isNotEmpty()) {
-            ReplayCardRow(
-                cards = cards,
-                holder = holder,
-                memberSince = memberSince,
-                onCardClick = onOpenReplay,
-                modifier = Modifier.padding(vertical = 6.dp),
-                contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
-            )
+            Icon(Icons.Rounded.AutoAwesome, contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+            Text(stringResource(R.string.your_replay), style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f))
+            Icon(BitChordIcons.ChevronRight, contentDescription = null, modifier = Modifier.size(20.dp))
         }
     }
 }

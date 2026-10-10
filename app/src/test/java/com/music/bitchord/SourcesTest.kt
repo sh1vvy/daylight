@@ -1,9 +1,6 @@
 package com.music.bitchord
 
 import com.music.bitchord.data.NerdStats
-import com.music.bitchord.data.jiosaavn.RawSongItem
-import com.music.bitchord.data.jiosaavn.prioritizeExplicit
-import com.music.bitchord.data.jiosaavn.selectBestSaavnStream
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.data.sources.DeviceCodecs
@@ -579,51 +576,12 @@ class SourcesTest {
     }
 
     @Test
-    fun `JioSaavn prioritizes the uncensored duplicate`() {
-        val clean = RawSongItem(id = "clean", title = "Starboy", explicitContent = "0")
-        val explicit = RawSongItem(id = "explicit", title = "Starboy", explicitContent = "1")
-        val anotherClean = RawSongItem(id = "clean-2", title = "Starboy", explicitContent = "0")
-
-        assertEquals(
-            listOf("explicit", "clean", "clean-2"),
-            prioritizeExplicit(listOf(clean, explicit, anotherClean)).map { it.id },
-        )
-    }
-
-    @Test
-    fun `JioSaavn accepts textual explicit flags defensively`() {
-        assertTrue(RawSongItem(explicitContent = "true").isExplicit)
-        assertFalse(RawSongItem(explicitContent = "false").isExplicit)
-        assertFalse(RawSongItem(explicitContent = "").isExplicit)
-    }
-
-    @Test
-    fun `JioSaavn is off by default on a fresh install`() {
-        assertFalse(SourceConfig(kind = SourceKind.JIOSAAVN).enabled)
-        val sources = SourceRegistry.sourcesForInit(emptyList(), forceJioSaavnOff = true)
-
-        assertFalse(sources.single { it.kind == SourceKind.JIOSAAVN }.enabled)
-        assertTrue(sources.single { it.kind == SourceKind.YOUTUBE }.enabled)
-    }
-
-    @Test
-    fun `the opt-in migration disables JioSaavn once for existing installs`() {
-        val previouslyEnabled = SourceConfig(kind = SourceKind.JIOSAAVN, enabled = true)
-
-        val migrated = SourceRegistry.sourcesForInit(
-            listOf(previouslyEnabled),
-            forceJioSaavnOff = true,
-        )
-        assertFalse(migrated.single { it.kind == SourceKind.JIOSAAVN }.enabled)
-
-        val userEnabledAgain = migrated.map {
-            if (it.kind == SourceKind.JIOSAAVN) it.copy(enabled = true) else it
-        }
-        val nextLaunch = SourceRegistry.sourcesForInit(
-            userEnabledAgain,
-            forceJioSaavnOff = false,
-        )
-        assertTrue(nextLaunch.single { it.kind == SourceKind.JIOSAAVN }.enabled)
+    fun `retired sources are removed on both first launch and every subsequent restore`() {
+        val old = SourceConfig(kind = SourceKind.JIOSAAVN, enabled = true)
+        val first = SourceRegistry.sourcesForInit(listOf(old))
+        assertFalse(first.any { it.kind == SourceKind.JIOSAAVN })
+        assertTrue(first.single { it.kind == SourceKind.YOUTUBE }.enabled)
+        assertFalse(SourceRegistry.sourcesForInit(first + old).any { it.kind == SourceKind.JIOSAAVN })
     }
 
     @Test
@@ -646,29 +604,6 @@ class SourcesTest {
         )
 
         assertEquals(listOf(youtube.id), enabled.map { it.id })
-    }
-
-    @Test
-    fun `JioSaavn upgrades a parameterized 96kbps CDN URL without losing its query`() {
-        val url = "https://aac.saavncdn.com/871/song_96.mp4?Expires=123&Signature=abc"
-
-        val selected = selectBestSaavnStream(url, supports320 = true)!!
-
-        assertEquals(
-            "https://aac.saavncdn.com/871/song_320.mp4?Expires=123&Signature=abc",
-            selected.url,
-        )
-        assertEquals(320, selected.kbps)
-    }
-
-    @Test
-    fun `JioSaavn never calls an unrecognised unchanged URL 320kbps`() {
-        val url = "https://aac.saavncdn.com/871/song.mp4?token=abc"
-
-        val selected = selectBestSaavnStream(url, supports320 = true)!!
-
-        assertEquals(url, selected.url)
-        assertNull(selected.kbps)
     }
 
     @Test
@@ -1113,7 +1048,7 @@ class SourcesTest {
      */
     @Test
     fun `only the quick source is worth resolving ahead of playback`() {
-        assertTrue(SourceKind.JIOSAAVN.worthPrefetching)
+        assertFalse(SourceKind.JIOSAAVN.worthPrefetching)
         assertFalse(SourceKind.MODULE.worthPrefetching)
         assertFalse(SourceKind.CUSTOM_MODULE.worthPrefetching)
     }

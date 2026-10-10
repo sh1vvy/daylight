@@ -227,4 +227,6 @@
     <string name="lossless_beta_missing_metadata">Бета без потерь: длительность оригинала неизвестна</string>
     <string name="lossless_beta_ineligible">Бета без потерь: нужно аудио вне Jam по Wi-Fi</string>
     <string name="lossless_beta_unavailable">Бета без потерь: источник недоступен</string>
+    <string name="home_play_my_mix">Включить мой микс</string>
+    <string name="home_mix_empty">Добавьте музыку в медиатеку, чтобы начать микс.</string>
 </resources>

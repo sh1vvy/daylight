@@ -452,7 +452,6 @@
     <string name="sources_order_footer">अगर किसी स्रोत के पास कोई ट्रैक नहीं है या उस तक पहुंचा नहीं जा सकता, तो Daylight अगला स्रोत आज़माता है। YouTube से ऊपर के स्रोत बेहतर वर्शन मिलने पर उसकी रिकॉर्डिंग बदल सकते हैं।</string>
     <string name="sources_order_header">स्रोत, इसी क्रम में आज़माए जाते हैं</string>
     <string name="sources_quality_capped">यह कनेक्शन हाई क्वालिटी से नीचे सेट है, इसलिए स्ट्रीम को उस सीमा में फिट करने के लिए ट्रांसकोड किया जाता है। डाउनलोड पर कोई असर नहीं पड़ता।</string>
-    <string name="jiosaavn_mismatch_warning">गाने का गलत वर्शन मिल सकता है। अपने जोखिम पर चालू करें।</string>
     <string name="enable_jiosaavn">JioSaavn चालू करें?</string>
     <string name="enable_anyway">फिर भी चालू करें</string>
     <string name="sources_subtitle">ऑडियो कहां से आता है और किस क्रम में इस्तेमाल होता है</string>
@@ -586,33 +585,6 @@
     <string name="use_all_audio_folders_subtitle">फ़ोल्डर की सीमा हटाएं और पूरे डिवाइस में संगीत स्कैन करें</string>
     <string name="album">एल्बम</string>
     <string name="artist">कलाकार</string>
-    <string name="webdav">WebDAV</string>
-    <string name="webdav_subtitle">आपके सर्वर पर संगीत</string>
-    <string name="webdav_not_configured">स्रोत में जाकर सर्वर कनेक्ट करें</string>
-    <string name="webdav_empty">WebDAV सर्वर पर कोई ऑडियो फ़ाइल नहीं मिली। सेटिंग्स में URL जाँचें।</string>
-    <string name="webdav_description">Daylight को किसी WebDAV संगीत फ़ोल्डर से जोड़ें — आपकी Nextcloud Music डायरेक्टरी या WebDAV सपोर्ट करने वाला कोई भी सर्वर।</string>
-    <string name="webdav_server_url">सर्वर URL</string>
-    <string name="webdav_server_url_hint">https://cloud.example.com/remote.php/dav/files/user/Music</string>
-    <string name="webdav_disconnect">डिस्कनेक्ट करें</string>
-    <string name="webdav_test_failed">कनेक्ट नहीं हो सका: %1$s</string>
-    <string name="upload_to_webdav">WebDAV पर अपलोड करें</string>
-    <string name="webdav_conflict_title">“%1$s” पहले से सर्वर पर है</string>
-    <string name="webdav_conflict_message">ओवरराइट करें, या दोनों कॉपी रखें?</string>
-    <string name="webdav_overwrite">ओवरराइट करें</string>
-    <string name="webdav_keep_both">दोनों रखें</string>
-    <string name="webdav_skip">छोड़ें</string>
-    <string name="webdav_apply_to_all">सभी पर लागू करें</string>
-    <string name="webdav_upload_summary">%1$d अपलोड · %2$d छोड़े · %3$d विफल</string>
-    <string name="smb">SMB</string>
-    <string name="smb_subtitle">शेयर किए गए फ़ोल्डर में संगीत</string>
-    <string name="smb_not_configured">स्रोत में जाकर शेयर कनेक्ट करें</string>
-    <string name="smb_empty">SMB शेयर पर कोई ऑडियो फ़ाइल नहीं मिली। स्रोत में सर्वर जाँचें।</string>
-    <string name="smb_description">Daylight को किसी शेयर किए गए संगीत फ़ोल्डर से जोड़ें — SMB वाला कोई NAS या Windows शेयर।</string>
-    <string name="smb_server_hint">nas.local or 192.168.1.10:4445</string>
-    <string name="smb_share_hint">शेयर का नाम, जैसे Music</string>
-    <string name="smb_folder_hint">फ़ोल्डर (वैकल्पिक)</string>
-    <string name="smb_disconnect">डिस्कनेक्ट करें</string>
-    <string name="smb_test_failed">कनेक्ट नहीं हो सका: %1$s</string>
     <string name="playlist">प्लेलिस्ट</string>
     <string name="open">खोलें</string>
     <string name="open_playlist">प्लेलिस्ट खोलें</string>
@@ -844,10 +816,6 @@
     <string name="dolby_atmos_unavailable">यह डिवाइस Atmos का समर्थन नहीं करता, गाने सामान्य संस्करण में बजेंगे</string>
 
     <string name="export_compatible_downloads">संगत डाउनलोड निर्यात करें</string>
-
-    <string name="legacy_mesh_gradient">क्लासिक मेश ग्रेडिएंट</string>
-
-    <string name="legacy_mesh_gradient_subtitle">v1.5 से प्लेयर के पीछे बहने वाले रंग लौटाएं</string>
 
     <string name="liquid_glass">लिक्विड ग्लास</string>
 
@@ -1328,4 +1296,26 @@
     <string name="quality_lossless_description">24-बिट · 48 kHz तक</string>
     <string name="quality_hi_res_description">ज़्यादा रेज़ोल्यूशन वाला ऑडियो</string>
     <string name="automix_high_res_unavailable">हाई-रेज़ लॉसलेस के साथ उपलब्ध नहीं</string>
+    <string name="lastfm_setup_pending">Daylight के लिए Last.fm तैयार किया जा रहा है। यह आगामी संस्करण में उपलब्ध होगा।</string>
+    <string name="lastfm_browser_description">Last.fm पर सुनने का इतिहास रखने के लिए ब्राउज़र में कनेक्ट करें।</string>
+    <string name="lastfm_browser_return">ब्राउज़र में Daylight को अनुमति दें, फिर कनेक्शन पूरा करने के लिए वापस आएँ।</string>
+    <string name="lastfm_open_browser">Last.fm खोलें</string>
+    <string name="lastfm_finish_connecting">कनेक्शन पूरा करें</string>
+    <string name="lastfm_disconnect">Last.fm डिस्कनेक्ट करें</string>
+    <string name="edit_playlist">प्लेलिस्ट संपादित करें</string>
+    <string name="choose_photo">फ़ोटो चुनें</string>
+    <string name="reset_playlist_cover">कवर रीसेट करें</string>
+    <string name="playlist_cover_local_note">कस्टम कवर इसी डिवाइस पर रहते हैं।</string>
+    <string name="playlist_image_error">यह तस्वीर नहीं खुल सकी। दूसरी फ़ोटो चुनें।</string>
+    <string name="playlist_edit_error">बदलाव सेव नहीं हो सके। फिर से कोशिश करें।</string>
+    <string name="home_play_my_mix">मेरा मिक्स चलाएँ</string>
+    <string name="home_mix_empty">मिक्स शुरू करने के लिए अपनी लाइब्रेरी में संगीत जोड़ें।</string>
+    <string name="more_by_artist">%1$s के और एल्बम</string>
+    <string name="similar_albums_for_you">आपके लिए मिलते-जुलते एल्बम</string>
+    <string name="featured_artists">प्लेलिस्ट के कलाकार</string>
+    <string name="recommendation_languages">सुझावों की भाषाएँ</string>
+    <string name="recommendation_languages_all">सभी भाषाएँ</string>
+    <plurals name="recommendation_languages_hidden"><item quantity="one">छिपाई गई भाषाएँ: %1$d</item><item quantity="other">छिपाई गई भाषाएँ: %1$d</item></plurals>
+    <string name="recommendation_languages_hint">सुझावों से भाषाएँ छिपाएँ। आपका सहेजा गया संगीत और खोज उपलब्ध रहेंगे।</string>
+    <string name="recommendation_languages_reset">सभी भाषाएँ दिखाएँ</string>
 </resources>

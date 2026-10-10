@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp" android:height="260dp" android:viewportWidth="240" android:viewportHeight="260">
+    <path android:pathData="M36,0 L204,0 Q240,0 240,36 L240,224 Q240,260 204,260 L36,260 Q0,260 0,224 L0,36 Q0,0 36,0 Z"
+        android:fillColor="@color/widget_record_surface" />
+    <path android:pathData="M1,20 A119,119 0,0 0,239 20 L239,12 Q235,0 222,0 L18,0 Q5,0 1,12 Z"
+        android:fillColor="@color/widget_material_on_container" />
+    <path android:pathData="M10,20 A110,110 0,0 0,230 20 M27,20 A93,93 0,0 0,213 20 M49,20 A71,71 0,0 0,191 20"
+        android:strokeColor="@color/widget_material_wave" android:strokeWidth="1" android:fillColor="#00000000" />
+    <path android:pathData="M97,20 A23,23 0,1 0,143 20 A23,23 0,1 0,97 20"
+        android:fillColor="#FFE4E2E6" />
+    <path android:pathData="M116,20 A4,4 0,1 0,124 20 A4,4 0,1 0,116 20"
+        android:fillColor="#FF29262C" />
+    <path android:pathData="M80,173 L160,173 M61,190 L179,190"
+        android:strokeColor="@color/widget_material_secondary" android:strokeWidth="7" android:strokeLineCap="round" />
+    <path android:pathData="M105,207 L135,207"
+        android:strokeColor="@color/widget_material_secondary" android:strokeWidth="2" android:strokeLineCap="round" />
+    <path android:pathData="M76,228 L67,233 L76,238 Z M64,228 L64,238 M116,226 L116,240 L127,233 Z M164,228 L173,233 L164,238 Z M176,228 L176,238"
+        android:fillColor="@color/widget_material_on_surface" android:strokeColor="@color/widget_material_on_surface" android:strokeWidth="1.5" />
+</vector>

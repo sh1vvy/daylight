@@ -9,6 +9,24 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class LibraryPlaylistOrderTest {
+    @Test fun `system likes disappear from playlists without hiding user playlists with the same name`() {
+        val playlists = shelf(item(YtMusicRepository.LIKED_MUSIC, "Liked Music"),
+            item("LM", "Musique aimée"), item("VLUSER", "Liked Music"),
+            item("local:playlist:mine", "Liked Music"))
+        assertEquals(listOf("VLUSER", "local:playlist:mine"), playlists.withoutLikedMusic().ids())
+    }
+
+    @Test fun `filtering system likes preserves order and ordinary provider duplicates`() {
+        val playlists = shelf(item("VLONE"), item("VLLM"), item("VLTWO"), item("VLONE"))
+        assertEquals(listOf("VLONE", "VLTWO", "VLONE"), playlists.withoutLikedMusic().ids())
+    }
+
+    @Test fun `localized playlist shelves with raw likes still use the playlist layout`() {
+        val playlists = HomeShelf("Listes de lecture", listOf(item("LM"), item("VLPLONE")))
+        assertEquals(true, playlists.isPlaylistLibraryShelf())
+        assertEquals(listOf("VLPLONE"), playlists.withoutLikedMusic().ids())
+    }
+
     private fun item(id: String, title: String = id) = ShelfItem(
         title = title,
         subtitle = "",

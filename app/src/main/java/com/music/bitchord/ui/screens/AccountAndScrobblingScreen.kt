@@ -173,18 +173,19 @@ fun AccountAndScrobblingScreen(
                         ),
                     )
                 },
-                onClick = {
-                    if (lastfmSessionKey.isNotBlank()) {
-                        AppSettings.setLastfmSessionKey("")
-                        AppSettings.setLastfmUsername("")
-                        AppSettings.setLastfmEnabled(false)
-                        AppSettings.setLastfmScrobbleEnabled(false)
-                        AppSettings.setLastfmNowPlaying(false)
-                    } else {
-                        onOpenLastfmLogin()
-                    }
-                },
+                onClick = { if (lastfmSessionKey.isBlank()) onOpenLastfmLogin() },
             )
+            if (lastfmSessionKey.isNotBlank()) {
+                FullWidthDivider()
+                DestructiveRow(label = stringResource(R.string.lastfm_disconnect), onClick = {
+                    AppSettings.setLastfmEnabled(false)
+                    AppSettings.setLastfmScrobbleEnabled(false)
+                    AppSettings.setLastfmNowPlaying(false)
+                    AppSettings.setLastfmSessionKey("")
+                    AppSettings.setLastfmUsername("")
+                    com.music.bitchord.data.scrobbling.LastFM.sessionKey = null
+                })
+            }
             if (lastfmEnabled && lastfmSessionKey.isNotBlank()) {
                 RowDivider()
                 SettingsRow(
@@ -225,10 +226,12 @@ fun AccountAndScrobblingScreen(
                     icon = Icons.Rounded.GraphicEq,
                     title = stringResource(R.string.now_playing),
                     subtitle = stringResource(R.string.lastfm_now_playing_subtitle),
+                    enabled = lastfmScrobbleEnabled,
                     trailing = {
                         Switch(
                             checked = lastfmNowPlayingEnabled,
                             onCheckedChange = AppSettings::setLastfmNowPlaying,
+                            enabled = lastfmScrobbleEnabled,
                             colors = SwitchDefaults.colors(
                                 checkedTrackColor = MaterialTheme.colorScheme.primary,
                                 checkedBorderColor = MaterialTheme.colorScheme.primary,

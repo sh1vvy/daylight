@@ -77,11 +77,18 @@ renaming, cancelled duplicate additions and failed writes do not change this ord
 The Library preview and Show all use the same order, and Show all opens at the top.
 New creations remain visible while the server's library feed catches up.
 
+The Liked songs shortcut opens the signed-in account's liked music, reusing its recent
+first page from the existing account/language-scoped browse cache. Continuations
+still load the full collection. Guests are offered sign-in. Library no longer
+requests the podcast feed or the separate added-tracks feed that the UI wasn't
+using. Provider podcast types are excluded from music recommendations, search,
+saved collections and radio; show/episode shelves are omitted from Home.
+
 Settings uses soft tonal cards and spaced subsections instead of dark dividing
 lines. Category icons and descriptions distinguish the groups from their controls.
 The Playback Sources menu is removed: YouTube Music is the online playback and
 download source, independently of older saved provider preferences. Local files
-and network folders remain available; WebDAV and SMB setup is in Downloads & storage.
+and downloads remain available. WebDAV, SMB and JioSaavn have been retired.
 
 Playlist credits open a small creator profile using the playlist header's owner,
 with available avatar, description and public playlists. Local playlists use a
@@ -89,7 +96,10 @@ device profile; unknown owners remain plain text. Album artist links keep openin
 artist pages.
 
 Android retains Spotify playlists but no longer fetches Spotify Canvas or submits
-listens to ListenBrainz. Last.fm and other motion artwork remain available. Lyrics
+listens to ListenBrainz. Last.fm uses external browser authorization and encrypted session storage; each
+listener approves the one Daylight application without supplying developer keys.
+The app owner supplies `LASTFM_API_KEY` and `LASTFM_SECRET` locally at build time.
+Other motion artwork remains available. Lyrics
 translation always follows the app language; retired settings are removed on
 startup and backup restore.
 
@@ -112,7 +122,8 @@ The mini player and bottom tabs share one folding component with Liquid Glass
 on or off. Scrolling down compresses them into one row; scrolling up expands
 them. Both materials keep tab dragging, transport controls and player gestures.
 Regular mode uses its existing frost, or solid surfaces with Reduce dynamic blur;
-only enabled glass records the additional refraction backdrop.
+its selection capsule slides at its resting size. The lifted, inflated selection
+lens and additional refraction backdrop are exclusive to enabled Liquid Glass.
 
 Playlist creation opens without partial expansion. Its form reserves keyboard
 insets, scrolls in short windows and keeps the draft name/privacy across rotation.
@@ -124,3 +135,36 @@ A close button dismisses the draft, while keyboard Done and Create submit it.
 - [Android release process](ANDROID_RELEASES.md)
 - [Acknowledgments and retained source history](../UPSTREAM.md)
 - [License](../LICENSE)
+
+## Internal canary testing
+
+The eight internal candidates through **0.2.2-canary.8**, code **26**, are now
+included in **0.2.2-dev.7**, code **27**. It uses the existing Dev package and
+debug signer, updates both Dev.6 and installed canaries in place, and enables
+public Dev update checks again. Stable remains **0.2.1**. Future canaries disable
+public update checks and must not be pushed, tagged or published until requested.
+Follow [CANARY_TESTING.md](CANARY_TESTING.md) for historical candidate checks and
+[ANDROID_RELEASES.md](ANDROID_RELEASES.md) for the public release process.
+
+Home and the Jam website pair the supplied wordmark with Daylight’s butterfly.
+The lettering is traced into smooth vector outlines, avoiding the pixel edges
+of the original image without redistributing Neue Montreal. Android uses a
+theme-tinted vector drawable; the website uses the same paths in a versioned
+SVG. Neither needs image decoding, an embedded bitmap or a font download.
+
+Search uses capsule-shaped inputs, source tabs and category filters. Its text
+suggestions wait 120 ms after typing and its media preview waits 300 ms. Short
+TTL caches reuse completed previews and suggestions, share concurrent requests,
+and retain finite entry/row budgets. Confirmed authenticated searches remain
+separate from anonymous previews; cache identity includes the account scope,
+language, query and filter. Superseded requests and pagination cannot overwrite
+the current page. The profile selector uses theme-colored surfaces with short
+entry/exit transitions that honor the reduced-animation preference.
+
+The additional **Daylight · Record** homescreen widget uses native text and
+48dp transport targets with a cached cropped disc. Framework Chronometer handles
+elapsed time during normal-speed playback; its progress bar updates on player
+events. There is no spinning bitmap, alarm or polling job. Short cards with large
+fonts prioritize readable track details and transport. Existing widget provider
+identities stay intact, and Jam guest controls continue to open the app rather
+than send playback commands.

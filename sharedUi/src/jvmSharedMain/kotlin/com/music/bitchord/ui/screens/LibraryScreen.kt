@@ -7,6 +7,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalDensity
+import com.music.bitchord.ui.player.PlayerSettings
 import androidx.compose.foundation.Image
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.clickable
@@ -27,6 +43,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.music.bitchord.ui.components.ShelfRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
@@ -64,23 +81,15 @@ import com.music.bitchord.ui.components.PAGE_GUTTER
 import com.music.bitchord.ui.components.PullToRefresh
 import com.music.bitchord.ui.components.SHELF_CARD_WIDTH
 import com.music.bitchord.ui.components.libraryGrid
-import com.music.bitchord.ui.components.librarySkeleton
 import com.music.bitchord.ui.components.shelfItemKeys
+import com.music.bitchord.ui.components.rememberCoverSourceValue
 
 /**
  * The signed-in library: the saved collections, as shelves of cards.
  *
- * Deliberately only the collections. This page used to end with two runs of
- * track rows — "Liked Music" and "Songs" — which are two overlapping answers
- * to the same question and read as one list that couldn't make up its mind: a
- * track that stopped being liked didn't leave the page, it moved down it, into
- * a section most people had taken for more of the same. Liked Music is a
- * playlist, and it is reached the way every other playlist here is, by opening
- * its card.
- *
- * The liked list is still fetched — it is what the rest of the app reads a
- * track's rating off (see MainViewModel's `likeStatuses`); it just isn't a
- * second place to browse it.
+ * Liked songs opens the liked collection from the shortcut list; saved playlists,
+ * albums and artists stay in their own shelves. First-page liked data also
+ * seeds the app's heart state without holding up the tab for the entire list.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,16 +101,9 @@ fun LibraryScreen(
     onShelfItemLongPress: (ShelfItem) -> Unit,
     onNewPlaylist: () -> Unit,
     onImportSpotifyPlaylist: (() -> Unit)? = null,
-    /**
-     * A shelf's "Show all" — every shelf's row here stops at five cards (see
-     * [LibraryGridShelf]), so this is the only way to reach whatever didn't
-     * fit.
-     */
+    /** Opens the full vertical collection grid, including the smaller shelf previews. */
     onShowAll: (HomeShelf) -> Unit,
-    /**
-     * The way in to Replay at the head of the page — the row of Replay cards,
-     * their placeholders while the history is read, or nothing at all.
-     */
+    /** A compact entry to Replay; its statistics load only after opening it. */
     replay: @Composable () -> Unit,
     onSignIn: () -> Unit,
     onRetry: () -> Unit,
@@ -112,7 +114,7 @@ fun LibraryScreen(
     contentPadding: PaddingValues,
     /**
      * The device's folders — downloads, local files, the remote libraries this
-     * build supports — drawn as a list under the Replay cards. Built by the
+     * build supports — drawn as compact shortcuts under Replay. Built by the
      * app, since which of those exist is the platform's business.
      */
     links: List<LibraryLink>,
@@ -121,12 +123,19 @@ fun LibraryScreen(
      * whole. Left off the page entirely while there are none.
      */
     deviceItems: List<ShelfItem>,
-    /** The big "Library" heading; the desktop's pages carry none. */
+    /** Whether the page draws its own Library heading. */
     showTitle: Boolean = true,
     /** Successful creation/addition history supplied by Android; absent on other platforms. */
     createdPlaylistIds: List<String> = emptyList(),
+    /** Local creations share Playlists; downloaded collections keep On device. */
+    personalPlaylists: List<ShelfItem> = emptyList(),
 ) {
-    val pinnedPlaylists by AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
+    val livePinnedPlaylists by AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
+    val pinnedPlaylists = rememberCoverSourceValue("library-pins", livePinnedPlaylists)
+    val visibleState = rememberCoverSourceValue("library-feed", state)
+    val visiblePersonalPlaylists = rememberCoverSourceValue("library-personal", personalPlaylists)
+    val visibleDeviceItems = rememberCoverSourceValue("library-device", deviceItems)
+    val visibleCreatedIds = rememberCoverSourceValue("library-created", createdPlaylistIds)
     val onDevice = stringResource(Res.string.on_device)
     PullToRefresh(
         refreshing = refreshing,
@@ -153,34 +162,42 @@ fun LibraryScreen(
             if (links.isNotEmpty()) {
                 item(key = "links") { LibraryLinkList(links = links, onClick = onShelfItemClick) }
             }
-            if (deviceItems.isNotEmpty()) {
+            item(key = "shelf:$PLAYLISTS") {
+                val remote = (visibleState as? UiState.Success)?.data?.shelves.orEmpty()
+                    .filter { it.isPlaylistLibraryShelf() }.flatMap { it.items }
+                val playlists = remember(remote, visiblePersonalPlaylists, pinnedPlaylists, visibleCreatedIds) {
+                    HomeShelf(PLAYLISTS, visiblePersonalPlaylists + remote).withoutLikedMusic()
+                        .orderedForLibrary(pinnedPlaylists, LibrarySort.DEFAULT, visibleCreatedIds)
+                }
+                PlaylistShelf(
+                    shelf = playlists,
+                    savedLocally = !signedIn,
+                    loading = signedIn && visibleState is UiState.Loading && playlists.items.isEmpty(),
+                    onItemClick = onShelfItemClick,
+                    onItemLongPress = onShelfItemLongPress,
+                    onNewPlaylist = onNewPlaylist,
+                    onImportSpotifyPlaylist = onImportSpotifyPlaylist,
+                    onShowAll = { onShowAll(playlists) },
+                    pinnedPlaylists = pinnedPlaylists,
+                    newestCreatedPlaylistId = playlists.newestCreatedPlaylistId(visibleCreatedIds),
+                )
+            }
+            if (visibleDeviceItems.isNotEmpty()) {
                 item(key = "shelf:$onDevice") {
-                    val onDeviceShelf = remember(onDevice, deviceItems, createdPlaylistIds, pinnedPlaylists) {
-                        HomeShelf(title = onDevice, items = deviceItems)
-                            .orderedForLibrary(pinnedPlaylists, LibrarySort.DEFAULT, createdPlaylistIds)
+                    val onDeviceShelf = remember(onDevice, visibleDeviceItems, visibleCreatedIds, pinnedPlaylists) {
+                        HomeShelf(title = onDevice, items = visibleDeviceItems)
+                            .orderedForLibrary(pinnedPlaylists, LibrarySort.DEFAULT, visibleCreatedIds)
                     }
                     LibraryGridShelf(
                         shelf = onDeviceShelf,
                         onItemClick = onShelfItemClick,
                         onItemLongPress = onShelfItemLongPress,
                         onShowAll = { onShowAll(onDeviceShelf) },
-                        newestCreatedPlaylistId = onDeviceShelf.newestCreatedPlaylistId(createdPlaylistIds),
+                    newestCreatedPlaylistId = onDeviceShelf.newestCreatedPlaylistId(visibleCreatedIds),
                     )
                 }
             }
             if (!signedIn) {
-                item(key = "shelf:$PLAYLISTS") {
-                    val emptyPlaylists = HomeShelf(PLAYLISTS, emptyList())
-                    PlaylistShelf(
-                        shelf = emptyPlaylists,
-                        savedLocally = true,
-                        onItemClick = onShelfItemClick,
-                        onItemLongPress = onShelfItemLongPress,
-                        onNewPlaylist = onNewPlaylist,
-                        onImportSpotifyPlaylist = onImportSpotifyPlaylist,
-                        onShowAll = { onShowAll(emptyPlaylists) },
-                    )
-                }
                 item {
                     MessageState(
                         message = stringResource(Res.string.library_sign_in_description),
@@ -190,55 +207,19 @@ fun LibraryScreen(
                 }
                 return@LazyColumn
             }
-            when (state) {
-                is UiState.Loading -> librarySkeleton()
+            when (visibleState) {
+                is UiState.Loading -> Unit // The playlist grid reserves its loading space above.
                 is UiState.Error -> item {
-                    MessageState(state.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
+                    MessageState(visibleState.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
                 }
-                is UiState.Success -> {
-                    // A fresh account has no Playlists shelf at all, and that
-                    // is exactly the account most in need of the button that
-                    // makes one — so the row is drawn either way, empty but
-                    // for the tile that creates the first playlist.
-                    val shelves = state.data.shelves
-                    if (shelves.none { it.isPlaylistLibraryShelf() }) {
-                        item(key = "shelf:$PLAYLISTS") {
-                            val emptyPlaylists = HomeShelf(PLAYLISTS, emptyList())
-                            PlaylistShelf(
-                                shelf = emptyPlaylists,
-                                onItemClick = onShelfItemClick,
-                                onItemLongPress = onShelfItemLongPress,
-                                onNewPlaylist = onNewPlaylist,
-                                onImportSpotifyPlaylist = onImportSpotifyPlaylist,
-                                onShowAll = { onShowAll(emptyPlaylists) },
-                            )
-                        }
-                    }
-                    shelves.forEach { shelf ->
-                        item(key = "shelf:${shelf.title}") {
-                            if (shelf.isPlaylistLibraryShelf()) {
-                                val ordered = remember(shelf, pinnedPlaylists, createdPlaylistIds) {
-                                    shelf.orderedForLibrary(pinnedPlaylists, LibrarySort.DEFAULT, createdPlaylistIds)
-                                }
-                                PlaylistShelf(
-                                    shelf = ordered,
-                                    onItemClick = onShelfItemClick,
-                                    onItemLongPress = onShelfItemLongPress,
-                                    onNewPlaylist = onNewPlaylist,
-                                    onImportSpotifyPlaylist = onImportSpotifyPlaylist,
-                                    onShowAll = { onShowAll(ordered) },
-                                    pinnedPlaylists = pinnedPlaylists,
-                                    newestCreatedPlaylistId = ordered.newestCreatedPlaylistId(createdPlaylistIds),
-                                )
-                            } else {
-                                LibraryGridShelf(
-                                    shelf = shelf,
-                                    onItemClick = onShelfItemClick,
-                                    onItemLongPress = onShelfItemLongPress,
-                                    onShowAll = { onShowAll(shelf) },
-                                )
-                            }
-                        }
+                is UiState.Success -> visibleState.data.shelves.filterNot { it.isPlaylistLibraryShelf() }.forEach { shelf ->
+                    item(key = "shelf:${shelf.title}") {
+                        LibraryGridShelf(
+                            shelf = shelf,
+                            onItemClick = onShelfItemClick,
+                            onItemLongPress = onShelfItemLongPress,
+                            onShowAll = { onShowAll(shelf) },
+                        )
                     }
                 }
             }
@@ -250,75 +231,38 @@ fun LibraryScreen(
 /** [logo], when set, is drawn in place of [icon] — a service's own mark. */
 data class LibraryLink(val item: ShelfItem, val icon: ImageVector, val logo: DrawableResource? = null)
 
-/**
- * The folders as a plain list — icon, name, chevron, hairlines between — the
- * way a music app's library has always opened, rather than as cards that all
- * look alike because none of them has artwork.
- */
+/** Compact music shortcuts leave the collection covers close to the top. */
 @Composable
 private fun LibraryLinkList(links: List<LibraryLink>, onClick: (ShelfItem) -> Unit) {
-    Column(Modifier.padding(top = 4.dp, bottom = 22.dp)) {
-        links.forEachIndexed { index, link ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 54.dp)
-                    .clickable { onClick(link.item) }
-                    .padding(horizontal = PAGE_GUTTER),
-            ) {
-                if (link.logo != null) {
-                    // A mark, not a glyph: white on dark, black on light, with
-                    // its cut-outs left clear.
-                    Icon(
-                        painter = painterResource(link.logo),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(LINK_ICON_SIZE),
-                    )
-                } else {
-                    Icon(
-                        imageVector = link.icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(LINK_ICON_SIZE),
-                    )
+    Column(Modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        links.chunked(2).forEach { pair ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                pair.forEach { link ->
+                    Surface(onClick = { onClick(link.item) }, shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        modifier = Modifier.weight(1f).heightIn(min = 56.dp)) {
+                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            if (link.logo != null) {
+                                Icon(painterResource(link.logo), contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
+                            } else {
+                                Icon(link.icon, contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                            }
+                            Text(link.item.title, style = MaterialTheme.typography.labelLarge,
+                                maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        }
+                    }
                 }
-                Spacer(Modifier.width(LINK_ICON_GAP))
-                Text(
-                    text = link.item.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    imageVector = BitChordIcons.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .6f),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            if (index < links.lastIndex) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = PAGE_GUTTER + LINK_ICON_SIZE + LINK_ICON_GAP),
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outline,
-                )
+                if (pair.size == 1) Spacer(Modifier.weight(1f))
             }
         }
     }
 }
 
-private val LINK_ICON_SIZE = 24.dp
-private val LINK_ICON_GAP = 16.dp
-
-/**
- * The one shelf on this page that can be written to: it leads with the tile
- * that creates a playlist, and holding a card gets rename and delete on top of
- * the queue actions every other shelf's menu offers.
- */
+/** Four visible columns and up to four rows; only playlists occupy cover slots. */
 @Composable
 private fun PlaylistShelf(
     shelf: HomeShelf,
@@ -329,35 +273,101 @@ private fun PlaylistShelf(
     onShowAll: () -> Unit,
     pinnedPlaylists: List<String> = emptyList(),
     savedLocally: Boolean = false,
+    loading: Boolean = false,
     newestCreatedPlaylistId: String? = null,
 ) {
-    LibraryGridShelf(
-        shelf = shelf,
-        onItemClick = onItemClick,
-        onItemLongPress = onItemLongPress,
-        onShowAll = onShowAll,
-        pinnedPlaylists = pinnedPlaylists,
-        newestCreatedPlaylistId = newestCreatedPlaylistId,
-        leadingCard = {
-            Row(horizontalArrangement = Arrangement.spacedBy(LIBRARY_GRID_SPACING)) {
-                NewShelfCard(
-                    icon = BitChordIcons.Plus,
-                    label = stringResource(Res.string.new_playlist),
-                    subtitle = stringResource(if (savedLocally) Res.string.on_device else Res.string.saved_to_youtube_music),
-                    onClick = onNewPlaylist,
-                )
-                if (onImportSpotifyPlaylist != null) {
-                    NewShelfCard(
-                        icon = BitChordIcons.Download,
-                        label = stringResource(Res.string.import_spotify),
-                        subtitle = stringResource(Res.string.import_spotify_subtitle),
-                        onClick = onImportSpotifyPlaylist,
-                        logo = Res.drawable.spotify_logo,
-                    )
+    val reduceAnimation by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
+    val gridState = rememberLazyGridState()
+    val previewItems = remember(shelf.items) { shelf.items.take(6) }
+    val itemKeys = remember(previewItems) { shelfItemKeys(previewItems) }
+    var optionsOpen by remember { mutableStateOf(false) }
+    var observedNewest by remember { mutableStateOf(newestCreatedPlaylistId) }
+    LaunchedEffect(newestCreatedPlaylistId) {
+        if (observedNewest != newestCreatedPlaylistId) {
+            observedNewest = newestCreatedPlaylistId
+            if (newestCreatedPlaylistId != null) gridState.scrollToItem(0)
+        }
+    }
+    Column(Modifier.padding(bottom = 24.dp)) {
+        Row(Modifier.fillMaxWidth().padding(start = PAGE_GUTTER, end = PAGE_GUTTER - 8.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(Res.string.playlists), style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
+            if (shelf.items.isNotEmpty()) {
+                TextButton(onClick = onShowAll) { Text(stringResource(Res.string.show_all)) }
+            }
+            IconButton(onClick = onNewPlaylist) {
+                    Icon(BitChordIcons.Plus, stringResource(Res.string.new_playlist),
+                        tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(22.dp))
+            }
+            if (onImportSpotifyPlaylist != null) {
+                Box {
+                    IconButton(onClick = { optionsOpen = true }) {
+                        Icon(Icons.Rounded.MoreHoriz, stringResource(Res.string.more),
+                            tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(22.dp))
+                    }
+                    DropdownMenu(expanded = optionsOpen, onDismissRequest = { optionsOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.import_spotify)) },
+                            leadingIcon = { Icon(painterResource(Res.drawable.spotify_logo), null, modifier = Modifier.size(20.dp)) },
+                            onClick = { optionsOpen = false; onImportSpotifyPlaylist() },
+                        )
+                    }
                 }
             }
-        },
-    )
+        }
+        if (shelf.items.isEmpty() && !loading) {
+            Text(stringResource(if (savedLocally) Res.string.on_device else Res.string.saved_to_youtube_music),
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp))
+        } else {
+            BoxWithConstraints(Modifier.fillMaxWidth().animateContentSize(
+                animationSpec = tween(if (reduceAnimation) 0 else 220))) {
+                val gap = 12.dp
+                val peek = if (!loading && previewItems.size > 4) 36.dp else 0.dp
+                val cellWidth = ((maxWidth - PAGE_GUTTER * 2 - gap - peek) / 2).coerceAtLeast(48.dp)
+                val cardWidth = cellWidth.coerceAtMost(136.dp)
+                val count = if (loading) 4 else previewItems.size
+                val rows = if (count <= 2) 1 else 2
+                val labelHeight = with(LocalDensity.current) { MaterialTheme.typography.labelMedium.lineHeight.toDp() * 2 }
+                val rowHeight = cardWidth + 6.dp + labelHeight
+                LazyHorizontalGrid(
+                    rows = GridCells.Fixed(rows),
+                    state = gridState,
+                    contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
+                    horizontalArrangement = Arrangement.spacedBy(gap),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth().height(rowHeight * rows + 12.dp * (rows - 1)),
+                ) {
+                    if (loading) {
+                        items(4, key = { "playlist-placeholder-$it" }) {
+                            Box(Modifier.width(cellWidth), contentAlignment = Alignment.TopCenter) {
+                                Box(Modifier.size(cardWidth).clip(RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh))
+                            }
+                        }
+                    } else {
+                        itemsIndexed(previewItems, key = { index, _ -> itemKeys[index] }, contentType = { _, _ -> "playlist" }) { index, item ->
+                            Box(Modifier.width(cellWidth).animateItem(
+                                fadeInSpec = null, fadeOutSpec = null,
+                                placementSpec = if (reduceAnimation) null else tween(220)),
+                                contentAlignment = Alignment.TopCenter) {
+                            ShelfCard(
+                                item = item,
+                                libraryCardKey = "shelf:${shelf.title}:${itemKeys[index]}",
+                                onClick = { onItemClick(item) },
+                                onLongPress = { onItemLongPress(item) },
+                                isPinned = item.browseId in pinnedPlaylists,
+                                compact = true,
+                                modifier = Modifier.width(cardWidth),
+                            )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /** A Library shelf's preview row never swipes past this many cards. */
@@ -418,9 +428,10 @@ internal fun LibraryGridShelf(
                 visibleItems,
                 key = { index, _ -> itemKeys[index] },
                 contentType = { _, _ -> "shelf-card" },
-            ) { _, item ->
+            ) { index, item ->
                 ShelfCard(
                     item = item,
+                    libraryCardKey = "shelf:${shelf.title}:${itemKeys[index]}",
                     onClick = { onItemClick(item) },
                     onLongPress = { onItemLongPress(item) },
                     isPinned = item.browseId != null && item.browseId in pinnedPlaylists,
@@ -454,7 +465,8 @@ fun LibraryGridPage(
     // Recently created/updated playlists stay easy to find after a title sort or provider
     // refresh. Pins and explicit sorting still arrange the older collections.
     val sortedShelf = remember(shelf, pinnedPlaylists, librarySort, createdPlaylistIds) {
-        shelf.orderedForLibrary(pinnedPlaylists, librarySort, createdPlaylistIds)
+        (if (shelf.isPlaylistLibraryShelf()) shelf.withoutLikedMusic() else shelf)
+            .orderedForLibrary(pinnedPlaylists, librarySort, createdPlaylistIds)
     }
     val itemKeys = remember(sortedShelf.items) { shelfItemKeys(sortedShelf.items) }
     val newestActivity = sortedShelf.newestCreatedPlaylistId(createdPlaylistIds)
@@ -475,23 +487,25 @@ fun LibraryGridPage(
             modifier = Modifier.padding(horizontal = PAGE_GUTTER),
         ) {
             if (onNewPlaylist != null) {
-                item(key = "leading", contentType = "leading-card") {
-                    NewShelfCard(
-                        icon = BitChordIcons.Plus,
-                        label = stringResource(Res.string.new_playlist),
-                        subtitle = stringResource(Res.string.saved_to_youtube_music),
-                        onClick = onNewPlaylist,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                item(key = "heading", span = { GridItemSpan(maxLineSpan) }, contentType = "heading") {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(Res.string.playlists), style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
+                        IconButton(onClick = onNewPlaylist) {
+                            Icon(BitChordIcons.Plus, stringResource(Res.string.new_playlist),
+                                tint = MaterialTheme.colorScheme.onBackground)
+                        }
+                    }
                 }
             }
             itemsIndexed(
                 sortedShelf.items,
                 key = { index, _ -> itemKeys[index] },
                 contentType = { _, _ -> "shelf-card" },
-            ) { _, item ->
+            ) { index, item ->
                 ShelfCard(
                     item = item,
+                    libraryCardKey = "grid:${itemKeys[index]}",
                     onClick = { onItemClick(item) },
                     onLongPress = { onItemLongPress(item) },
                     modifier = Modifier.fillMaxWidth(),

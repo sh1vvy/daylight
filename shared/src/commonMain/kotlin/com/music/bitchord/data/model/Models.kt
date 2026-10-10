@@ -438,7 +438,7 @@ data class MoodGenre(
 /**
  * The signed-in library, as YouTube Music splits it: the auto-generated Liked
  * Music playlist, the tracks explicitly added to the library, and a shelf per
- * saved collection (playlists, albums, artists, subscriptions, podcasts).
+ * saved music collection (playlists, albums, artists and subscriptions).
  */
 data class LibraryPage(
     val likedSongs: List<Song>,

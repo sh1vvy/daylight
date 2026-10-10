@@ -24,8 +24,11 @@ internal sealed interface HeaderCreditLink {
 /** A playlist author is not the recording artist of whichever song happens to be first. */
 internal fun DetailPage.headerCreditLink(firstSong: Song?): HeaderCreditLink? = when (type) {
     BrowseType.PLAYLIST -> creator?.let(HeaderCreditLink::Creator)
-    BrowseType.ALBUM -> firstSong?.artistId?.takeIf(String::isNotBlank)?.let {
-        HeaderCreditLink.Artist(it, firstSong.artist)
+    BrowseType.ALBUM -> firstSong?.let { song ->
+        val credited = song.artists.firstOrNull { !it.browseId.isNullOrBlank() }
+        (credited?.browseId ?: song.artistId)?.takeIf(String::isNotBlank)?.let {
+            HeaderCreditLink.Artist(it, credited?.name ?: song.artist)
+        }
     }
     else -> null
 }

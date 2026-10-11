@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-09.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import com.music.bitchord.ui.theme.LocalPinkCloud
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,9 +54,8 @@ private val POPUP_CONTENT_MAX_HEIGHT = 420.dp
  *
  * A scrim that dismisses, a card that swallows the tap so touching it does not,
  * a centred title and subtitle, a scrolling body, and a full-width closing
- * action. Fixed to the player's own dark palette rather than the theme-adaptive
- * one the settings dialogs use, since everything on the player is white alphas
- * whatever the app's light/dark theme is.
+ * action. Tonal surfaces and ink follow the active Daylight palette, including
+ * Light and Pink Clouding.
  *
  * [content] is the scrolling body, handed a [BoxScope] so a body can lay
  * something behind its rows — the pipeline draws its signal line there.
@@ -74,7 +72,7 @@ internal fun AudioPopupCard(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val popupColor = if (LocalPinkCloud.current) Color(0xFF331C2B) else Color(0xFF121212)
+    val popupColor = MaterialTheme.colorScheme.surfaceContainerHigh
 
     Box(
         modifier = modifier
@@ -124,7 +122,7 @@ internal fun AudioPopupCard(
                         fontSize = 17.sp,
                         fontWeight = FontWeight.W600,
                     ),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
                 Text(
@@ -134,7 +132,7 @@ internal fun AudioPopupCard(
                         fontSize = 13.sp,
                         lineHeight = 17.sp,
                     ),
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
             }

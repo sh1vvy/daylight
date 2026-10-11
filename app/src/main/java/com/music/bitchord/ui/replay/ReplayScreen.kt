@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-10 through 2026-10-10.
+ * Daylight changes: 2026-10-10 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -68,7 +68,6 @@ import com.music.bitchord.ui.components.PAGE_GUTTER
 import com.music.bitchord.ui.icons.BitChordIcons
 import com.music.bitchord.ui.player.ArtworkColorBackdrop
 import com.music.bitchord.ui.player.rememberArtworkColors
-import com.music.bitchord.ui.theme.AccentRed
 
 /** Whether the Replay page is being shown in dark mode (vs light). */
 @Composable
@@ -468,7 +467,7 @@ private fun ReplayChartRow(row: ReplayRow, circular: Boolean, dark: Boolean, onC
             .padding(horizontal = PAGE_GUTTER + 4.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RankBadge(row.rank, AccentRed)
+        RankBadge(row.rank, MaterialTheme.colorScheme.primary)
         if (row.artworkUrl != null) {
             AsyncImage(
                 model = row.artworkUrl.artworkAt(ROW_ART_PX),

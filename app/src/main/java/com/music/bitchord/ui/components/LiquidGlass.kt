@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-09.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -33,7 +33,6 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import com.music.bitchord.ui.theme.LocalPinkCloud
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.DpOffset
@@ -128,15 +127,12 @@ internal val GLASS_EDGE_COLOR = Color.White.copy(alpha = 0.10f)
 /**
  * Icon and label colour for content sitting on a glass surface.
  *
- * Glass shows whatever is behind it rather than the theme's surface colour, so
- * the usual onSurface greys have nothing dependable to sit against. Pure black
- * or white off the theme's luminance is the only tint that holds against
- * arbitrary artwork, and it is what Echo's own glass nav bar uses.
+ * Shared theme ink stays consistent with the standard controls. The surface
+ * tint and illuminated selection preserve contrast over sampled content.
  */
 @Composable
 fun glassContentColor(): Color =
-    if (LocalPinkCloud.current) MaterialTheme.colorScheme.onSurface
-    else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color.Black else Color.White
+    MaterialTheme.colorScheme.onSurface
 
 /**
  * A translucent illuminated selection above the navigation bar's glass.
@@ -163,8 +159,7 @@ fun Modifier.lightweightLiquidGlass(
     val useGlass = LocalLiquidGlassEnabled.current && isGlassSupported() && !reduceDynamicBlur
     val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
     val surfaceOpacity = if (light) LIGHT_SURFACE_OPACITY else DARK_SURFACE_OPACITY
-    val glassTint = if (LocalPinkCloud.current) MaterialTheme.colorScheme.surface
-        else if (light) Color(0xFFFAFAFA) else Color(0xFF121212)
+    val glassTint = MaterialTheme.colorScheme.surface
     val shapeProvider = ShapeProvider { shape }
 
     return clip(shape)
@@ -221,8 +216,7 @@ fun Modifier.liquidGlass(shape: CornerBasedShape): Modifier {
     val lensAmountPx = with(density) { LENS_AMOUNT_DP.dp.toPx() } * GLASS_RESOLUTION_SCALE
     val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
     val sheen = remember(light) { glassSheen(light) }
-    val surfaceTintColor = if (LocalPinkCloud.current) MaterialTheme.colorScheme.surface
-        else if (light) Color(0xFFFAFAFA) else Color(0xFF121212)
+    val surfaceTintColor = MaterialTheme.colorScheme.surface
 
     return drawBackdrop(
         backdrop = backdrop,

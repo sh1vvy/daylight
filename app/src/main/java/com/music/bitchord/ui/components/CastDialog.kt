@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-09 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.components
 
 import androidx.compose.foundation.background
@@ -127,7 +135,7 @@ private fun CastDeviceRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (pressed) Color.White.copy(alpha = 0.09f) else Color.Transparent)
+            .background(if (pressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.09f) else Color.Transparent)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -136,7 +144,7 @@ private fun CastDeviceRow(
             Icon(
                 imageVector = if (connected) Icons.Rounded.CastConnected else Icons.Rounded.Cast,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = if (connected) 1f else 0.8f),
+                tint = if (connected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -148,7 +156,7 @@ private fun CastDeviceRow(
                     fontSize = 15.sp,
                     fontWeight = if (connected) FontWeight.W600 else FontWeight.Normal,
                 ),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -159,20 +167,20 @@ private fun CastDeviceRow(
                     ),
                     modifier = Modifier.padding(top = 1.dp),
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
         when {
             connecting -> CircularProgressIndicator(
                 modifier = Modifier.size(16.dp),
-                color = Color.White.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 strokeWidth = 1.75.dp,
             )
             connected -> Icon(
                 imageVector = Icons.Rounded.Check,
                 contentDescription = null,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -190,20 +198,20 @@ private fun SearchingRow() {
     ) {
         CircularProgressIndicator(
             modifier = Modifier.size(20.dp),
-            color = Color.White.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             strokeWidth = 2.dp,
         )
         Spacer(Modifier.height(12.dp))
         Text(
             text = stringResource(R.string.cast_searching),
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
             text = stringResource(R.string.cast_searching_hint),
             modifier = Modifier.padding(top = 4.dp),
             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, lineHeight = 17.sp),
-            color = Color.White.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
     }
@@ -216,7 +224,7 @@ private fun CastActionRow(label: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (pressed) Color.White.copy(alpha = 0.09f) else Color.Transparent)
+            .background(if (pressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.09f) else Color.Transparent)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         contentAlignment = Alignment.CenterStart,
@@ -227,7 +235,7 @@ private fun CastActionRow(label: String, onClick: () -> Unit) {
                 fontSize = 15.sp,
                 fontWeight = FontWeight.W600,
             ),
-            color = Color(0xFFFF6B63),
+            color = MaterialTheme.colorScheme.error,
         )
     }
 }

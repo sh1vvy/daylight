@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-08.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -25,6 +25,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.compose.foundation.clickable
+import com.music.bitchord.ui.theme.daylightBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -338,7 +339,7 @@ private fun SpotifyLogin(
         }
         Column(
             Modifier.fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .daylightBackground()
                 .systemBarsPadding()
                 .imePadding(),
         ) {
@@ -354,7 +355,7 @@ private fun SpotifyLogin(
             Box(Modifier.fillMaxWidth().weight(1f).background(Color(0xFF121212))) {
                 if (failed) {
                     Column(
-                        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp),
+                        Modifier.fillMaxSize().daylightBackground().padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {

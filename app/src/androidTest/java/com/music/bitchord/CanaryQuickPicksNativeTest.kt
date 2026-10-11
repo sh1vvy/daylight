@@ -92,7 +92,7 @@ class CanaryQuickPicksNativeTest {
                 val right = compose.onNodeWithTag("quick-neighbor:right").fetchSemanticsNode().boundsInRoot
                 assertTrue("Both smaller neighbours stay inside the Home gutters", left.left >= frame.left && right.right <= frame.right)
                 assertTrue("The focused cover is larger than both neighbours", first.height > left.height * 1.2f && first.height > right.height * 1.2f)
-                screenshot("quick-picks-$theme")
+                screenshot("quick-picks-$theme", verifyAtmosphere = true)
                 val pager = compose.onNodeWithTag("home-quick-picks-pages")
                 pager.performTouchInput { swipe(Offset(width * .85f, height * .5f), Offset(width * .20f, height * .5f), 650) }
                 compose.waitForIdle()
@@ -267,9 +267,21 @@ class CanaryQuickPicksNativeTest {
     }
     private fun field(model: MainViewModel, name: String) = MainViewModel::class.java.getDeclaredField(name)
         .apply { isAccessible = true }.get(model)
-    private fun screenshot(name: String) {
+    private fun screenshot(name: String, verifyAtmosphere: Boolean = false) {
         compose.waitForIdle(); SystemClock.sleep(200)
         val bitmap = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+        if (verifyAtmosphere) {
+            // Sample the empty page gutter, outside covers and floating controls.
+            // This catches an opaque Home floor hiding the shared theme wash,
+            // including when the page is captured by the real Glass renderer.
+            val x = (bitmap.width * .015f).toInt()
+            val upper = bitmap.getPixel(x, (bitmap.height * .35f).toInt())
+            val lower = bitmap.getPixel(x, (bitmap.height * .65f).toInt())
+            val difference = kotlin.math.abs(Color.red(upper) - Color.red(lower)) +
+                kotlin.math.abs(Color.green(upper) - Color.green(lower)) +
+                kotlin.math.abs(Color.blue(upper) - Color.blue(lower))
+            assertTrue("Home's gradient must remain visible behind the feed ($upper/$lower)", difference > 15)
+        }
         val out = File(context.getExternalFilesDir(null), "canary-6-qa/$name.png")
         out.parentFile?.mkdirs()
         out.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }

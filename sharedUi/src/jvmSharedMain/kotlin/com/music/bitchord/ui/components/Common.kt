@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-10.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -292,13 +292,11 @@ fun SongRow(
     onMore: (() -> Unit)? = null,
     onSwipeToQueue: (() -> Unit)? = null,
     /**
-     * What the row paints over the swipe reveal as it slides back.
-     *
-     * It has to be the colour of the page the row is *on*, not the theme's
-     * background — an album page tinted from its sleeve would otherwise drag a
-     * black band across itself on every swipe.
+     * Optional row fill. Ordinary rows let the viewport atmosphere show through;
+     * the Queue reveal is clipped to the exposed swipe area below. A solid page
+     * background here would turn gradient lists into a stack of opaque bands.
      */
-    rowBackground: Color = MaterialTheme.colorScheme.background,
+    rowBackground: Color = Color.Transparent,
     /**
      * Drawn in place of the artwork, for lists where every row would otherwise
      * repeat the same cover — an album's own track listing.
@@ -403,7 +401,7 @@ fun SongRow(
 
     SwipeToDismissBox(
         state = swipeState,
-        modifier = modifier.onSizeChanged { boxWidth = it.width.toFloat() },
+        modifier = modifier.clip(SONG_ROW_SHAPE).onSizeChanged { boxWidth = it.width.toFloat() },
         backgroundContent = { QueueSwipeBackground(swipeState) },
     ) {
         SongRowContent(
@@ -443,7 +441,7 @@ private fun QueueSwipeBackground(swipeState: SwipeToDismissBoxState) {
                     }
                 }
             }
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f))
+            .background(com.music.bitchord.ui.theme.daylightTrackSelection(MaterialTheme.colorScheme))
             .padding(horizontal = PAGE_GUTTER),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -492,8 +490,11 @@ private fun SongRowContent(
         targetValue = if (isCurrent) activeTint else MaterialTheme.colorScheme.onBackground,
         label = "song row title",
     )
+    val selectedBackground = if (activeTint == MaterialTheme.colorScheme.primary)
+        com.music.bitchord.ui.theme.daylightTrackSelection(MaterialTheme.colorScheme)
+        else activeTint.copy(alpha = .14f)
     val activeBackground by animateColorAsState(
-        targetValue = if (isCurrent || selected) activeTint.copy(alpha = 0.14f) else Color.Transparent,
+        targetValue = if (isCurrent || selected) selectedBackground else Color.Transparent,
         label = "song row background",
     )
     // A Spotify track still being matched to a YouTube Music song, or one that
@@ -503,8 +504,9 @@ private fun SongRowContent(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .clip(SONG_ROW_SHAPE)
             .alpha(if (unavailable) 0.45f else 1f)
-            .background(activeBackground)
+            .background(activeBackground, SONG_ROW_SHAPE)
             .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
             .contextClick(onMore ?: onLongPress)
             .padding(horizontal = PAGE_GUTTER, vertical = 4.dp),
@@ -663,9 +665,11 @@ fun Modifier.hangIntoGutter(outset: Dp): Modifier = layout { measurable, constra
     layout(width, placeable.height) { placeable.place(0, 0) }
 }
 
+private val SONG_ROW_SHAPE = RoundedCornerShape(16.dp)
+
 /** The accent a current song's title takes in lists that mark it with [SearchPlayingBars]. */
 val PlayingAccent: Color
-    @Composable get() = if (com.music.bitchord.ui.theme.LocalPinkCloud.current) MaterialTheme.colorScheme.primary else Color(0xFFFB4A62)
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 @Composable
 fun SearchPlayingBars(modifier: Modifier = Modifier) {

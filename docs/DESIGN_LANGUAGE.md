@@ -11,9 +11,12 @@ Original authors' notices and licenses remain applicable to their material.
 Daylight uses soft Material surfaces with an optional Liquid Glass finish.
 Components share the same visual rules and retain their behavior in both modes.
 
-- **Colour:** Light and Dark use the existing warm Daylight accent. Pink Clouding
-  uses rose. Standard Material controls use explicitly defined tonal containers,
-  rather than falling back to Material's default purple palette.
+- **Colour:** Dark uses charcoal and plum with cream ink, blush actions, lavender
+  containers and a restrained amber glow. Light uses ivory, navy ink and blue
+  actions with a soft azure/lime field. Pink Clouding uses a petal-to-chartreuse
+  wash, deep rose ink and rose containers. Raw neon swatches are reserved for
+  tints or containers with dark ink; primary text colours are adjusted for
+  readability. Cards, fields, dialogs and menus use explicit Material roles.
 - **Floating controls:** The mini player, navigation group and Search share one
   gently tinted surface. Standard mode uses a lightweight translucent fill,
   theme ink and an accent selection indicator. It has no glass rim or backdrop
@@ -42,6 +45,19 @@ Components share the same visual rules and retain their behavior in both modes.
 - **Performance:** Reuse theme colours and shared components. Standard floating
   controls do not need a live blur pass. Keep network updates out of scrolling
   frames and use cached, correctly sized artwork.
+
+Full-page theme atmospheres stay fixed behind scrolling content. The three
+colour stops and one radial glow use cached native gradient brushes, without
+animated noise, bitmap backgrounds, dynamic blur or scroll-driven work. The
+Glass renderer records the same atmosphere; standard floating surfaces remain
+lightweight and carry matching ink/selection colours. Top and bottom fades
+follow their respective gradient edges. Existing artwork-driven detail pages
+and animated sleeves retain their own treatment. Secondary settings overlays
+paint an opaque gradient so preserved screens cannot bleed through. Ordinary
+song rows and local-library tabs stay transparent; swipe actions paint only
+the exposed area. Menus and audio-inspection popups use tonal containers and
+matching ink rather than fixed black/white plates. Text and
+active labels meet 4.5:1 across sampled backgrounds and all Material containers.
 
 Home follows the same palette with direct artwork, 22sp section headings and
 30dp shelf separation. Quick Picks uses a centered cover carousel with 16dp

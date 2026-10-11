@@ -327,7 +327,7 @@ fun LocalMusicScreen(
         // ── Tab row ──────────────────────────────────────────────────────────
         TabRow(
             selectedTabIndex = selectedTab,
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.primary,
             indicator = { tabPositions ->
                 TabRowDefaults.SecondaryIndicator(
@@ -652,7 +652,7 @@ private fun SongGridCard(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent)
+            .background(if (selected) com.music.bitchord.ui.theme.daylightTrackSelection(MaterialTheme.colorScheme) else Color.Transparent)
             .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
             .padding(4.dp),
     ) {
@@ -1093,7 +1093,7 @@ private fun AlbumGridCard(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent)
+            .background(if (selected) com.music.bitchord.ui.theme.daylightTrackSelection(MaterialTheme.colorScheme) else Color.Transparent)
             .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
             .padding(4.dp),
     ) {
@@ -1172,7 +1172,7 @@ private fun AlbumRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent, RoundedCornerShape(10.dp))
+            .background(if (selected) com.music.bitchord.ui.theme.daylightTrackSelection(MaterialTheme.colorScheme) else Color.Transparent, RoundedCornerShape(10.dp))
             .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
             .padding(horizontal = PAGE_GUTTER, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,

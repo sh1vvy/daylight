@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-11 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.screens
 
 import androidx.compose.animation.core.Spring
@@ -277,7 +285,7 @@ fun EqualizerScreen(
     if (pickingPreset) {
         ModalBottomSheet(
             onDismissRequest = { pickingPreset = false },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             PresetSheet(
                 selected = preset,

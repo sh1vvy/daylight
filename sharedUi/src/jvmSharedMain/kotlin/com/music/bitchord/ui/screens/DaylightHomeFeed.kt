@@ -143,7 +143,7 @@ fun HomeScreen(
     }
     CompositionLocalProvider(LocalHomeReducedMotion provides reducedMotion) {
         MaterialTheme(colorScheme = daylightHomeColorScheme(MaterialTheme.colorScheme, LocalPinkCloud.current)) {
-            PullToRefresh(refreshing, onRefresh, pullState, modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            PullToRefresh(refreshing, onRefresh, pullState, modifier.fillMaxSize()) {
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize().testTag("home-feed"),
                     contentPadding = feedPadding) {
                     if (title != null) item("home-title", contentType = "brand") { HomeBrand(brandContent) }

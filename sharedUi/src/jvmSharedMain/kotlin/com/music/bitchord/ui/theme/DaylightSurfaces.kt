@@ -38,12 +38,15 @@ data class DaylightFloatingColors(
 
 fun daylightFloatingColors(scheme: ColorScheme): DaylightFloatingColors {
     val dark = scheme.surface.luminance() < .5f
-    val lifted = if (dark) lerp(scheme.surface, scheme.onSurface, .10f) else scheme.surface
+    val lifted = if (dark) lerp(scheme.surfaceContainerLow, scheme.onSurface, .075f) else scheme.surface
     return DaylightFloatingColors(
         surface = lerp(lifted, scheme.primary, .045f).copy(alpha = .90f),
         content = scheme.onSurface,
-        secondaryContent = scheme.onSurface.copy(alpha = .70f),
+        secondaryContent = scheme.onSurfaceVariant,
         selectedContent = scheme.primary,
-        selection = scheme.primary.copy(alpha = if (dark) .16f else .11f),
+        selection = scheme.primary.copy(alpha = if (dark) .10f else .09f),
     )
 }
+
+/** A selected row retains enough contrast for its coloured title over the page wash. */
+fun daylightTrackSelection(scheme: ColorScheme): Color = scheme.secondaryContainer.copy(alpha = .55f)

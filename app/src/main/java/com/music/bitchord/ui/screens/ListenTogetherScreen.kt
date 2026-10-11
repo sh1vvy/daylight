@@ -355,7 +355,7 @@ fun ListenTogetherScreen(
                 failure = null
             },
             sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             when (open) {
                 PartySheet.Create -> CreatePartySheet(

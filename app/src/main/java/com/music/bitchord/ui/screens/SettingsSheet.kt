@@ -1430,7 +1430,7 @@ fun SettingsScreen(
     picking?.let { target ->
         ModalBottomSheet(
             onDismissRequest = { picking = null },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             QualitySheet(
                 target = target,
@@ -1467,7 +1467,7 @@ fun SettingsScreen(
     if (pickingDownloadQuality) {
         ModalBottomSheet(
             onDismissRequest = { pickingDownloadQuality = false },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             DownloadQualitySheet(
                 selected = downloadQuality,
@@ -1482,7 +1482,7 @@ fun SettingsScreen(
     if (pickingAutomixPerformance) {
         ModalBottomSheet(
             onDismissRequest = { pickingAutomixPerformance = false },
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             AutomixPerformanceSheet(
                 selected = automixPerformance,

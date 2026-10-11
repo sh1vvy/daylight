@@ -11,13 +11,10 @@ package com.music.bitchord.ui.theme
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.compose.ui.text.TextStyle
@@ -27,119 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.R
 import com.music.bitchord.ui.player.LocalLyricsFontFamily
-
-// Daylight’s warm sunrise accent; the name is retained for shared callers.
-val AccentRed = Color(0xFFB94F10)
-
-private val DarkColors = darkColorScheme(
-    primary = Color(0xFFFFB86C),
-    onPrimary = Color(0xFF3D2100),
-    background = Color.Black,
-    onBackground = Color.White,
-    surface = Color(0xFF0D0D0F),
-    onSurface = Color.White,
-    surfaceVariant = Color(0xFF1C1C1E),
-    onSurfaceVariant = Color(0xFF8E8E93),
-    outline = Color(0xFF2C2C2E),
-    primaryContainer = Color(0xFF513723),
-    onPrimaryContainer = Color(0xFFFFDEC2),
-    secondary = Color(0xFFD9BEA8),
-    onSecondary = Color(0xFF35281E),
-    secondaryContainer = Color(0xFF3E3026),
-    onSecondaryContainer = Color(0xFFF2DECE),
-    tertiary = Color(0xFFE7BAAC),
-    onTertiary = Color(0xFF422B24),
-    tertiaryContainer = Color(0xFF5B3E34),
-    onTertiaryContainer = Color(0xFFFFDBCF),
-    inversePrimary = Color(0xFF9C440E),
-    inverseSurface = Color(0xFFF5EFEC),
-    inverseOnSurface = Color(0xFF302B29),
-    scrim = Color.Black,
-    surfaceTint = Color(0xFFFFB86C),
-    surfaceBright = Color(0xFF373134),
-    surfaceDim = Color(0xFF0D0D0F),
-    surfaceContainerLowest = Color(0xFF09090B),
-    surfaceContainerLow = Color(0xFF151315),
-    surfaceContainer = Color(0xFF1E1A1C),
-    surfaceContainerHigh = Color(0xFF282326),
-    surfaceContainerHighest = Color(0xFF332D30),
-    outlineVariant = Color(0xFF40383C),
-)
-
-private val LightColors = lightColorScheme(
-    primary = Color(0xFF9C440E),
-    onPrimary = Color.White,
-    background = Color.White,
-    onBackground = Color.Black,
-    surface = Color(0xFFF7F7F9),
-    onSurface = Color.Black,
-    surfaceVariant = Color(0xFFF2F2F7),
-    onSurfaceVariant = Color(0xFF6E6E73),
-    outline = Color(0xFFE5E5EA),
-    primaryContainer = Color(0xFFFFE1C7),
-    onPrimaryContainer = Color(0xFF422714),
-    secondary = Color(0xFF77604F),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFF1E1D6),
-    onSecondaryContainer = Color(0xFF362A21),
-    tertiary = Color(0xFF8B5745),
-    onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFFFDBCF),
-    onTertiaryContainer = Color(0xFF382117),
-    inversePrimary = Color(0xFFFFB86C),
-    inverseSurface = Color(0xFF302B29),
-    inverseOnSurface = Color(0xFFFBF2ED),
-    scrim = Color.Black,
-    surfaceTint = Color(0xFF9C440E),
-    surfaceBright = Color(0xFFF7F7F9),
-    surfaceDim = Color(0xFFE1D9D5),
-    surfaceContainerLowest = Color.White,
-    surfaceContainerLow = Color(0xFFFBF7F5),
-    surfaceContainer = Color(0xFFF5EFEC),
-    surfaceContainerHigh = Color(0xFFEEE7E3),
-    surfaceContainerHighest = Color(0xFFE8E0DB),
-    outlineVariant = Color(0xFFE2D8D1),
-)
-
-/** Soft blush surfaces with deep rose ink, including dialogs and elevated controls. */
-internal val PinkCloudColors = lightColorScheme(
-    primary = Color(0xFFA23765),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFFFD7E6),
-    onPrimaryContainer = Color(0xFF561C36),
-    inversePrimary = Color(0xFFFFAFCE),
-    secondary = Color(0xFF805265),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFDAE8),
-    onSecondaryContainer = Color(0xFF482638),
-    tertiary = Color(0xFF765681),
-    onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFF5DCFF),
-    onTertiaryContainer = Color(0xFF3D2448),
-    background = Color(0xFFFFF2F6),
-    onBackground = Color(0xFF39212D),
-    surface = Color(0xFFFFFAFC),
-    onSurface = Color(0xFF39212D),
-    surfaceVariant = Color(0xFFF7DCE6),
-    onSurfaceVariant = Color(0xFF704755),
-    surfaceTint = Color(0xFFA23765),
-    inverseSurface = Color(0xFF49303D),
-    inverseOnSurface = Color(0xFFFFECF3),
-    error = Color(0xFFB32643),
-    onError = Color.White,
-    errorContainer = Color(0xFFFFDAE0),
-    onErrorContainer = Color(0xFF68001E),
-    outline = Color(0xFF9F7687),
-    outlineVariant = Color(0xFFE2BCCA),
-    scrim = Color(0xFF2F1824),
-    surfaceBright = Color(0xFFFFFAFC),
-    surfaceDim = Color(0xFFEBD0DA),
-    surfaceContainer = Color(0xFFFFE7F0),
-    surfaceContainerHigh = Color(0xFFFBDDE8),
-    surfaceContainerHighest = Color(0xFFF4D3E0),
-    surfaceContainerLow = Color(0xFFFFEFF5),
-    surfaceContainerLowest = Color(0xFFFFFCFD),
-)
 
 /** Inter 4.1, with its text-size spacing for controls and longer passages. */
 val DaylightFont = FontFamily(
@@ -215,11 +99,7 @@ fun BitChordTheme(
         LocalPinkCloud provides pinkCloud,
     ) {
         MaterialTheme(
-            colorScheme = when {
-                pinkCloud -> PinkCloudColors
-                darkTheme -> DarkColors
-                else -> LightColors
-            },
+            colorScheme = daylightColorScheme(darkTheme, pinkCloud),
             typography = DaylightTypography,
             shapes = DaylightShapes,
             content = content,

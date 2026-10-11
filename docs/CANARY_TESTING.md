@@ -6,7 +6,36 @@ Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.m
 Original authors' notices and licenses remain applicable to their material.
 -->
 
-# Internal candidate: Canary 16
+# Internal candidate: Canary 17
+
+**0.2.2-canary.17 · Android code 38 · manual testing only**
+
+- Restored full-page colour depth with new palettes from the owner's references:
+  charcoal/plum, cream, blush and amber for Dark; ivory, navy, azure and soft
+  lime for Light; petal pink, rose and chartreuse for Pink Clouding.
+- Home, Library, liked collections, Discover, Search and settings share a fixed
+  gradient atmosphere. Settings sub-pages and Spotify use the same background.
+  Material fields, cards, dialogs, menus and floating controls use matching
+  surfaces and readable ink. Active songs and Replay badges follow each palette.
+- Glass samples the real theme background; standard controls keep their lighter
+  translucent finish. Artwork-driven album/playlist pages and animated artwork
+  retain their established rendering. Liked-song/artist collections no longer
+  borrow an album colour for their edge fades.
+- Removed solid swipe-row fills from liked tracks and other song lists. The
+  Queue reveal remains clipped to the exposed drag area, with readable theme
+  ink. Playing/selected rows and swipe feedback use the same soft 16dp outline.
+  Creator profiles and local-library tabs share the page atmosphere. Sheets,
+  held menus, Glass tints, casting and audio inspection use the active palette.
+- Native cached gradients require no background image, animation timer, extra
+  blur or scroll-state reads. UI layouts, navigation and carousel physics remain.
+
+Validation and device observations are recorded with the local APK in
+`output/canary-0.2.2-canary.17/qa/`. Public Dev.9 and stable 0.2.1 remain unchanged;
+this is an internal canary, with no public release or tag.
+
+---
+
+# Previous candidate: Canary 16
 
 **0.2.2-canary.16 · Android code 37 · manual testing only**
 

@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-11 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.components
 
 import android.provider.Settings
@@ -131,12 +139,10 @@ fun <T : Any> HeldContextMenu(
     BackHandler(enabled = open, onBack = onDismiss)
 
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    // Plain white or black at half strength, so the blur shows through as
-    // frost rather than the surface greys reading as a flat slab over it. With
-    // no blur behind there is nothing for that to frost, so the plate firms up
-    // to stay legible over the bare scrim.
-    val plate = (if (dark) Color.Black else Color.White).copy(alpha = if (reduceDynamicBlur) 0.85f else 0.5f)
-    val hairline = if (dark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.06f)
+    // Frost follows the active palette. With blur reduced, a stronger tonal
+    // plate keeps menu text readable over the underlying page.
+    val plate = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = if (reduceDynamicBlur) 0.96f else 0.80f)
+    val hairline = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     // The scrim does less work when the blur is there to push the page back,
     // and more when it is the only thing doing it.
     val scrimColor = when {

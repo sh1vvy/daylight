@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-10.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -84,7 +84,6 @@ import com.music.bitchord.data.stats.ReplaySummary
 import com.music.bitchord.ui.player.ArtworkColorBackdrop
 import com.music.bitchord.ui.player.MeshPalette
 import com.music.bitchord.ui.player.rememberArtworkColors
-import com.music.bitchord.ui.theme.AccentRed
 import kotlinx.coroutines.launch
 
 /**
@@ -658,7 +657,7 @@ private fun ColumnScope.Leaderboard(
             Modifier.fillMaxWidth().padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RankBadge(row.rank, AccentRed)
+            RankBadge(row.rank, MaterialTheme.colorScheme.primary)
             Cover(row.artworkUrl, row.title, 36.dp, shape, ROW_ART_PX)
             Spacer(Modifier.width(12.dp))
             Text(
@@ -707,7 +706,7 @@ private fun ColumnScope.Genres(summary: ReplaySummary, headline: List<HeadlineRu
             Modifier.fillMaxWidth().padding(vertical = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RankBadge(row.rank, AccentRed)
+            RankBadge(row.rank, MaterialTheme.colorScheme.primary)
             Text(
                 text = row.title,
                 style = MaterialTheme.typography.titleMedium,

@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-09 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.components
 
 import android.media.AudioFormat
@@ -74,8 +82,6 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-private val PIPELINE_ICON_TINT = Color.White.copy(alpha = 0.6f)
-
 /**
  * Whether decoded samples are reaching the output unaltered, and what is
  * altering them when they aren't.
@@ -130,9 +136,8 @@ private fun bitExactVerdict(
  *
  * Same frosted card shape as [LyricsSourcesDialog] and [UpdateAvailableDialog] —
  * header with a title and subtitle, hairline-separated groups, a full-width
- * closing action — fixed to this player's own dark palette rather than the
- * theme-adaptive one those settings dialogs use, since everything else on this
- * screen is drawn in [Color.White] alphas regardless of the app's light/dark theme.
+ * closing action — with the same tonal surface and readable ink as other
+ * Daylight dialogs.
  */
 @Composable
 fun AudioPipelineDialog(
@@ -211,6 +216,8 @@ fun AudioPipelineDialog(
         if (stageCenters[idx] != center) stageCenters[idx] = center
     }
 
+    val signalColor = MaterialTheme.colorScheme.primary
+    val signalBacking = MaterialTheme.colorScheme.surfaceContainerHigh
     AudioPopupCard(
         hazeState = hazeState,
         title = stringResource(R.string.audio_pipeline),
@@ -227,7 +234,7 @@ fun AudioPipelineDialog(
                 .matchParentSize()
                 .graphicsLayer {}
                 .drawBehind {
-                    drawSignalFlow(stageCenters, flowAlpha, pulseProgress, interactionRadiusPx)
+                    drawSignalFlow(stageCenters, flowAlpha, pulseProgress, interactionRadiusPx, signalColor, signalBacking)
                 },
         )
         Column(
@@ -532,6 +539,8 @@ private fun DrawScope.drawSignalFlow(
     flowAlpha: Float,
     pulseProgress: Float,
     interactionRadiusPx: Float,
+    signalColor: Color,
+    signalBacking: Color,
 ) {
     if (stageCenters.size < 5) return
 
@@ -561,7 +570,7 @@ private fun DrawScope.drawSignalFlow(
         val yEnd = stagePoints[i + 1].y - nodeRadius
         if (yEnd > yStart) {
             drawLine(
-                color = Color.White.copy(alpha = busAlpha),
+                color = signalColor.copy(alpha = busAlpha),
                 start = Offset(xCenter, yStart),
                 end = Offset(xCenter, yEnd),
                 strokeWidth = busStroke,
@@ -571,7 +580,7 @@ private fun DrawScope.drawSignalFlow(
             // Subtle ambient under-glow along the bus when powered
             if (currentFlowAlpha > 0f) {
                 drawLine(
-                    color = Color.White.copy(alpha = 0.05f * currentFlowAlpha),
+                    color = signalColor.copy(alpha = 0.05f * currentFlowAlpha),
                     start = Offset(xCenter, yStart),
                     end = Offset(xCenter, yEnd),
                     strokeWidth = 4.5.dp.toPx(),
@@ -609,8 +618,8 @@ private fun DrawScope.drawSignalFlow(
                     val haloBrush = Brush.verticalGradient(
                         colorStops = arrayOf(
                             0.0f to Color.Transparent,
-                            0.60f to Color.White.copy(alpha = 0.14f * pulseVisibility),
-                            0.88f to Color.White.copy(alpha = 0.28f * pulseVisibility),
+                            0.60f to signalColor.copy(alpha = 0.14f * pulseVisibility),
+                            0.88f to signalColor.copy(alpha = 0.28f * pulseVisibility),
                             1.0f to Color.Transparent,
                         ),
                         startY = yPulse - tailLength,
@@ -628,8 +637,8 @@ private fun DrawScope.drawSignalFlow(
                     val coreBrush = Brush.verticalGradient(
                         colorStops = arrayOf(
                             0.0f to Color.Transparent,
-                            0.50f to Color.White.copy(alpha = 0.45f * pulseVisibility),
-                            0.86f to Color.White.copy(alpha = 0.98f * pulseVisibility),
+                            0.50f to signalColor.copy(alpha = 0.45f * pulseVisibility),
+                            0.86f to signalColor.copy(alpha = 0.98f * pulseVisibility),
                             1.0f to Color.Transparent,
                         ),
                         startY = yPulse - tailLength,
@@ -649,7 +658,7 @@ private fun DrawScope.drawSignalFlow(
                         drawCircle(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = 0.35f * pulseVisibility),
+                                    signalColor.copy(alpha = 0.35f * pulseVisibility),
                                     Color.Transparent,
                                 ),
                                 center = headCenter,
@@ -659,7 +668,7 @@ private fun DrawScope.drawSignalFlow(
                             center = headCenter,
                         )
                         drawCircle(
-                            color = Color.White.copy(alpha = 0.98f * pulseVisibility),
+                            color = signalColor.copy(alpha = 0.98f * pulseVisibility),
                             radius = 1.75.dp.toPx(),
                             center = headCenter,
                         )
@@ -676,7 +685,7 @@ private fun DrawScope.drawSignalFlow(
 
         // A. Dark Backing Base (Seamless with card, guarantees zero bleed into icon interior)
         drawCircle(
-            color = Color(0xFF131315),
+            color = signalBacking,
             radius = nodeRadius,
             center = stageCenter,
         )
@@ -686,8 +695,8 @@ private fun DrawScope.drawSignalFlow(
         drawCircle(
             brush = Brush.radialGradient(
                 colorStops = arrayOf(
-                    0.0f to Color.White.copy(alpha = haloAlpha * 0.40f),
-                    0.45f to Color.White.copy(alpha = haloAlpha),
+                    0.0f to signalColor.copy(alpha = haloAlpha * 0.40f),
+                    0.45f to signalColor.copy(alpha = haloAlpha),
                     1.0f to Color.Transparent,
                 ),
                 center = stageCenter,
@@ -700,7 +709,7 @@ private fun DrawScope.drawSignalFlow(
         // C. Active Outer Luminous Flare Ring (When pulse arrives)
         if (currentFlowAlpha > 0f && act > 0.02f) {
             drawCircle(
-                color = Color.White.copy(alpha = 0.20f * act * currentFlowAlpha),
+                color = signalColor.copy(alpha = 0.20f * act * currentFlowAlpha),
                 radius = nodeRadius + 1.2.dp.toPx(),
                 center = stageCenter,
                 style = Stroke(width = 2.dp.toPx()),
@@ -710,7 +719,7 @@ private fun DrawScope.drawSignalFlow(
         // D. Precision White Outline Micro-Ring (Crisp hardware boundary)
         val ringAlpha = (0.35f + 0.55f * act * currentFlowAlpha).coerceIn(0f, 1f)
         drawCircle(
-            color = Color.White.copy(alpha = ringAlpha),
+            color = signalColor.copy(alpha = ringAlpha),
             radius = nodeRadius,
             center = stageCenter,
             style = Stroke(width = 1.dp.toPx()),
@@ -719,7 +728,7 @@ private fun DrawScope.drawSignalFlow(
         // E. High-Luminance Core Edge (When peak active)
         if (currentFlowAlpha > 0f && act > 0.05f) {
             drawCircle(
-                color = Color.White.copy(alpha = 0.60f * act * currentFlowAlpha),
+                color = signalColor.copy(alpha = 0.60f * act * currentFlowAlpha),
                 radius = nodeRadius,
                 center = stageCenter,
                 style = Stroke(width = 1.5.dp.toPx()),
@@ -803,7 +812,7 @@ private fun PipelineSection(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .size(15.dp)
                     .onGloballyPositioned { coords ->
@@ -833,12 +842,12 @@ private fun PipelineSection(
                     fontWeight = FontWeight.W600,
                     letterSpacing = 0.5.sp,
                 ),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .padding(top = 3.dp)
                     .graphicsLayer {
                         val act = stageActivationProvider(stageIndex)
-                        alpha = (0.65f + 0.32f * act).coerceIn(0f, 1f)
+                        alpha = (0.94f + 0.06f * act).coerceIn(0f, 1f)
                     },
             )
             Spacer(Modifier.height(7.dp))
@@ -855,10 +864,10 @@ private fun PipelineRow(label: String, value: String) {
             .padding(vertical = 1.dp),
     ) {
         val text = buildAnnotatedString {
-            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = Color.White)) {
+            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)) {
                 append("$label: ")
             }
-            withStyle(SpanStyle(fontWeight = FontWeight.Normal, color = Color.White.copy(alpha = 0.82f))) {
+            withStyle(SpanStyle(fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onSurfaceVariant)) {
                 append(value)
             }
         }
@@ -879,11 +888,11 @@ internal fun PipelineRule(modifier: Modifier = Modifier.padding(start = 52.dp, e
         modifier
             .fillMaxWidth()
             .height(0.5.dp)
-            .background(Color.White.copy(alpha = 0.14f)),
+            .background(MaterialTheme.colorScheme.outlineVariant),
     )
 }
 
-/** Full-bleed closing action, [AlertAction]'s shape fixed to this screen's white-on-dark palette. */
+/** Full-width closing action in the active palette. */
 @Composable
 internal fun PipelineDoneAction(label: String, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -893,7 +902,7 @@ internal fun PipelineDoneAction(label: String, onClick: () -> Unit) {
             .fillMaxWidth()
             .height(ACTION_HEIGHT)
             .background(
-                if (pressed) Color.White.copy(alpha = 0.09f) else Color.Transparent,
+                if (pressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.09f) else Color.Transparent,
             )
             .clickable(
                 indication = null,
@@ -908,7 +917,7 @@ internal fun PipelineDoneAction(label: String, onClick: () -> Unit) {
                 fontSize = 17.sp,
                 fontWeight = FontWeight.W600,
             ),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
@@ -920,7 +929,7 @@ private fun PipelineNote(text: String) {
         style = MaterialTheme.typography.bodySmall.copy(
             fontSize = 11.sp,
             lineHeight = 14.sp,
-            color = Color.White.copy(alpha = 0.60f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         ),
         modifier = Modifier
             .fillMaxWidth()

@@ -299,7 +299,8 @@ import com.music.bitchord.ui.screens.ExploreScreen
 import com.music.bitchord.ui.screens.LocalMusicScreen
 import com.music.bitchord.ui.screens.HomeScreen
 import com.music.bitchord.ui.screens.rememberHomeFeedPresentation
-import com.music.bitchord.ui.theme.daylightHomeBackground
+import com.music.bitchord.ui.theme.currentDaylightAtmosphere
+import com.music.bitchord.ui.theme.daylightBackground
 import com.music.bitchord.ui.theme.LocalPinkCloud
 import com.music.bitchord.ui.screens.LibrarySongsScreen
 import com.music.bitchord.ui.screens.LibraryGridPage
@@ -2776,7 +2777,8 @@ private fun BitChordApp(
                         .then(
                             if (glassSamplesBackdrop) Modifier.layerBackdrop(appBackdrop)
                             else Modifier,
-                        ),
+                        )
+                        .daylightBackground(),
                     label = "content",
                 ) { key ->
                     // Every branch below reads `key` rather than the state that
@@ -3486,8 +3488,8 @@ private fun BitChordApp(
                     "account_scrobbling", "credits" -> {
                         if (showSettings || settingsSubScreen == "account_scrobbling") {
                             Surface(
-                                modifier = Modifier.fillMaxSize(),
-                                color = MaterialTheme.colorScheme.background,
+                                modifier = Modifier.fillMaxSize().daylightBackground(),
+                                color = Color.Transparent,
                             ) {
                                 AccountAndScrobblingScreen(
                                     signedIn = signedIn,
@@ -3517,8 +3519,8 @@ private fun BitChordApp(
                         }
                         if (settingsSubScreen == "credits") {
                             Surface(
-                                modifier = Modifier.fillMaxSize(),
-                                color = MaterialTheme.colorScheme.background,
+                                modifier = Modifier.fillMaxSize().daylightBackground(),
+                                color = Color.Transparent,
                             ) {
                                 CreditsScreen(contentPadding = listPadding)
                             }
@@ -3526,8 +3528,8 @@ private fun BitChordApp(
                     }
                     "listen_together" -> {
                         Surface(
-                            modifier = Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.background,
+                            modifier = Modifier.fillMaxSize().daylightBackground(),
+                            color = Color.Transparent,
                         ) {
                             ListenTogetherScreen(
                                 signedIn = signedIn,
@@ -3549,8 +3551,8 @@ private fun BitChordApp(
                     }
                     "equalizer" -> {
                         Surface(
-                            modifier = Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.background,
+                            modifier = Modifier.fillMaxSize().daylightBackground(),
+                            color = Color.Transparent,
                         ) {
                             EqualizerScreen(contentPadding = listPadding)
                         }
@@ -3558,8 +3560,8 @@ private fun BitChordApp(
                     "replay" -> {
                         if (showReplay && !showReplayShare) {
                             Surface(
-                                modifier = Modifier.fillMaxSize(),
-                                color = MaterialTheme.colorScheme.background,
+                                modifier = Modifier.fillMaxSize().daylightBackground(),
+                                color = Color.Transparent,
                             ) {
                                 ReplayScreen(
                                     state = replay,
@@ -3600,10 +3602,14 @@ private fun BitChordApp(
                         detail.type == BrowseType.PLAYLIST ||
                         detail.type == BrowseType.ARTIST) &&
                     !isLocalDetail && pageKey == detail.detailRouteKey()
+                // Liked tracks, local artist collections and creator profiles
+                // use the app atmosphere, rather than an album's artwork floor.
+                val usesArtworkBackdrop = isDetailVisible &&
+                    detail?.browseId != YtMusicRepository.LIKED_MUSIC &&
+                    detail?.libraryArtist == null && detail?.creatorProfile == null
                 val chromePageColor = when {
-                    isDetailVisible -> detailPalette.background
-                    pageKey == "$TAB_KEY$TAB_HOME" -> daylightHomeBackground(MaterialTheme.colorScheme.background, LocalPinkCloud.current)
-                    else -> MaterialTheme.colorScheme.background
+                    usesArtworkBackdrop -> detailPalette.background
+                    else -> currentDaylightAtmosphere().colorAt(.25f, 1f)
                 }
                 // This is the bottom floor itself turned upside down, not a
                 // separately maintained approximation. Both edges therefore
@@ -3628,7 +3634,7 @@ private fun BitChordApp(
                     }
                 }
                 BottomFadeScrim(
-                    pageColor = chromePageColor,
+                    pageColor = if (usesArtworkBackdrop) chromePageColor else currentDaylightAtmosphere().colorAt(.25f, 0f),
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .rotate(180f)
@@ -4158,7 +4164,7 @@ private fun BitChordApp(
                     // buttons below the fold — a sheet whose only two controls
                     // need a drag to reach.
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 ) {
                     ReplayShareSheet(
                         summary = summary,
@@ -4510,7 +4516,7 @@ private fun BitChordApp(
             BackHandler(onBack = closeDownloadManager)
             ModalBottomSheet(
                 onDismissRequest = closeDownloadManager,
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ) {
                 DownloadManagerSheet(onDismiss = closeDownloadManager)
             }
@@ -4558,7 +4564,7 @@ private fun BitChordApp(
             ModalBottomSheet(
                 onDismissRequest = dismiss,
                 sheetState = playlistSheetState,
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 properties = ModalBottomSheetProperties(shouldDismissOnBackPress = !playlistActionBusy),
             ) {
                 PlaylistPickerSheet(
@@ -4847,7 +4853,7 @@ private fun BitChordApp(
         browseActions?.takeIf { browseMenuOrigin == null }?.let { target ->
             ModalBottomSheet(
                 onDismissRequest = { browseActions = null },
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ) {
                 browseMenuBody(target, SongActionsPresentation.Sheet)
             }
@@ -4898,7 +4904,7 @@ private fun BitChordApp(
             ModalBottomSheet(
                 onDismissRequest = close,
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ) {
                 ReorderPlaylistSheet(
                     modifier = Modifier.nestedScroll(keepSheetStill),
@@ -4932,7 +4938,7 @@ private fun BitChordApp(
             var captureFailed by remember(mode) { mutableStateOf(false) }
             var pageReady by remember(mode) { mutableStateOf(false) }
             var confirmingProfile by remember(mode) { mutableStateOf(false) }
-            Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Surface(Modifier.fillMaxSize().daylightBackground(), color = Color.Transparent) {
                 Column(Modifier.fillMaxSize()) {
                     Row(
                         Modifier
@@ -5138,7 +5144,7 @@ private fun BitChordApp(
         // ---- Discord sign-in (full screen WebView) ----
         if (showDiscordLogin) {
             BackHandler { showDiscordLogin = false }
-            Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Surface(Modifier.fillMaxSize().daylightBackground(), color = Color.Transparent) {
                 Column(Modifier.fillMaxSize()) {
                     Row(
                         Modifier

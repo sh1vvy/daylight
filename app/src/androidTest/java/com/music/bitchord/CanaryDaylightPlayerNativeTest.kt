@@ -9,6 +9,7 @@
 package com.music.bitchord
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
@@ -174,6 +175,10 @@ class CanaryDaylightPlayerNativeTest {
             val half = compose.onNodeWithTag("daylight-player-artwork", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
             screenshot("daylight-dock-midpoint")
             assertTrue("Cover narrows continuously: full=$full, half=$half, travel=${dock.sheetTravel}", half.width < full.width && half.width > 40 * context.resources.displayMetrics.density)
+            compose.runOnIdle { held = dock.sheetTravel * .92f }
+            compose.waitForIdle()
+            screenshot("daylight-dock-before-handoff")
+            assertDockArtworkBrightness(song)
             compose.runOnIdle { held = dock.sheetTravel }
             compose.waitForIdle()
             val landed = compose.onNodeWithTag("daylight-player-artwork", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
@@ -183,6 +188,7 @@ class CanaryDaylightPlayerNativeTest {
             assertEquals(target.width, landed.width, 2f)
             assertEquals(target.height, landed.height, 2f)
             screenshot("daylight-dock-landed")
+            assertDockArtworkBrightness(song)
             compose.runOnIdle { held = 0f }
             compose.waitForIdle()
             compose.onNodeWithTag("player-progress-bar").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(.65f) }
@@ -269,6 +275,7 @@ class CanaryDaylightPlayerNativeTest {
                 compose.onNodeWithText("Daylight line 2").performClick()
                 assertEquals(1_000L, seek)
                 screenshot("daylight-lyrics")
+                assertCompactHeaderAlignment()
                 val lyricTitle = compose.onNodeWithText("An ordinary track").fetchSemanticsNode().boundsInRoot
                 val returnLane = compose.onNodeWithTag("daylight-player-panel-return").fetchSemanticsNode().boundsInRoot
                 compose.onNodeWithTag("daylight-player-close").assertIsNotDisplayed()
@@ -286,6 +293,7 @@ class CanaryDaylightPlayerNativeTest {
                 compose.waitForIdle()
                 compose.onNodeWithText("Queue").assertDoesNotExist()
                 compose.onNodeWithTag("daylight-player-queue-bottom-fade").assertIsDisplayed()
+                assertCompactHeaderAlignment()
                 compose.onNodeWithTag("daylight-player-autoplay").assertIsSelected().performClick().assertIsNotSelected()
                 compose.onNodeWithContentDescription("AutoPlay off").assertIsDisplayed()
                 compose.onNodeWithText("AutoPlay off").assertDoesNotExist()
@@ -466,5 +474,28 @@ class CanaryDaylightPlayerNativeTest {
         val bitmap = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
         val file = File(context.getExternalFilesDir(null), "canary-19-player/$name.png")
         file.parentFile?.mkdirs(); file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }; bitmap.recycle()
+    }
+
+    private fun assertCompactHeaderAlignment() {
+        val cover = compose.onNodeWithTag("daylight-player-artwork-action", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val title = compose.onNodeWithTag("daylight-player-title").fetchSemanticsNode().boundsInRoot
+        val artist = compose.onNodeWithTag("daylight-player-artist").fetchSemanticsNode().boundsInRoot
+        val heart = compose.onNodeWithTag("daylight-player-heart").fetchSemanticsNode().boundsInRoot
+        val menu = compose.onNodeWithTag("daylight-player-menu").fetchSemanticsNode().boundsInRoot
+        assertTrue("Compact metadata follows the cover with an inset", cover.right < title.left)
+        assertEquals("Song and artist share a left edge beside the cover", title.left, artist.left, 2f)
+        assertTrue("Compact actions sit together to the right of metadata", heart.left >= title.right && heart.right <= menu.left)
+    }
+
+    private fun assertDockArtworkBrightness(song: Song) {
+        val source = requireNotNull(BitmapFactory.decodeFile(File(java.net.URI(requireNotNull(song.thumbnailUrl))).path))
+        val expected = source.getPixel(source.width / 2, source.height / 2)
+        source.recycle()
+        val bounds = compose.onNodeWithTag("daylight-player-artwork", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val frame = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+        val actual = frame.getPixel(bounds.center.x.toInt(), bounds.center.y.toInt())
+        frame.recycle()
+        for ((name, channel) in listOf("red" to Color::red, "green" to Color::green, "blue" to Color::blue))
+            assertEquals("Mini handoff retains the original cover's $name brightness", channel(expected).toFloat(), channel(actual).toFloat(), 18f)
     }
 }

@@ -55,6 +55,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
@@ -172,7 +173,10 @@ fun DaylightPlayer(
                 if (panel == PlayerPanel.ARTWORK) actions.artwork() else currentOnPanel(PlayerPanel.ARTWORK)
             }) {
             artwork(Modifier.fillMaxSize().testTag("daylight-player-artwork"))
-            Box(Modifier.fillMaxSize().graphicsLayer { alpha = 1f - panelExpansion.value }
+            Box(Modifier.fillMaxSize().graphicsLayer {
+                // Retire the full-view shading before the mini artwork takes over.
+                alpha = (1f - panelExpansion.value) * (1f - coverFold(expansion(), panelExpansion.value))
+            }
                 .drawWithCache {
                     val bottom = Brush.verticalGradient(listOf(Color.Transparent, colors.background), startY = size.height * .46f, endY = size.height * .96f)
                     val top = Brush.verticalGradient(listOf(Color.Black.copy(alpha = .6f), Color.Transparent), endY = 200.dp.toPx())
@@ -184,7 +188,7 @@ fun DaylightPlayer(
             .testTag("daylight-player-close")
             .clickable(enabled = panel == PlayerPanel.ARTWORK, onClickLabel = labels.close, onClick = actions.dismiss)
             .semantics { if (panel == PlayerPanel.ARTWORK) contentDescription = labels.close })
-        PlayerTrackHeader(track, session, colors, labels, actions, onMenuAnchor,
+        PlayerTrackHeader(track, session, colors, labels, actions, onMenuAnchor, panel != PlayerPanel.ARTWORK, { panelExpansion.value },
             Modifier.graphicsLayer { alpha = ((expansion() - .2f) / .8f).coerceIn(0f, 1f) })
         PlayerPanelContent(panel, session, queue, queueIndex, colors, labels, actions, reduceMotion, queueBlurEnabled, lyricsContent,
             Modifier.graphicsLayer { alpha = expansion() })
@@ -272,19 +276,50 @@ fun DaylightPlayer(
 
 @Composable
 private fun PlayerTrackHeader(track: PlayerTrack, session: PlayerSession, colors: PlayerColors, labels: PlayerLabels,
-    actions: PlayerActions, onMenuAnchor: (Rect) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    actions: PlayerActions, onMenuAnchor: (Rect) -> Unit, compact: Boolean, panelProgress: () -> Float, modifier: Modifier = Modifier) {
+    // The same metadata and controls travel between both layouts; there is no duplicate header.
+    Layout(content = {
         IconToggleButton(session.liked, { actions.like() }, enabled = session.canLike, modifier = Modifier.testTag("daylight-player-heart")) {
             Icon(if (session.liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, labels.like,
                 modifier = Modifier.size(24.dp).testTag("daylight-player-heart-glyph"), tint = if (session.liked) colors.accent else colors.ink)
         }
-        Column(Modifier.weight(1f).padding(horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(track.title, color = colors.ink, fontSize = 21.sp, fontWeight = FontWeight.SemiBold,
-                letterSpacing = (-.4).sp, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-            Text(track.artist, color = colors.muted, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
+        Text(track.title, color = colors.ink, fontSize = 21.sp, fontWeight = FontWeight.SemiBold,
+            letterSpacing = (-.4).sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
+            textAlign = if (compact) TextAlign.Start else TextAlign.Center,
+            modifier = Modifier.testTag("daylight-player-title").graphicsLayer {
+                val scale = 1f - panelProgress().coerceIn(0f, 1f) * (1f - 18f / 21f)
+                scaleX = scale; scaleY = scale; transformOrigin = TransformOrigin(0f, 0f)
+            })
+        Text(track.artist, color = colors.muted, style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("daylight-player-artist"))
         IconButton(actions.menu, Modifier.size(48.dp).testTag("daylight-player-menu").onGloballyPositioned { onMenuAnchor(it.boundsInWindow()) }) {
             Icon(Icons.Rounded.MoreHoriz, labels.menu, Modifier.size(24.dp).testTag("daylight-player-menu-glyph"), tint = colors.ink)
+        }
+    }, modifier = modifier.fillMaxWidth()) { measurables, constraints ->
+        val width = constraints.maxWidth
+        val p = panelProgress().coerceIn(0f, 1f)
+        val scale = 1f - p * (1f - 18f / 21f)
+        val buttonSize = 48.dp.roundToPx()
+        val labelWidth = (width - buttonSize * 2 - 8.dp.roundToPx()).coerceAtLeast(1)
+        val buttonConstraints = Constraints.fixed(buttonSize, buttonSize)
+        val heart = measurables[0].measure(buttonConstraints)
+        val title = measurables[1].measure(Constraints(maxWidth = (labelWidth / scale).roundToInt(), maxHeight = constraints.maxHeight))
+        val artist = measurables[2].measure(Constraints(maxWidth = labelWidth, maxHeight = constraints.maxHeight))
+        val menu = measurables[3].measure(buttonConstraints)
+        val titleHeight = (title.height * scale).roundToInt()
+        val labelHeight = titleHeight + artist.height
+        val height = maxOf(buttonSize, labelHeight).coerceAtMost(constraints.maxHeight)
+        val titleY = (height - labelHeight) / 2
+        val titleX = ((width - title.width * scale) * .5f * (1f - p)).roundToInt()
+        val artistX = ((width - artist.width) * .5f * (1f - p)).roundToInt()
+        val heartX = ((width - buttonSize * 2) * p).roundToInt()
+        // Give the moving heart a shallow arc so it never sweeps through the song text.
+        val heartLift = (kotlin.math.sin(p * kotlin.math.PI) * 64.dp.toPx()).roundToInt()
+        layout(width, height) {
+            title.place(titleX, titleY)
+            artist.place(artistX, titleY + titleHeight)
+            heart.place(heartX, (height - buttonSize) / 2 - heartLift)
+            menu.place(width - buttonSize, (height - buttonSize) / 2)
         }
     }
 }

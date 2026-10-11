@@ -39,6 +39,10 @@ Original authors' notices and licenses remain applicable to their material.
   cover rounds continuously to the measured mini cover radius, including glass
   accessory scaling. Timeline endpoints stay rounded at the viewport edges;
   the main heart/menu glyphs align with the elapsed/remaining timers.
+  Queue and Lyrics left-align the song and artist beside the small cover,
+  smoothly moving the heart next to the menu at the right. The main layout
+  retains its alignment. Full-view cover shading retires during the final
+  fold so the mini artwork arrives at its original brightness.
 - Current remains available and the default for existing installs. Optimized
   internal canary only; public Dev.9 and stable 0.2.1 are unchanged.
 

@@ -47,12 +47,17 @@ replacement window or audio engine.
   to the full player through the same expanding-cover spring as the panel gesture.
 - The heart sits left of the title, the anchored menu right. Native Material
   play/pause glyphs crossfade and scale briefly inside a themed tonal button.
+  Queue and Lyrics move the same title and artist beside the small cover,
+  sharing its left inset; the heart travels to the menu on the right. Metadata
+  sizing and control placement share the panel spring without a second header.
 - The full surface expands from and settles into the measured mini-player pill.
   A downward pull tracks the finger before the host spring settles it using
   release velocity. The cover stays full-bleed through the larger descent,
   then folds into the mini cover as compact transport fades in.
   The cover uses the same fold progress for its corner radius, reaching the
   actual scaled mini cover radius before the final surface handoff.
+  The full-view artwork shading fades with that fold and clears before the
+  mini cover takes over, avoiding a dark cover that brightens after docking.
 - Swipe up on the artwork player to reveal the queue with an upward spring.
   Swipe down on the shared handle above the song title, press Back, or tap the
   selected panel button to return. Queue and Lyrics have one compact top handle;

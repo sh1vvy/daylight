@@ -158,7 +158,7 @@
       "last_modified": "2026-10-12",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "9e933d44d6387c11779f8d3f80ff0e76309dc7e8ab84570c838302bdee89afa7"
+      "source_sha256": "5233f4c13712923ee4d8a272bc14c431d70b5672a8e083badc51f33e97c0a2f0"
     },
     {
       "path": "app/src/androidTest/java/com/music/bitchord/CanaryDetailDiscoveryNativeTest.kt",
@@ -3755,7 +3755,7 @@
       "last_modified": "2026-10-12",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "9f71324d06b8acafdd9c81f1ca81658dc5088753496c57e0a4939b88459e2df5"
+      "source_sha256": "de4e614498c6e2278f67d05af38653580d1f3ed44d7278c4c9424c8a1df0673c"
     },
     {
       "path": "docs/DESIGN_LANGUAGE.md",
@@ -3821,7 +3821,7 @@
       "last_modified": "2026-10-12",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "fb1f77d8f894e4bdcf1552d0b6c60bdf549bfe9f0315e5668c2357c2822733b9"
+      "source_sha256": "faf739ca5a655b920fba1906eec4e1b8b9bf3a2b9a03cc742ef8969926a3797a"
     },
     {
       "path": "docs/releases/0.2.2-dev.7.md",
@@ -5383,7 +5383,7 @@
       "last_modified": "2026-10-12",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "22fded9f4daba4f979363cebad6bb7ce0d817a37804c8771683c1c94ed9e6f25"
+      "source_sha256": "1f5ca4c95bc18c4028a5f54affaeec4d5fcf080e393de7048d802646499bc384"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/sh1vvy/daylight/player/DaylightQueue.kt",

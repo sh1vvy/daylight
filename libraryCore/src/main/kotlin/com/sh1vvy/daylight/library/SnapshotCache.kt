@@ -115,6 +115,15 @@ class SnapshotCache<T>(
         }
     }
 
+    suspend fun remove(key: SnapshotKey) = withContext(io) {
+        diskLock.withLock {
+            val address = address(key)
+            synchronized(warmLock) { forget(address) }
+            val target = file(address)
+            if (target.exists() && !target.delete()) throw IOException("Metadata removal failed")
+        }
+    }
+
     suspend fun removeAccount(accountScope: String) = withContext(io) {
         diskLock.withLock {
             val account = digest(accountScope)

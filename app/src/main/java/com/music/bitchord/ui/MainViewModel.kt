@@ -39,6 +39,15 @@ import com.music.bitchord.data.library.likedMetadataScope
 import com.music.bitchord.data.library.spotifyMetadataScope
 import com.sh1vvy.daylight.library.LibraryOverviewStore
 import com.sh1vvy.daylight.library.RefreshRequests
+import com.sh1vvy.daylight.library.DaylightCollections
+import com.sh1vvy.daylight.library.DaylightPlaylistDirectory
+import com.sh1vvy.daylight.library.DaylightPlaylistDirectoryStorage
+import com.sh1vvy.daylight.home.DaylightHome
+import com.sh1vvy.daylight.home.DaylightHomeStorage
+import com.sh1vvy.daylight.home.HomeContext
+import com.sh1vvy.daylight.home.DiscoveryRepository
+import com.sh1vvy.daylight.home.DiscoverySeed
+import kotlinx.coroutines.flow.takeWhile
 import com.music.bitchord.data.lyrics.EmbeddedLyrics
 import com.music.bitchord.data.lyrics.LyricLine
 import com.music.bitchord.data.lyrics.LyricsRepository
@@ -132,21 +141,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _home = MutableStateFlow<UiState<List<HomeShelf>>>(UiState.Loading)
     val home: StateFlow<UiState<List<HomeShelf>>> = _home.asStateFlow()
 
-    /**
-     * Token for the next page of Home shelves; null once there's nothing
-     * more. Declared here rather than by [loadMoreHome] because [init] calls
-     * [loadHome] synchronously up to its first suspension point — a property
-     * declared after [init] would still be null when that runs.
-     */
-    private var homeContinuation: String? = null
     private val _homeQuickRecommendations = MutableStateFlow<List<ShelfItem>>(emptyList())
     val homeQuickRecommendations = _homeQuickRecommendations.asStateFlow()
     private var homeRecommendationsJob: Job? = null
     private var homeRecommendationSeed: String? = null
 
 
-    /** Titles already on screen, so a later page can't repeat a shelf. */
-    private val homeSeenTitles = mutableSetOf<String>()
 
     private val _homeLoadingMore = MutableStateFlow(false)
 
@@ -166,6 +166,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _homeRecentlyPlayedLoading = MutableStateFlow(false)
     val homeRecentlyPlayedLoading: StateFlow<Boolean> = _homeRecentlyPlayedLoading.asStateFlow()
     private val homeLoadGeneration = AtomicLong(0L)
+    private var homeRepositoryGeneration = 0L
+    private val daylightHome = DaylightHome(viewModelScope, app) { listenerKey() }
+    private val homeDiscovery = DiscoveryRepository<HomeContext, Song>(viewModelScope,
+        fetch = { _, id -> YtMusicRepository.homeRecommendations(id).getOrThrow() }, id = { it.videoId })
 
     private val _explore = MutableStateFlow<UiState<List<MoodGenreSection>>>(UiState.Loading)
     val explore: StateFlow<UiState<List<MoodGenreSection>>> = _explore.asStateFlow()
@@ -644,6 +648,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val detailStack: StateFlow<List<DetailPage>> = _detailStack.asStateFlow()
     private val detailJobs = mutableMapOf<Long, Job>()
     private val detailInstanceIds = AtomicLong(0L)
+    private val daylightCollections = DaylightCollections(viewModelScope) { listenerKey() }
 
     private val _releaseLibrary = MutableStateFlow<Map<String, LibraryState>>(emptyMap())
 
@@ -852,9 +857,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (!requireSignIn()) return
         val current = _detailStack.value.firstOrNull { it.browseId == browseId }?.library ?: return
         val target = !current.saved
+        val identity = listenerKey()
         setSavedOnPage(browseId, target)
         viewModelScope.launch {
-            if (YtMusicRepository.setSaved(current.playlistId, target).isSuccess) {
+            val success = YtMusicRepository.setSaved(current.playlistId, target).isSuccess
+            if (identity != listenerKey()) return@launch
+            if (success) {
+                daylightCollections.saved(browseId, target)
                 // The Library tab's Albums/Playlists shelf is now out of date.
                 libraryStale = true
             } else {
@@ -955,20 +964,31 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _playlists = MutableStateFlow<List<UserPlaylist>>(emptyList())
     val playlists: StateFlow<List<UserPlaylist>> = _playlists.asStateFlow()
     private val pendingPlaylistCreations = PendingPlaylistCreations()
+    private val playlistDirectory = DaylightPlaylistDirectory(viewModelScope, app) { listenerKey() }
 
     private val _playlistsLoading = MutableStateFlow(false)
     val playlistsLoading: StateFlow<Boolean> = _playlistsLoading.asStateFlow()
 
-    /** Re-fetched rather than cached for the session: playlists are edited here. */
+    /** Reusable verified directory, independent of the lifetime of the picker. */
     fun loadPlaylists(videoId: String? = null) {
         if (!_signedIn.value || _playlistsLoading.value) return
         val identity = listenerKey()
         _playlistsLoading.value = true
         viewModelScope.launch {
-            YtMusicRepository.userPlaylists(videoId).onSuccess {
-                if (identity == listenerKey()) _playlists.value = pendingPlaylistCreations.mergeOwnPlaylists(identity, it)
+            val key = playlistDirectory.key()
+            try {
+                playlistDirectory.open(key).takeWhile { state ->
+                    if (identity != listenerKey() || key.sourceRevision != Innertube.responseCacheScope) return@takeWhile false
+                    state.listing?.let {
+                        _playlists.value = pendingPlaylistCreations.mergeOwnPlaylists(identity, it.rows)
+                        it.rows.forEach { row -> setPlaylistOwned(row.browseId, true) }
+                    }
+                    state.loading
+                }.collect { }
+            } finally {
+                playlistDirectory.release(key)
+                if (identity == listenerKey()) _playlistsLoading.value = false
             }
-            if (identity == listenerKey()) _playlistsLoading.value = false
         }
     }
 
@@ -1027,6 +1047,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _detailStack.value = _detailStack.value.map {
             if (it.browseId == playlist.browseId) it.copy(title = title) else it
         }
+        daylightCollections.rename(playlist.browseId, title)
+        daylightHome.rename(playlist.browseId, title)
+        playlistDirectory.replace(_playlists.value)
     }
 
     // Keep writes from the picker, suggestions and creation in one serial lane.
@@ -1134,6 +1157,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         com.music.bitchord.data.library.LibraryPlaylistOrderStore.recordCreated(created.browseId)
                         pendingPlaylistCreations.remember(identity, created)
                         _playlists.value = listOf(created) + _playlists.value.filterNot { it.playlistId == created.playlistId }
+                        playlistDirectory.replace(_playlists.value)
                         editPlaylistShelf { items ->
                             listOf(ShelfItem(
                                 title = created.title,
@@ -1189,6 +1213,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         pendingPlaylistCreations.remember(identity, created)
                         _playlists.value = listOf(created) +
                             _playlists.value.filterNot { it.playlistId == created.playlistId }
+                        playlistDirectory.replace(_playlists.value)
                         editPlaylistShelf { items ->
                             listOf(
                                 ShelfItem(
@@ -1229,13 +1254,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val setVideoId = song.setVideoId ?: return
         if (!requireSignIn()) return
         val playlistId = browseId.removePrefix("VL")
+        val identity = listenerKey()
         viewModelScope.launch {
             YtMusicRepository.removeFromPlaylist(
                 playlistId,
                 listOf(setVideoId to song.videoId),
             ).fold(
                 onSuccess = {
+                    if (identity != listenerKey()) return@fold
                     libraryStale = true
+                    daylightCollections.remove(browseId, setVideoId)
                     _detailStack.value = _detailStack.value.map { page ->
                         val songs = (page.songs as? UiState.Success)?.data
                         if (page.browseId != browseId || songs == null) {
@@ -1269,6 +1297,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      */
     private fun appendToOpenPlaylist(browseId: String, song: Song, setVideoId: String?) {
         val added = song.copy(setVideoId = setVideoId)
+        daylightCollections.append(browseId, added)
         _detailStack.value = _detailStack.value.map { page ->
             if (page.browseId != browseId) return@map page
             val songs = when (val state = page.songs) {
@@ -1301,9 +1330,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (!requireSignIn()) return
         val name = title.trim()
         if (name.isBlank() || name == playlist.title) return
+        val identity = listenerKey()
         viewModelScope.launch {
             YtMusicRepository.renamePlaylist(playlist.playlistId, name).fold(
                 onSuccess = {
+                    if (identity != listenerKey()) return@fold
                     setPlaylistTitle(playlist, name)
                     libraryStale = true
                 },
@@ -1372,6 +1403,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         onResult: (Boolean) -> Unit = {},
     ) {
         if (!requireSignIn()) return onResult(false)
+        val identity = listenerKey()
         viewModelScope.launch {
             YtMusicRepository.reorderPlaylist(
                 playlist.playlistId,
@@ -1379,6 +1411,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 target = reordered.mapNotNull { it.setVideoId },
             ).fold(
                 onSuccess = {
+                    if (identity != listenerKey()) return@fold onResult(false)
+                    daylightCollections.reorder(playlist.browseId, reordered)
                     libraryStale = true
                     _detailStack.value = _detailStack.value.map { page ->
                         if (page.browseId != playlist.browseId || page.songs !is UiState.Success) {
@@ -1396,12 +1430,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun deletePlaylist(playlist: UserPlaylist) {
         if (!requireSignIn()) return
+        val identity = listenerKey()
         viewModelScope.launch {
             YtMusicRepository.deletePlaylist(playlist.playlistId).fold(
                 onSuccess = {
+                    if (identity != listenerKey()) return@fold
+                    daylightCollections.delete(playlist.browseId)
+                    daylightHome.remove(playlist.browseId)
                     pendingPlaylistCreations.remove(listenerKey(), playlist.browseId)
                     _playlists.value = _playlists.value
                         .filterNot { it.playlistId == playlist.playlistId }
+                    playlistDirectory.replace(_playlists.value)
                     // The card in the library tab, which is the surface the
                     // deletion was almost certainly ordered from — and which the
                     // re-fetch that used to stand in for this left in place; see
@@ -1549,6 +1588,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     init {
+        observeHomeRepository()
         observeLibraryOverview()
         startSearchPipeline()
         startSuggestPipeline()
@@ -1746,172 +1786,76 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (_detailStack.value.isNotEmpty()) _detailStack.value = emptyList()
     }
 
-    fun loadHome() {
-        val identity = listenerKey()
-        val generation = homeLoadGeneration.incrementAndGet()
+    private fun prepareHomeLoad() {
         homeRecommendationsJob?.cancel()
         homeRecommendationSeed = null
-        _homeQuickRecommendations.value = emptyList()
-        _home.value = UiState.Loading
-        homeContinuation = null
-        homeSeenTitles.clear()
-        _homeLoadingMore.value = false
-        _homeRecentlyPlayedLoading.value = _signedIn.value
-        // The core feed plus one browse per supplement. Recently played is left
-        // out: it has its own skeleton at the head of the page rather than the
-        // one at the tail.
-        _homePendingShelves.value = 1 + YtMusicRepository.HOME_SUPPLEMENT_BROWSE_IDS.size
+        val key = HomeContext(listenerKey(), Innertube.currentLanguage, Innertube.responseCacheScope)
+        if (daylightHome.state.value.key != key) _homeQuickRecommendations.value = emptyList()
+        homeRepositoryGeneration = homeLoadGeneration.incrementAndGet()
+    }
+
+    private fun observeHomeRepository() {
         viewModelScope.launch {
-            coroutineScope {
-                launch {
-                    try {
-                        YtMusicRepository.home()
-                            .onSuccess { feed ->
-                                if (!isCurrentHomeLoad(identity, generation)) return@onSuccess
-                                homeContinuation = feed.continuation
-                                publishHomeShelves(feed.shelves)
-                            }
-                            .onFailure { failure ->
-                                if (isCurrentHomeLoad(identity, generation) && _home.value !is UiState.Success) {
-                                    _home.value = UiState.Error(failure.friendly())
-                                }
-                            }
-                    } finally {
-                        homeShelfRequestSettled(identity, generation)
-                    }
+            daylightHome.state.collect { state ->
+                val key = state.key ?: return@collect
+                if (key.identity != listenerKey() || key.sourceRevision != Innertube.responseCacheScope ||
+                    homeRepositoryGeneration != homeLoadGeneration.get()) return@collect
+                _home.value = when {
+                    state.ready -> UiState.Success(state.sections)
+                    state.failure != null -> UiState.Error(requireNotNull(state.failure).friendly())
+                    else -> UiState.Loading
                 }
-                if (_signedIn.value) {
-                    launch {
-                        YtMusicRepository.homeRecentlyPlayed()
-                            .onSuccess { shelf ->
-                                if (isCurrentHomeLoad(identity, generation)) {
-                                    shelf?.let { publishHomeShelves(listOf(it), prepend = true) }
-                                    _homeRecentlyPlayedLoading.value = false
-                                    enrichHomeQuickPicks(identity, generation)
-                                }
-                            }
-                            .onFailure {
-                                if (isCurrentHomeLoad(identity, generation)) _homeRecentlyPlayedLoading.value = false
-                            }
-                    }
-                }
-                YtMusicRepository.HOME_SUPPLEMENT_BROWSE_IDS.forEach { browseId ->
-                    launch {
-                        try {
-                            YtMusicRepository.homeSupplement(browseId).onSuccess { shelves ->
-                                if (isCurrentHomeLoad(identity, generation)) publishHomeShelves(shelves)
-                            }
-                        } finally {
-                            homeShelfRequestSettled(identity, generation)
-                        }
-                    }
-                }
+                _homePendingShelves.value = state.pending
+                _homeLoadingMore.value = state.paging
+                _homeRecentlyPlayedLoading.value = state.recentLoading
+                if (state.ready && !state.recentLoading) enrichHomeQuickPicks(key.identity, homeRepositoryGeneration)
             }
-            if (isCurrentHomeLoad(identity, generation)) enrichHomeQuickPicks(identity, generation)
+        }
+    }
+
+    fun loadHome() {
+        prepareHomeLoad()
+        daylightHome.load(_signedIn.value)
+        if (daylightHome.state.value.ready && !daylightHome.state.value.recentLoading) {
+            enrichHomeQuickPicks(listenerKey(), homeRepositoryGeneration)
         }
     }
 
     private fun enrichHomeQuickPicks(identity: String?, generation: Long) {
         val shelves = (_home.value as? UiState.Success)?.data.orEmpty()
-                val recent = com.music.bitchord.data.model.homeRecentTracks(shelves)
-        val seed = (recent.firstOrNull() ?: com.music.bitchord.data.model.homeDiscoveryTracks(shelves).firstOrNull())?.videoId ?: return
-        if (homeRecommendationSeed == seed) return
-        homeRecommendationSeed = seed
+        val recent = com.music.bitchord.data.model.homeRecentTracks(shelves)
+        val familiar = recent.take(2).mapNotNull { item -> item.videoId?.let { DiscoverySeed(it, item.subtitle) } }
+        val liked = if (_signedIn.value) likedSnapshot?.songs.orEmpty().take(12).map { DiscoverySeed(it.videoId, it.artist) } else emptyList()
+        val other = recent.drop(2).mapNotNull { item -> item.videoId?.let { DiscoverySeed(it, item.subtitle) } } +
+            com.music.bitchord.data.model.homeDiscoveryTracks(shelves).mapNotNull { item -> item.videoId?.let { DiscoverySeed(it, item.subtitle) } }
+        val seeds = DiscoveryRepository.selectSeeds(familiar + liked + other).let { if (_signedIn.value) it else it.take(1) }
+        if (seeds.isEmpty()) return
+        val signature = seeds.joinToString("|") { it.id }
+        if (homeRecommendationSeed == signature) return
+        homeRecommendationSeed = signature
         homeRecommendationsJob?.cancel()
+        val key = HomeContext(identity, Innertube.currentLanguage, Innertube.responseCacheScope)
         homeRecommendationsJob = viewModelScope.launch {
-            val result = withTimeoutOrNull(4_000L) { YtMusicRepository.homeRecommendations(seed).getOrNull() }.orEmpty()
-            if (!isCurrentHomeLoad(identity, generation)) return@launch
-            val heard = recent.mapTo(HashSet()) { it.videoId }
-            _homeQuickRecommendations.value = result.filter { it.videoId !in heard }.map {
-                ShelfItem(it.title, it.artist, it.thumbnailUrl, it.videoId, null)
-            }
+            val result = homeDiscovery.discover(key, seeds, recent.mapNotNullTo(HashSet()) { it.videoId })
+            if (!isCurrentHomeLoad(identity, generation) || key.sourceRevision != Innertube.responseCacheScope) return@launch
+            _homeQuickRecommendations.value = result.filter {
+                LikeState.overrides.value[it.videoId] != LikeStatus.DISLIKE &&
+                    com.music.bitchord.data.RecommendationLanguages.allows(it, AppSettings.excludedRecommendationLanguages.value)
+            }.map { ShelfItem(it.title, it.artist, it.thumbnailUrl, it.videoId, null) }
         }
-    }
-
-    /**
-     * One of the parallel first-page requests has finished. Ignored once a newer
-     * load has taken over, which has already reset the count for its own fan-out.
-     */
-    private fun homeShelfRequestSettled(identity: String?, generation: Long) {
-        if (!isCurrentHomeLoad(identity, generation)) return
-        _homePendingShelves.value = (_homePendingShelves.value - 1).coerceAtLeast(0)
-        if (!_homeRecentlyPlayedLoading.value) enrichHomeQuickPicks(identity, generation)
     }
 
     private fun isCurrentHomeLoad(identity: String?, generation: Long) =
         identity == listenerKey() && generation == homeLoadGeneration.get()
 
-    private fun publishHomeShelves(shelves: List<HomeShelf>, prepend: Boolean = false) {
-        val existing = (_home.value as? UiState.Success)?.data.orEmpty()
-        if (prepend) {
-            // YouTube's core home can also contain a stale "Recently played"
-            // shelf. The dedicated history endpoint wins and replaces it.
-            val replacing = shelves.map { it.title.lowercase(Locale.ROOT) }.toSet()
-            homeSeenTitles.addAll(replacing)
-            _home.value = UiState.Success(shelves + existing.filterNot {
-                it.title.lowercase(Locale.ROOT) in replacing
-            })
-            return
-        }
-        val added = shelves.withoutRepeatsOf(existing)
-            .filter { homeSeenTitles.add(it.title.lowercase(Locale.ROOT)) }
-        if (added.isNotEmpty()) _home.value = UiState.Success(existing + added)
-    }
-
-    /** Refreshes the core feed without blanking the current Play page first. */
     private suspend fun refreshHome(identity: String?) {
         if (identity != listenerKey()) return
-        val generation = homeLoadGeneration.incrementAndGet()
-        homeRecommendationsJob?.cancel()
-        homeRecommendationSeed = null
-        val previous = (_home.value as? UiState.Success)?.data.orEmpty()
-        _homePendingShelves.value = 0
-        _homeLoadingMore.value = false
-        // If refresh interrupts first load, keep its reserved Recents slot
-        // until this generation settles too.
-        val refreshed = refreshedHomeFeed(
-            previous = previous,
-            loadFeed = { YtMusicRepository.home() },
-            loadRecents = if (_signedIn.value) ({ YtMusicRepository.homeRecentlyPlayed() }) else null,
-        )
-        if (!isCurrentHomeLoad(identity, generation)) return
-        refreshed.onSuccess { feed ->
-            homeContinuation = feed.continuation
-            homeSeenTitles.clear()
-            homeSeenTitles.addAll(feed.shelves.map { it.title.lowercase(Locale.ROOT) })
-            if (feed.shelves.isNotEmpty()) _home.value = UiState.Success(feed.shelves)
-        }
-        _homeRecentlyPlayedLoading.value = false
-        if (refreshed.isSuccess) enrichHomeQuickPicks(identity, generation)
+        prepareHomeLoad()
+        daylightHome.load(_signedIn.value, force = true).join()
     }
 
-    /**
-     * Called as the Home list nears its end. A no-op while a page is already
-     * in flight, once the feed is exhausted, or before the first page has
-     * loaded — [homeContinuation] covers all three by construction.
-     */
     fun loadMoreHome() {
-        if (Feed.HOME in _refreshing.value) return
-        val token = homeContinuation ?: return
-        if (_homeLoadingMore.value) return
-        val identity = listenerKey()
-        val generation = homeLoadGeneration.get()
-        _homeLoadingMore.value = true
-        viewModelScope.launch {
-            YtMusicRepository.moreHome(token).onSuccess { feed ->
-                if (isCurrentHomeLoad(identity, generation)) {
-                    val existing = (_home.value as? UiState.Success)?.data ?: emptyList()
-                    val added = feed.shelves.withoutRepeatsOf(existing)
-                        .filter { homeSeenTitles.add(it.title.lowercase(Locale.ROOT)) }
-                    // A page with nothing new signals the feed has looped back on
-                    // itself rather than run dry with a token still attached —
-                    // treat it the same as exhausted so scrolling can't spin here.
-                    homeContinuation = feed.continuation.takeIf { added.isNotEmpty() }
-                    if (added.isNotEmpty()) _home.value = UiState.Success(existing + added)
-                }
-            }
-            if (isCurrentHomeLoad(identity, generation)) _homeLoadingMore.value = false
-        }
+        if (Feed.HOME !in _refreshing.value) daylightHome.loadMore()
     }
 
     fun loadLibrary() {
@@ -1986,6 +1930,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 creator = snapshot.creator ?: page.creator,
             ) else page
         }
+        if (daylightHome.state.value.ready && !daylightHome.state.value.recentLoading &&
+            homeRepositoryGeneration == homeLoadGeneration.get()) enrichHomeQuickPicks(listenerKey(), homeRepositoryGeneration)
     }
 
     /** Reuse the existing sequential liked sync, retaining metadata instead of discarding it. */
@@ -2621,6 +2567,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         )
         val identity = listenerKey()
         val requestScope = Innertube.responseCacheScope
+        if (resolved != BrowseType.ARTIST && !browseId.startsWith("local:") && browseId != CACHE_FOLDER_BROWSE_ID &&
+            Downloads.recordIdOf(browseId) == null && LocalPlaylistStore.getPlaylist(browseId) == null) {
+            openRemoteCollection(instanceId, browseId, title, subtitle, thumbnailUrl, resolved)
+            return
+        }
         detailJobs[instanceId] = viewModelScope.launch {
             fun current() = isActive && identity == listenerKey() && requestScope == Innertube.responseCacheScope &&
                 _detailStack.value.any { it.instanceId == instanceId }
@@ -2800,6 +2751,51 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // Only once the first page is on screen: [fillIn] appends to it,
             // and has nothing to append to before this.
             more?.let { fillIn(instanceId, it, thumbnailUrl ?: artwork) }
+        }
+    }
+
+    /** Shared repository lists reach the existing detail UI without giving the screen ownership of paging. */
+    private fun openRemoteCollection(instanceId: Long, id: String, title: String, subtitle: String, artwork: String?, type: BrowseType) {
+        val key = daylightCollections.key(id)
+        detailJobs[instanceId] = viewModelScope.launch {
+            fun current() = isActive && key.identity == listenerKey() && key.sourceRevision == Innertube.responseCacheScope &&
+                _detailStack.value.any { it.instanceId == instanceId }
+            val onDevice = DownloadedListingFallback(scope = this, read = { downloadedCopyOf(id) }) { songs ->
+                if (current() && songs.isNotEmpty()) _detailStack.update { stack -> stack.map { page ->
+                    if (page.instanceId == instanceId && page.songs is UiState.Loading) page.copy(songs = UiState.Success(songs)) else page
+                } }
+            }
+            try {
+                daylightCollections.open(key).takeWhile { load ->
+                    if (!current()) return@takeWhile false
+                    val listing = load.listing
+                    if (listing != null) {
+                        val header = listing.header
+                        header?.owned?.let { setPlaylistOwned(id, it) }
+                        val fallback = artwork ?: header?.artwork
+                        val online = if (listing.rows.isEmpty()) UiState.Error(text(R.string.no_tracks_here))
+                            else UiState.Success(listing.rows.withArtwork(fallback))
+                        val downloaded = onDevice.finish(online)
+                        if (!current()) return@takeWhile false
+                        val state = if (listing.rows.isEmpty() && downloaded.isNotEmpty()) UiState.Success(downloaded) else online
+                        _detailStack.update { stack -> stack.map { page ->
+                            if (page.instanceId != instanceId) page else page.copy(songs = state,
+                                title = if (title.isBlank()) header?.title?.ifBlank { page.title } ?: page.title else page.title,
+                                subtitle = if (type == BrowseType.ALBUM || subtitle.isBlank()) header?.subtitle?.ifBlank { page.subtitle } ?: page.subtitle else page.subtitle,
+                                thumbnailUrl = fallback ?: page.thumbnailUrl, creator = header?.creator.takeIf { type == BrowseType.PLAYLIST } ?: page.creator,
+                                library = header?.library ?: page.library, description = header?.description ?: page.description,
+                                sections = header?.sections.orEmpty(), suggestedSongs = listing.suggestions.withArtwork(fallback))
+                        } }
+                    } else if (!load.loading && load.failure != null) {
+                        val error = UiState.Error(requireNotNull(load.failure).friendly())
+                        val downloaded = onDevice.finish(error)
+                        if (current() && downloaded.isEmpty()) _detailStack.update { stack -> stack.map {
+                            if (it.instanceId == instanceId && it.songs is UiState.Loading) it.copy(songs = error) else it
+                        } }
+                    }
+                    load.loading
+                }.collect { }
+            } finally { daylightCollections.release(key) }
         }
     }
 
@@ -3161,7 +3157,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     LocalMediaRepository.getLocalMusic(context)
                         .ifEmpty { error(text(R.string.no_local_audio_found)) }
                 }
-                else -> YtMusicRepository.allSongs(browseId)
+                LocalPlaylistStore.getPlaylist(browseId) != null -> Result.success(LocalPlaylistStore.getPlaylist(browseId)!!.songs)
+                else -> runCatching { daylightCollections.songs(daylightCollections.key(browseId)) }
             }
             onResult(result.map { it.withArtwork(artworkFallback) })
         }
@@ -3489,7 +3486,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
         viewModelScope.launch {
             scopes.forEach { CollectionMetadataStore.removeScope(it) }
-            account.profiles.forEach { LibraryOverviewStore.remove("${account.accountId}:${it.profileId}") }
+            account.profiles.forEach {
+                val identity = "${account.accountId}:${it.profileId}"
+                LibraryOverviewStore.remove(identity)
+                DaylightHomeStorage.remove(identity)
+                DaylightPlaylistDirectoryStorage.remove(identity)
+            }
         }
     }
 
@@ -3546,6 +3548,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun clearListenerState(restoreCached: Boolean = false) {
+        playlistDirectory.clear()
+        daylightHome.clear()
+        daylightCollections.clear()
+        homeDiscovery.clear()
         libraryRequests.cancelAll()
         libraryVerifiedAt = 0
         libraryStale = false
@@ -3601,6 +3607,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun signOut() {
+        playlistDirectory.clear()
         // In a multi-account install, sign out removes only the current Google
         // session and restores another one. A legacy single-account install
         // retains the familiar full sign-out behaviour.
@@ -3610,6 +3617,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         forgetAccountMetadata(current)
+        daylightHome.clear()
+        daylightCollections.clear()
+        homeDiscovery.clear()
         libraryRequests.cancelAll()
         libraryVerifiedAt = 0
         libraryStale = false

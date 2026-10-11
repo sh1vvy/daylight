@@ -44,9 +44,32 @@ partition the overview. Fresh overviews and complete liked lists can reopen
 without a provider fetch for one minute; explicit refresh bypasses freshness.
 Local membership edits invalidate freshness and obsolete provider work.
 
-Existing UI, playlist operations, liked pagination, Spotify resolution, cover
-animations, playback, Jams and audio preloading remain in their current layers.
-Future stages can replace the adapters and domain/repository layer separately.
+Canary 14 adds independently implemented `CollectionRepository`, `HomeRepository`
+and `DiscoveryRepository`:
+
+- Ordinary remote playlist/album lists share one paged request across visits and
+  whole-collection queue actions. First pages appear progressively. Complete
+  retained lists stay visible until a refresh completes. Occurrence indexing is
+  linear in new rows; repeated tracks with different playlist entry IDs remain.
+- Collection headers, creator/ownership metadata, saved flags, descriptions,
+  suggestions and related shelves persist through the model bridge. Verified
+  editable-playlist directories have a separate 1 MiB store. Warm edits update
+  their retained lists; cold directory changes invalidate outdated records.
+- Home has a separate 4 MiB metadata store with 2,000 warm cards/four records.
+  Cached content remains while refreshing; core and history commit together,
+  and supplementary sections occupy fixed source positions. Paging retries
+  failures and stops repeated continuation tokens.
+- Quick Picks uses up to three seeds from recents, loaded likes and existing
+  discovery shelves, preferring different artists. Up to two requests run at
+  once, with four-second timeouts. A ten-minute, 24-pool cache retains at most
+  32 tracks per seed. Results mix in rounds and exclude recently heard tracks;
+  the adapter applies existing dislike/language filters. Guests use one seed.
+
+Active collection listings remain complete for their readers; reusable inactive
+listings are bounded to six entries/8,000 rows. Cached metadata is separate from
+audio. The current UI, liked pagination, Spotify matching, playback, Jams,
+animations and endless mix playback remain in their existing layers. The Home
+layout is preserved during this foundation stage.
 
 ## Provenance and verification
 

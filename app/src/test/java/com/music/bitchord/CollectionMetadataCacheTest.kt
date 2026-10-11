@@ -137,4 +137,21 @@ class CollectionMetadataCacheTest {
         assertEquals("Liked", CollectionMetadataCache(directory).readCollection(scope, "VLLM")!!.title)
         assertEquals("Renamed playlist", CollectionMetadataCache(directory).readCollection(scope, "playlist")!!.title)
     }
+
+    @Test fun remoteHeaderAndRecommendationsSurviveRestartAndColdEditsRetainOccurrenceIds() = runBlocking {
+        val root = temporary.newFolder()
+        val cache = CollectionMetadataCache(root)
+        val section = HomeShelf("More by Artist", listOf(ShelfItem("Album", "Artist", "cover", null, "MPREmore")))
+        val original = snapshot("VLremote").copy(description = "Description", owned = true, language = "en",
+            library = LibraryState("real-playlist", true), suggestions = listOf(song.copy(videoId = "suggested", localUri = "file:///private.flac")), sections = listOf(section))
+        cache.save("youtube:one", original)
+        val restored = CollectionMetadataCache(root).readCollection("youtube:one", "VLremote")!!
+        assertEquals(original.copy(suggestions = original.suggestions.map { it.copy(localUri = null) }), restored)
+        cache.edit("youtube:one", "VLremote", { true }) { it.copy(title = "Renamed", songs = it.songs + song.copy(setVideoId = "second")) }
+        assertEquals(listOf("occurrence", "second"), CollectionMetadataCache(root).readCollection("youtube:one", "VLremote")!!.songs.map { it.setVideoId })
+        cache.edit("youtube:one", "VLremote", { false }) { it.copy(title = "Obsolete") }
+        assertEquals("Renamed", cache.readCollection("youtube:one", "VLremote")!!.title)
+        cache.remove("youtube:one", "VLremote")
+        assertNull(CollectionMetadataCache(root).readCollection("youtube:one", "VLremote"))
+    }
 }

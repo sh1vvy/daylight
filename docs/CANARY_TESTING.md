@@ -6,7 +6,48 @@ Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.m
 Original authors' notices and licenses remain applicable to their material.
 -->
 
-# Internal candidate: Canary 13
+# Internal candidate: Canary 14
+
+**0.2.2-canary.14 · Android code 35 · manual testing only**
+
+- New independent repositories own remote playlist/album paging, retained lists,
+  Home loading and recommendation pools. Current screen layouts stay intact.
+- Ordinary playlist/album metadata now persists and is shared by detail pages
+  and whole-collection queue actions. First loads remain progressive; completed
+  cached lists stay usable during failed/partial refreshes. Confirmed duplicate
+  playlist occurrences are preserved. Renames, additions, removals, saved flags,
+  reordering and deletion update retained collection metadata.
+- Add to playlist reuses a persistent verified editable directory. It keeps
+  current ownership rules and existing activity ordering. Fresh warm lists skip
+  fetches; stale lists remain visible during refresh. Account removal purges the
+  new directory and Home stores too.
+- Home restores retained sections before refreshing. Core/history responses
+  commit together during refresh, and supplements retain their source order.
+  Quick Picks blends recommendations from up to three diverse recent/liked
+  seeds, with two concurrent requests, four-second timeouts and bounded reuse.
+  Existing language/dislike filtering and Play my mix remain.
+
+**Validation:** 1,476 unit checks passed, with one optional live-provider check
+skipped. The long-list check indexes 2,000 occurrences exactly once each across
+100 pages. Targeted checks cover shared requests, partial refreshes, retained
+lists, durable completion, edits, cancellation, token loops, Home ordering,
+failed sections, account changes and recommendation diversity/concurrency.
+Six distinct native emulator checks passed, including a cached 500-track remote
+playlist with its creator/related shelves/saved flag, 80 editable playlists,
+Home restoration, the existing liked/library caches, Quick Picks, endless mix,
+cover motion and all six theme/glass combinations. The cover-motion fixture's
+first grouped run failed to activate a card through Android accessibility;
+its isolated rerun passed all motion assertions without a source change.
+
+The optimized arm64/universal APKs, checksums and phone checklist are in
+`output/canary-0.2.2-canary.14/`. Signed-in live recommendation quality and real
+phone performance remain manual checks; this is not a device FPS benchmark.
+The source remains on `codex/canary-1`; public Dev.9 and stable 0.2.1 are unchanged.
+Scoped contribution notices and the original GPL/third-party notices remain.
+
+---
+
+# Previous candidate: Canary 13
 
 **0.2.2-canary.13 · Android code 34 · manual testing only**
 

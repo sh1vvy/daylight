@@ -34,6 +34,12 @@ data class CollectionSnapshot(
     val lastPlayedAt: Long = 0,
     /** Spotify recording ids stay paired with their matches, including repeated entries. */
     val trackIds: List<String> = emptyList(),
+    val description: String? = null,
+    val owned: Boolean? = null,
+    val suggestions: List<Song> = emptyList(),
+    val sections: List<HomeShelf> = emptyList(),
+    val language: String? = null,
+    val library: LibraryState? = null,
 ) {
     fun isFresh(now: Long = System.currentTimeMillis()) = complete && now - updatedAt in 0 until 300_000L
     fun shelfItem() = ShelfItem(title, subtitle, thumbnailUrl, videoId = null, browseId = browseId)
@@ -52,9 +58,13 @@ object CollectionMetadataStore {
     suspend fun readCollection(scope: String?, id: String): CollectionSnapshot? = try {
         scope?.let { cache?.readCollection(it, id) }
     } catch (_: java.io.IOException) { null }
-    suspend fun save(scope: String?, snapshot: CollectionSnapshot) { safeWrite { scope?.let { cache?.save(it, snapshot) } } }
+    suspend fun save(scope: String?, snapshot: CollectionSnapshot, isCurrent: () -> Boolean = { true }) { safeWrite { scope?.let { cache?.save(it, snapshot, isCurrent) } } }
     suspend fun played(scope: String?, id: String) { safeWrite { scope?.let { cache?.played(it, id) } } }
     suspend fun removeScope(scope: String?) { safeWrite { scope?.let { cache?.removeScope(it) } } }
+    suspend fun edit(scope: String, id: String, current: () -> Boolean, transform: (CollectionSnapshot) -> CollectionSnapshot) {
+        safeWrite { cache?.edit(scope, id, current, transform) }
+    }
+    suspend fun remove(scope: String, id: String) { safeWrite { cache?.remove(scope, id) } }
     private suspend fun safeWrite(block: suspend () -> Unit) {
         try { block() }
         catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
@@ -81,7 +91,7 @@ internal class CollectionMetadataCache(
         object : com.sh1vvy.daylight.library.SnapshotCodec<CollectionSnapshot> {
             override fun encode(value: CollectionSnapshot) = json.encodeToString(StoredCollection.serializer(), StoredCollection.from(value)).toByteArray(Charsets.UTF_8)
             override fun decode(bytes: ByteArray) = json.decodeFromString(StoredCollection.serializer(), bytes.toString(Charsets.UTF_8)).restore()
-            override fun weight(value: CollectionSnapshot) = value.songs.size
+            override fun weight(value: CollectionSnapshot) = value.songs.size + value.suggestions.size + value.sections.sumOf { it.items.size }
         },
         com.sh1vvy.daylight.library.CacheBudget(diskBytes = maxBytes),
         preferredCollections = setOf("VLLM"),
@@ -123,12 +133,13 @@ internal class CollectionMetadataCache(
         return ordered(records.readAccount(scope))
     }
 
-    suspend fun save(scope: String, snapshot: CollectionSnapshot) = withContext(Dispatchers.IO) {
+    suspend fun save(scope: String, snapshot: CollectionSnapshot, isCurrent: () -> Boolean = { true }) = withContext(Dispatchers.IO) {
         edits.withLock {
+            if (!isCurrent()) return@withLock
             val previous = one(scope, snapshot.browseId)
             val metadata = StoredCollection.from(snapshot).restore()
             val merged = metadata.copy(lastPlayedAt = maxOf(metadata.lastPlayedAt, previous?.lastPlayedAt ?: 0))
-            if (merged != previous && records.write(key(scope, merged.browseId), merged)) _changes.value++
+            if (merged != previous && records.write(key(scope, merged.browseId), merged, isCurrent)) _changes.value++
         }
     }
 
@@ -139,6 +150,19 @@ internal class CollectionMetadataCache(
             if (time - previous.lastPlayedAt in 0 until 60_000L) return@withLock
             if (records.write(key(scope, id), previous.copy(lastPlayedAt = time))) _changes.value++
         }
+    }
+
+    suspend fun edit(scope: String, id: String, current: () -> Boolean, transform: (CollectionSnapshot) -> CollectionSnapshot) = withContext(Dispatchers.IO) {
+        edits.withLock {
+            if (!current()) return@withLock
+            val previous = one(scope, id) ?: return@withLock
+            val updated = transform(previous)
+            if (updated != previous && records.write(key(scope, id), updated, current)) _changes.value++
+        }
+    }
+
+    suspend fun remove(scope: String, id: String) = withContext(Dispatchers.IO) {
+        edits.withLock { records.remove(key(scope, id)); _changes.value++ }
     }
 
     suspend fun removeScope(scope: String) = withContext(Dispatchers.IO) {
@@ -158,13 +182,26 @@ internal class CollectionMetadataCache(
     val id: String, val title: String, val subtitle: String, val cover: String?,
     val creator: StoredCreator?, val songs: List<CatalogueSong>, val complete: Boolean,
     val updated: Long, val played: Long, val trackIds: List<String> = emptyList(),
+    val description: String? = null, val owned: Boolean? = null,
+    val suggestions: List<CatalogueSong> = emptyList(),
+    val sections: List<com.sh1vvy.daylight.library.LibrarySection> = emptyList(),
+    val language: String? = null,
+    val library: StoredLibrary? = null,
 ) {
-    fun restore() = CollectionSnapshot(id, title, subtitle, cover, creator?.restore(), songs.map { it.restore() }, complete, updated, played, trackIds)
+    fun restore() = CollectionSnapshot(id, title, subtitle, cover, creator?.restore(), songs.map { it.restore() }, complete, updated, played, trackIds,
+        description, owned, suggestions.map { it.restore() }, com.sh1vvy.daylight.library.LibraryOverviewStore.page(
+            com.sh1vvy.daylight.library.LibraryOverview(sections, 0)).shelves, language, library?.let { LibraryState(it.id, it.saved) })
     companion object {
         fun from(s: CollectionSnapshot) = StoredCollection(s.browseId, s.title, s.subtitle, s.thumbnailUrl,
-            s.creator?.let(StoredCreator::from), s.songs.map(CatalogueSong::from), s.complete, s.updatedAt, s.lastPlayedAt, s.trackIds)
+            s.creator?.let(StoredCreator::from), s.songs.map(CatalogueSong::from), s.complete, s.updatedAt, s.lastPlayedAt, s.trackIds,
+            s.description, s.owned, s.suggestions.map(CatalogueSong::from), s.sections.map { section ->
+                com.sh1vvy.daylight.library.LibrarySection(section.title, section.items.map { card ->
+                    com.sh1vvy.daylight.library.LibraryCard(card.title, card.subtitle, card.thumbnailUrl, card.browseId, card.videoId)
+                }, section.subtitle, section.moreBrowseId, section.moreParams)
+            }, s.language, s.library?.let { StoredLibrary(it.playlistId, it.saved) })
     }
 }
+@Serializable private data class StoredLibrary(val id: String, val saved: Boolean)
 @Serializable private data class StoredCreator(val name: String, val id: String?, val cover: String?, val provider: String) {
     fun restore() = PlaylistCreator(name, id, cover, CreatorProvider.valueOf(provider))
     companion object { fun from(c: PlaylistCreator) = StoredCreator(c.name, c.browseId, c.thumbnailUrl, c.provider.name) }

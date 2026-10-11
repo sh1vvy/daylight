@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-10 through 2026-10-10.
+ * Daylight changes: 2026-10-10 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -208,7 +208,6 @@ class CanaryHomeMotionNativeTest {
         // Stop any late provider result replacing the offline screen while measuring it.
         (field(model, "homeLoadGeneration") as AtomicLong).incrementAndGet()
         (field(model, "homeRecommendationsJob") as? kotlinx.coroutines.Job)?.cancel()
-        MainViewModel::class.java.getDeclaredField("homeContinuation").apply { isAccessible = true }.set(model, null)
         (field(model, "_homeQuickRecommendations") as MutableStateFlow<List<ShelfItem>>).value = emptyList()
         (field(model, "_homePendingShelves") as MutableStateFlow<Int>).value = 0
         (field(model, "_homeRecentlyPlayedLoading") as MutableStateFlow<Boolean>).value = false

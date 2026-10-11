@@ -103,7 +103,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "ca2ce59ca43659ab74115b43d56377a4c3b40bbe",
-      "source_sha256": "96bf17fd9afa2e555831863e37a27a58d497faa6d5a0bcda432676152c5e0686"
+      "source_sha256": "59e59d415e8db7a6a0602e0a8b009120d5f56cd9f939010206c747e7769464e2"
     },
     {
       "path": "app/src/androidTest/java/com/music/bitchord/CanaryAppFeedbackNativeTest.kt",
@@ -188,10 +188,21 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-10",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "cc0ef65e344189d0062f65f6451f6aa72f39c754f068b849e30969450da777e0"
+      "source_sha256": "5b5d95c90f956360399c37264bb8b9a667173b04aa689944bdf508b77a95823b"
+    },
+    {
+      "path": "app/src/androidTest/java/com/music/bitchord/CanaryHomeRepositoryNativeTest.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "48d72dcdd1dd19b146f1c7f2e40f9a196906f6ca3d3c424a5e0bcf298384cdd6"
     },
     {
       "path": "app/src/androidTest/java/com/music/bitchord/CanaryLibraryCacheNativeTest.kt",
@@ -554,7 +565,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "dd09a5500b81f6bf66917c78321630d42fe7edaf6347612797d3475d9659eba4"
+      "source_sha256": "59e9445b3aa7d1e4240f28374b7894d4071ad618033cb7c6d7341ea22899da0b"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/data/library/DislikedTracks.kt",
@@ -1214,7 +1225,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "efc0a64ee5622237bef94878f8f303d30834668b",
-      "source_sha256": "30ba9ceaa918e21fb9791ab4895dc4193f7ddfccd36c97e552b32edc193545ec"
+      "source_sha256": "03203ae77f59844f8e0d87a0c428f2075088f06bf7202232d26d641d27b0696d"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/ui/PendingPlaylistCreations.kt",
@@ -1952,6 +1963,39 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
       "source_sha256": "a00ae65b38805d2a1dff9d5658914ed9a50add4734d3055f187853dcd987e634"
+    },
+    {
+      "path": "app/src/main/java/com/sh1vvy/daylight/home/DaylightHome.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "89152f102a78d5ca9a0462fae2bbb7132c15c0e395ef2bfe617ab66a10b83a72"
+    },
+    {
+      "path": "app/src/main/java/com/sh1vvy/daylight/library/DaylightCollections.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "df34dcede719d9da8a0a6cccad7326a8e8801f8caebbcf88b0496b05f4db9310"
+    },
+    {
+      "path": "app/src/main/java/com/sh1vvy/daylight/library/DaylightPlaylistDirectory.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "6441e3d78e3a4ab142cdb50a5b6d86bbe3cf1fbcd869a0f68ac77c2157bd7875"
     },
     {
       "path": "app/src/main/java/com/sh1vvy/daylight/library/LibraryOverviewStore.kt",
@@ -2787,7 +2831,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "2bdab747ca0f41ddcd0855173efd0d8b5ae73fb26041b746f0119ec5b8faaddf"
+      "source_sha256": "5a7ffdd65e146a7820fee34e57c9890c90cdd72224e610d2e6e41cce16292ba0"
     },
     {
       "path": "app/src/test/java/com/music/bitchord/DetailRoutesTest.kt",
@@ -3557,7 +3601,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "32addf3480bd264128cf01bb4afeeeee810aae31ad750b71873fa0548ccb1941"
+      "source_sha256": "1cc380d985727d7b1d5280da5096dd146fe76a322acfe223f0856d91ff48bed4"
     },
     {
       "path": "docs/CANARY_TESTING.md",
@@ -3568,7 +3612,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "30f2b96159f041ce5701ec5358247e821e51e5b526a138a9b83f93ec182a8294"
+      "source_sha256": "b56f9c544f54129ffb55d257c85bdb3fad16370954c38f6b2335dcff321110d9"
     },
     {
       "path": "docs/DEVELOPMENT.md",
@@ -3634,7 +3678,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "62c21742d6aad5f3faebbf5bd89aa8acbc5619d3cacd207a7e65877491fb7688"
+      "source_sha256": "df33225345e43b0a0e1aaf49460f757a0ffd0a79f174d3b55082ab2f7e951bcb"
     },
     {
       "path": "libraryCore/build.gradle.kts",
@@ -3646,6 +3690,39 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
       "source_sha256": "329dc8035d04b5a54812f030145cc076f4442d707b22b1476eb69c2f7f4e0de1"
+    },
+    {
+      "path": "libraryCore/src/main/kotlin/com/sh1vvy/daylight/home/DiscoveryRepository.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "0d3503eb5f3ed8ddf97c466ec089bef5993f1adb5854979ea7d1d206a0e8342e"
+    },
+    {
+      "path": "libraryCore/src/main/kotlin/com/sh1vvy/daylight/home/HomeRepository.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "3bc1471eb5f43816d403c391c39d242ee37ccc4de34e3cfcb0c777c943dfecf9"
+    },
+    {
+      "path": "libraryCore/src/main/kotlin/com/sh1vvy/daylight/library/CollectionRepository.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "5c3078ec66470109b1447574dbdd685bdfa1dee9b57d91d4e0534f32410e5b40"
     },
     {
       "path": "libraryCore/src/main/kotlin/com/sh1vvy/daylight/library/LibraryOverview.kt",
@@ -3678,7 +3755,40 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "f13a7269f173b6538d2a7f6057235205225eb1f49fb17915511899f889a6e875"
+      "source_sha256": "bf8e913451b06e886f7cab481e310d6b99347a7b59a536ed5d9a59e7aababfcf"
+    },
+    {
+      "path": "libraryCore/src/test/kotlin/com/sh1vvy/daylight/home/DiscoveryRepositoryTest.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "276f934240516cb581acce4d1aab0d9e7cb60479b1444004586b0f2fc64cc2d0"
+    },
+    {
+      "path": "libraryCore/src/test/kotlin/com/sh1vvy/daylight/home/HomeRepositoryTest.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "6328e091208b4d79d09458f323a2fecfdc5a1ce276706a1b19dd577f087926c8"
+    },
+    {
+      "path": "libraryCore/src/test/kotlin/com/sh1vvy/daylight/library/CollectionRepositoryTest.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "170fb15559ea77c7aa8c1530b49d1ba3e868cae2eb1243378914b3657ab022be"
     },
     {
       "path": "libraryCore/src/test/kotlin/com/sh1vvy/daylight/library/RefreshRequestsTest.kt",

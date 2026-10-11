@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-08.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -39,12 +39,13 @@ internal class PendingPlaylistCreations {
     fun mergeLibrary(identity: String?, page: LibraryPage): LibraryPage {
         if (listener != identity || playlists.isEmpty()) return page
         val shelf = page.shelves.firstOrNull { it.title == YtMusicRepository.PLAYLISTS_SHELF }
-        val acknowledged = shelf?.items.orEmpty().mapNotNull { item ->
+        val known = shelf?.items.orEmpty().mapNotNull { item ->
             item.browseId?.let(::playlistCreationOrderKey)
         }.toSet()
-        acknowledged.forEach(playlists::remove)
+        if (page.loadedShelfTitles?.contains(YtMusicRepository.PLAYLISTS_SHELF) != false) known.forEach(playlists::remove)
         if (playlists.isEmpty()) return page
-        val pending = playlists.values.toList().asReversed().map { it.libraryCard() }
+        val pending = playlists.values.toList().asReversed()
+            .filterNot { playlistCreationOrderKey(it.browseId) in known }.map { it.libraryCard() }
         val merged = shelf?.copy(items = pending + shelf.items)
             ?: HomeShelf(YtMusicRepository.PLAYLISTS_SHELF, pending)
         return page.copy(shelves = if (shelf == null) listOf(merged) + page.shelves else {

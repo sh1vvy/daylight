@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-08.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -68,6 +68,17 @@ class PendingPlaylistCreationsTest {
         val brand = playlist("PLbrand")
         pending.remember("account:brand", brand)
         assertEquals(listOf(brand), pending.mergeOwnPlaylists("account:brand", emptyList()))
+    }
+
+    @Test
+    fun `a failed playlist section does not acknowledge cached optimistic creations`() {
+        val pending = PendingPlaylistCreations()
+        val created = playlist("PLnew")
+        pending.remember("listener", created)
+        val retained = page(created.card()).copy(loadedShelfTitles = setOf("Albums"))
+        assertEquals(listOf(created.card()), pending.mergeLibrary("listener", retained).shelves.single().items)
+        // A later successful feed can still lag behind the create; it must remain visible.
+        assertEquals(listOf(created.card()), pending.mergeLibrary("listener", page()).shelves.single().items)
     }
 
     @Test

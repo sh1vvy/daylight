@@ -6,7 +6,55 @@ Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.m
 Original authors' notices and licenses remain applicable to their material.
 -->
 
-# Internal candidate: Canary 12
+# Internal candidate: Canary 13
+
+**0.2.2-canary.13 · Android code 34 · manual testing only**
+
+Public Dev.9/code 32 and stable 0.2.1/code 12 are unchanged. Source is backed up
+on `codex/canary-1`; no app release or tag is published.
+
+- Independent `libraryCore` module for metadata storage and shared refreshes.
+  Current UI/provider models use compatibility adapters; the whole app has
+  not yet been rewritten.
+- Library shelves persist across restarts alongside the full liked-song metadata
+  saved separately. Cached content stays visible while stale data refreshes.
+  Fresh overviews/liked lists skip unnecessary provider fetches; explicit refresh
+  still requests updated data.
+- Collection updates replace one checksummed file instead of an account's entire
+  bundle. Warm and identical reads/writes avoid decoding/serialization. Existing
+  caches migrate while playback, playlist actions and artwork remain intact.
+- Memory, record counts and disk use are bounded. Credentials, audio, queue state
+  and continuation tokens are excluded. Account removal purges profile caches;
+  account/profile and display-language identities remain separate.
+- Concurrent readers share one fetch. Identity/membership changes cancel obsolete
+  work, and refresh indicators clear on cancellation. Failed feed sections retain
+  cached cards; verified empty sections clear them. Failed playlist responses
+  cannot falsely acknowledge optimistic creations.
+- Scoped contribution notices cover the new core and bridges while retaining
+  the original GPL and third-party notices. See [architecture](../libraryCore/README.md).
+
+**Validation:** 1,457 library-core/Android/shared unit checks passed, with one
+optional live-provider test skipped. Three native emulator checks passed,
+covering restart-style restoration of 1,278 liked tracks and 100 playlists,
+profile isolation, cached Spotify playback metadata and all six theme/glass
+combinations. The new integrated cache check was repeated after final refresh
+hardening. All four attribution-tool fixture checks passed; the original GPL
+still matches upstream bytes.
+
+The IO checks establish that 100 repeated warm reads need no decoding,
+unchanged warm writes need no encoding, and changing one collection replaces
+exactly one record. Disk/memory budgets, corruption, migration, cancelled/shared
+requests and obsolete-write rejection have dedicated checks. These are work
+reductions, not a physical-device scrolling benchmark.
+
+Manual-install outputs are in `output/canary-0.2.2-canary.13/`: optimized arm64
+and universal APKs, checksums and a test checklist. The connected device for this
+session was a disposable emulator; testing on the S22/other phones remains the
+manual canary step. No public update is published.
+
+---
+
+# Previous candidate: Canary 12
 
 **0.2.2-canary.12 · Android code 33 · internal testing only**
 

@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-10.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -122,6 +122,7 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory {
             authStore.activeAccountId?.let { account -> authStore.activeProfileId?.let { "$account:$it" } },
         )
         com.music.bitchord.data.library.CollectionMetadataStore.init(this)
+        com.sh1vvy.daylight.library.LibraryOverviewStore.init(this)
         // Before anything resolves a track: an addon with `checkValidLossless`
         // is gated on this, and the gate reads "no" until it has looked.
         com.music.bitchord.playback.audio.LosslessOutput.init(this)

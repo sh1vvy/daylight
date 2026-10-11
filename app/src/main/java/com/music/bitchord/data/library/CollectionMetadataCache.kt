@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-10 through 2026-10-10.
+ * Daylight changes: 2026-10-10 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -19,8 +19,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 
 /** Catalogue rows only: never audio bytes, stream URLs, account cookies or queue state. */
@@ -48,7 +46,12 @@ object CollectionMetadataStore {
     }
     val changes get() = requireNotNull(cache).changes
     fun peek(scope: String?, id: String): CollectionSnapshot? = scope?.let { cache?.peek(it, id) }
-    suspend fun read(scope: String?): List<CollectionSnapshot> = scope?.let { cache?.read(it) }.orEmpty()
+    suspend fun read(scope: String?): List<CollectionSnapshot> = try {
+        scope?.let { cache?.read(it) }.orEmpty()
+    } catch (_: java.io.IOException) { emptyList() }
+    suspend fun readCollection(scope: String?, id: String): CollectionSnapshot? = try {
+        scope?.let { cache?.readCollection(it, id) }
+    } catch (_: java.io.IOException) { null }
     suspend fun save(scope: String?, snapshot: CollectionSnapshot) { safeWrite { scope?.let { cache?.save(it, snapshot) } } }
     suspend fun played(scope: String?, id: String) { safeWrite { scope?.let { cache?.played(it, id) } } }
     suspend fun removeScope(scope: String?) { safeWrite { scope?.let { cache?.removeScope(it) } } }
@@ -65,104 +68,89 @@ fun likedMetadataScope(listener: String?): String? = listener?.let { "youtube:$i
 private fun metadataDigest(value: String) = MessageDigest.getInstance("SHA-256")
     .digest(value.toByteArray()).joinToString("") { "%02x".format(it) }
 
-/** All parsing/writing runs off Main, serialized; two warm identities and 24 MiB on disk. */
+/** Transitional adapter: existing callers/models now use Daylight's independent storage engine. */
 internal class CollectionMetadataCache(
     private val directory: File,
     private val now: () -> Long = System::currentTimeMillis,
-    private val maxBytes: Long = 24L * 1024 * 1024,
+    maxBytes: Long = 24L * 1024 * 1024,
 ) {
-    private val mutex = Mutex()
-    private val memoryLock = Any()
-    private val memory = LinkedHashMap<String, List<CollectionSnapshot>>(4, 0.75f, true)
+    private val edits = Mutex()
     private val json = Json { ignoreUnknownKeys = true }
+    private val records = com.sh1vvy.daylight.library.SnapshotCache(
+        File(directory, "records-v2"),
+        object : com.sh1vvy.daylight.library.SnapshotCodec<CollectionSnapshot> {
+            override fun encode(value: CollectionSnapshot) = json.encodeToString(StoredCollection.serializer(), StoredCollection.from(value)).toByteArray(Charsets.UTF_8)
+            override fun decode(bytes: ByteArray) = json.decodeFromString(StoredCollection.serializer(), bytes.toString(Charsets.UTF_8)).restore()
+            override fun weight(value: CollectionSnapshot) = value.songs.size
+        },
+        com.sh1vvy.daylight.library.CacheBudget(diskBytes = maxBytes),
+        preferredCollections = setOf("VLLM"),
+    )
     private val _changes = MutableStateFlow(0L)
     val changes = _changes.asStateFlow()
+    private fun key(scope: String, id: String) = com.sh1vvy.daylight.library.SnapshotKey(scope, id)
 
-    fun peek(scope: String, id: String): CollectionSnapshot? = synchronized(memoryLock) {
-        memory[scope]?.firstOrNull { it.browseId == id }
-    }
+    fun peek(scope: String, id: String): CollectionSnapshot? = records.peek(key(scope, id))
+
     suspend fun read(scope: String): List<CollectionSnapshot> = withContext(Dispatchers.IO) {
-        mutex.withLock { readLocked(scope) }
+        edits.withLock { load(scope) }
     }
-    private fun readLocked(scope: String): List<CollectionSnapshot> {
-        synchronized(memoryLock) { memory[scope]?.let { return it } }
-        val file = file(scope)
-        val result = if (!file.isFile || file.length() > MAX_FILE_BYTES) emptyList() else runCatching {
-            json.decodeFromString<StoredCollections>(file.readText()).takeIf { it.version == 1 }
-                ?.collections?.take(MAX_COLLECTIONS)?.map { it.restore() }.orEmpty()
-        }.getOrDefault(emptyList())
-        remember(scope, result)
-        return result
+
+    suspend fun readCollection(scope: String, id: String): CollectionSnapshot? = withContext(Dispatchers.IO) {
+        edits.withLock { one(scope, id) }
     }
+
+    private suspend fun one(scope: String, id: String): CollectionSnapshot? {
+        if (File(directory, metadataDigest(scope) + ".json").isFile) load(scope)
+        return records.read(key(scope, id))
+    }
+
+    /** One-time conversion; keep the original file if any whole collection cannot be retained. */
+    private suspend fun load(scope: String): List<CollectionSnapshot> {
+        val current = records.readAccount(scope)
+        val legacy = File(directory, metadataDigest(scope) + ".json")
+        if (!legacy.isFile || legacy.length() > 8L * 1024 * 1024) return ordered(current)
+        val previous = try {
+            json.decodeFromString<StoredCollections>(legacy.readText()).takeIf { it.version == 1 }
+                ?.collections?.take(24)?.map { it.restore() }.orEmpty()
+        } catch (_: IllegalArgumentException) { emptyList() }
+        val present = current.mapTo(HashSet()) { it.browseId }
+        var transferred = true
+        for (old in previous) if (old.browseId !in present) {
+            if (!records.write(key(scope, old.browseId), old)) transferred = false
+        }
+        if (transferred) legacy.delete()
+        return ordered(records.readAccount(scope))
+    }
+
     suspend fun save(scope: String, snapshot: CollectionSnapshot) = withContext(Dispatchers.IO) {
-        mutex.withLock {
-            val existing = readLocked(scope)
-            val prior = existing.firstOrNull { it.browseId == snapshot.browseId }
-            // A background refresh must not forget a play recorded while it was loading.
-            val next = snapshot.copy(lastPlayedAt = maxOf(snapshot.lastPlayedAt, prior?.lastPlayedAt ?: 0))
-            persistLocked(scope, (listOf(next) + existing.filterNot { it.browseId == next.browseId })
-                .sortedByDescending { maxOf(it.lastPlayedAt, it.updatedAt) }.take(MAX_COLLECTIONS), next.browseId)
+        edits.withLock {
+            val previous = one(scope, snapshot.browseId)
+            val metadata = StoredCollection.from(snapshot).restore()
+            val merged = metadata.copy(lastPlayedAt = maxOf(metadata.lastPlayedAt, previous?.lastPlayedAt ?: 0))
+            if (merged != previous && records.write(key(scope, merged.browseId), merged)) _changes.value++
         }
     }
+
     suspend fun played(scope: String, id: String) = withContext(Dispatchers.IO) {
-        mutex.withLock {
-            val existing = readLocked(scope)
-            val item = existing.firstOrNull { it.browseId == id } ?: return@withLock
-            // Pauses, resume and every next song in the same playlist are not new shelf entries.
-            if (now() - item.lastPlayedAt in 0 until 60_000) return@withLock
-            persistLocked(scope, existing.map { if (it.browseId == id) it.copy(lastPlayedAt = now()) else it }, id)
+        edits.withLock {
+            val previous = one(scope, id) ?: return@withLock
+            val time = now()
+            if (time - previous.lastPlayedAt in 0 until 60_000L) return@withLock
+            if (records.write(key(scope, id), previous.copy(lastPlayedAt = time))) _changes.value++
         }
     }
+
     suspend fun removeScope(scope: String) = withContext(Dispatchers.IO) {
-        mutex.withLock {
-            synchronized(memoryLock) { memory.remove(scope) }
-            file(scope).delete()
+        edits.withLock {
+            records.removeAccount(scope)
+            val legacy = File(directory, metadataDigest(scope) + ".json")
+            if (legacy.exists() && !legacy.delete()) throw java.io.IOException("Metadata removal failed")
             _changes.value++
         }
     }
-    private fun persistLocked(scope: String, snapshots: List<CollectionSnapshot>, retainedId: String) {
-        var retained = snapshots
-        fun encode() = json.encodeToString(StoredCollections.serializer(), StoredCollections(collections = retained.map(StoredCollection::from))).toByteArray()
-        var bytes = encode()
-        val ceiling = minOf(MAX_FILE_BYTES, maxBytes)
-        // Evict whole older collections, preserving every row of the collection being saved.
-        while (bytes.size > ceiling && retained.size > 1) {
-            val oldest = retained.filterNot { it.browseId == retainedId }.minByOrNull { maxOf(it.lastPlayedAt, it.updatedAt) } ?: break
-            retained = retained.filterNot { it.browseId == oldest.browseId }
-            bytes = encode()
-        }
-        if (bytes.size > ceiling) return // Never persist a silently truncated collection.
-        directory.mkdirs()
-        val destination = file(scope)
-        val temporary = File(directory, destination.name + ".tmp")
-        temporary.outputStream().use { it.write(bytes); it.flush() }
-        try {
-            Files.move(temporary.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-        } catch (_: java.nio.file.AtomicMoveNotSupportedException) {
-            Files.move(temporary.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
-        }
-        remember(scope, retained)
-        // Keep the just-written identity; evict oldest other bundles until the disk ceiling holds.
-        val files = directory.listFiles { f -> f.extension == "json" }.orEmpty()
-        var total = files.sumOf(File::length)
-        files.filterNot { it == destination }.sortedBy(File::lastModified).forEach { old ->
-            val length = old.length()
-            if (total > maxBytes && old.delete()) {
-                total -= length
-                synchronized(memoryLock) { memory.keys.removeAll { file(it) == old } }
-            }
-        }
-        _changes.value++
-    }
-    private fun remember(scope: String, data: List<CollectionSnapshot>) = synchronized(memoryLock) {
-        memory[scope] = data
-        while (memory.size > 2) memory.remove(memory.keys.first())
-    }
-    private fun file(scope: String) = File(directory, metadataDigest(scope) + ".json")
-    companion object {
-        private const val MAX_COLLECTIONS = 24
-        private const val MAX_FILE_BYTES = 8L * 1024 * 1024
-    }
+
+    private fun ordered(values: List<CollectionSnapshot>) = values.sortedByDescending { maxOf(it.lastPlayedAt, it.updatedAt) }
 }
 
 @Serializable private data class StoredCollections(val version: Int = 1, val collections: List<StoredCollection>)

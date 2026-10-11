@@ -64,8 +64,8 @@ require(discordApplicationId.isEmpty() || discordApplicationId.all(Char::isDigit
 }
 
 // Advance only the development channel until a stable release is requested.
-val developmentVersionName = "0.2.2-canary.12"
-val developmentVersionCode = 33
+val developmentVersionName = "0.2.2-canary.13"
+val developmentVersionCode = 34
 
 android {
     namespace = "com.music.bitchord"
@@ -267,6 +267,7 @@ val newPipeExtractorRaw: Configuration by configurations.creating {
     isCanBeConsumed = false
 }
 dependencies {
+    implementation(project(":libraryCore"))
     newPipeExtractorRaw("com.github.TeamNewPipe:NewPipeExtractor:v0.26.3")
 }
 val newPipeExtractorStripped = tasks.register<org.gradle.api.tasks.bundling.Jar>(

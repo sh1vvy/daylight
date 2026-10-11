@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-10.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -37,6 +37,8 @@ import com.music.bitchord.data.library.CollectionMetadataStore
 import com.music.bitchord.data.library.CollectionSnapshot
 import com.music.bitchord.data.library.likedMetadataScope
 import com.music.bitchord.data.library.spotifyMetadataScope
+import com.sh1vvy.daylight.library.LibraryOverviewStore
+import com.sh1vvy.daylight.library.RefreshRequests
 import com.music.bitchord.data.lyrics.EmbeddedLyrics
 import com.music.bitchord.data.lyrics.LyricLine
 import com.music.bitchord.data.lyrics.LyricsRepository
@@ -95,6 +97,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -613,6 +617,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _library = MutableStateFlow<UiState<LibraryPage>>(UiState.Loading)
     val library: StateFlow<UiState<LibraryPage>> = _library.asStateFlow()
     private val latestLibraryRequest = LatestLibraryRequest()
+    private val libraryRequests = RefreshRequests<String, Result<LibraryPage>>(viewModelScope)
+    private var libraryVerifiedAt = 0L
+    private data class OverviewWrite(val identity: String?, val language: String, val page: LibraryPage?, val verifiedAt: Long)
     private var likedSnapshot: CollectionSnapshot? = null
     private var likedRevision = 0L
     val playedSpotifyCollections = combine(AppSettings.spotifySpdcToken, CollectionMetadataStore.changes) { cookie, _ ->
@@ -625,6 +632,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val account: Account?, val library: UiState<LibraryPage>,
         val history: UiState<List<Song>>, val playlists: List<UserPlaylist>,
         val owned: Map<String, Boolean>,
+        val libraryVerifiedAt: Long, val libraryStale: Boolean,
     )
     private val listenerCache = mutableMapOf<String, ListenerSnapshot>()
 
@@ -1507,6 +1515,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * showing it a moment out of date.
      */
     private var libraryStale = false
+        set(value) {
+            field = value
+            if (value) {
+                latestLibraryRequest.invalidate()
+                libraryRequests.cancelAll()
+            }
+        }
 
     /** Call when the library tab becomes visible. */
     fun onLibraryShown() {
@@ -1516,7 +1531,25 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (_library.value is UiState.Success) refresh(Feed.LIBRARY)
     }
 
+    @OptIn(FlowPreview::class)
+    private fun observeLibraryOverview() {
+        viewModelScope.launch {
+            _library.map { state -> OverviewWrite(listenerKey(), Innertube.currentLanguage,
+                (state as? UiState.Success)?.data, if (libraryStale) 0 else libraryVerifiedAt) }
+                .debounce(350L).collectLatest { write ->
+                    if (write.page != null && write.identity == listenerKey() && write.language == Innertube.currentLanguage) {
+                        LibraryOverviewStore.save(write.identity, write.language, write.page, write.verifiedAt) {
+                            write.identity == listenerKey() && write.language == Innertube.currentLanguage &&
+                                (_library.value as? UiState.Success)?.data === write.page &&
+                                (if (libraryStale) 0 else libraryVerifiedAt) == write.verifiedAt
+                        }
+                    }
+                }
+        }
+    }
+
     init {
+        observeLibraryOverview()
         startSearchPipeline()
         startSuggestPipeline()
         startTypeaheadMediaPipeline()
@@ -1626,12 +1659,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val identity = listenerKey()
         _refreshing.value = _refreshing.value + feed
         viewModelScope.launch {
-            when (feed) {
-                Feed.HOME -> refreshHome(identity)
-                Feed.EXPLORE -> fetchExplore()
-                Feed.LIBRARY -> fetchLibrary(identity, forceLiked = true)
-            }
-            _refreshing.value = _refreshing.value - feed
+            try {
+                when (feed) {
+                    Feed.HOME -> refreshHome(identity)
+                    Feed.EXPLORE -> fetchExplore()
+                    Feed.LIBRARY -> fetchLibrary(identity, forceLiked = true)
+                }
+            } finally { _refreshing.value = _refreshing.value - feed }
         }
     }
 
@@ -1889,22 +1923,43 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun fetchLibrary(identity: String?, forceLiked: Boolean = false) {
         if (identity != listenerKey()) return
+        val language = Innertube.currentLanguage
+        val providerScope = Innertube.responseCacheScope
         val request = latestLibraryRequest.begin()
+        val overview = LibraryOverviewStore.read(identity, language)
+        if (identity != listenerKey() || providerScope != Innertube.responseCacheScope || !latestLibraryRequest.isCurrent(request)) return
+        if (overview != null && _library.value !is UiState.Success) {
+            val restored = withContext(Dispatchers.Default) { LibraryOverviewStore.page(overview) }
+            if (identity != listenerKey() || providerScope != Innertube.responseCacheScope || !latestLibraryRequest.isCurrent(request)) return
+            libraryVerifiedAt = overview.verifiedAt
+            _library.value = UiState.Success(restored.copy(likedSongs = likedSnapshot?.songs.orEmpty()))
+        }
         restoreLikedSnapshot(identity)
         if (identity != listenerKey() || !latestLibraryRequest.isCurrent(request)) return
-        val response = YtMusicRepository.library()
+        if (overview != null || likedSnapshot != null) {
+            val cachedPage = (_library.value as? UiState.Success)?.data
+            com.music.bitchord.playback.DaylightMixRepository.prime(likedSnapshot?.songs.orEmpty(),
+                cachedPage?.shelves?.flatMap { it.items }?.mapNotNull { it.browseId?.takeIf { id -> id.startsWith("VL") && id != "VLLM" } })
+        }
+        if (!forceLiked && !libraryStale && overview?.let { LibraryOverviewStore.isFresh(it) } == true && likedSnapshot?.isFresh() == true) return
+        val response = libraryRequests.run("$identity:$language:$providerScope") { YtMusicRepository.library() }
         // Check before merging: an obsolete response must not acknowledge
         // pending creates, start a liked-song sync, or overwrite newer state.
-        if (identity != listenerKey() || !latestLibraryRequest.isCurrent(request)) return
+        if (identity != listenerKey() || providerScope != Innertube.responseCacheScope || !latestLibraryRequest.isCurrent(request)) return
         val next = response.fold(
             onSuccess = { page ->
-                val merged = pendingPlaylistCreations.mergeLibrary(identity, page)
+                val available = LibraryOverviewStore.retainingFailedSections(page, (_library.value as? UiState.Success)?.data)
+                val merged = pendingPlaylistCreations.mergeLibrary(identity, available)
                 com.music.bitchord.playback.DaylightMixRepository.prime(
                     page.likedSongs + page.librarySongs,
-                    page.shelves.flatMap { it.items }.mapNotNull { it.browseId?.takeIf { id -> id.startsWith("VL") && id != "VLLM" } },
+                    merged.shelves.flatMap { it.items }.mapNotNull { it.browseId?.takeIf { id -> id.startsWith("VL") && id != "VLLM" } },
                 )
                 if (page.likedLoaded) syncLikedMusic(identity, page.likedSongs, page.likedContinuation, forceLiked)
                 val retained = merged.copy(likedSongs = likedSnapshot?.songs ?: merged.likedSongs, likedContinuation = null)
+                libraryVerifiedAt = if ((page.loadedShelfTitles?.size ?: 4) == 4) System.currentTimeMillis() else 0
+                LibraryOverviewStore.save(identity, language, retained, libraryVerifiedAt) {
+                    identity == listenerKey() && providerScope == Innertube.responseCacheScope && latestLibraryRequest.isCurrent(request)
+                }
                 if (retained.isEmpty) UiState.Error(text(R.string.library_empty)) else UiState.Success(retained)
             },
             onFailure = { (_library.value as? UiState.Success) ?: UiState.Error(it.friendly()) },
@@ -1914,8 +1969,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun restoreLikedSnapshot(identity: String?) {
         if (likedSnapshot != null || identity == null) return
-        val saved = CollectionMetadataStore.read(likedMetadataScope(identity))
-            .firstOrNull { it.browseId == YtMusicRepository.LIKED_MUSIC } ?: return
+        val saved = CollectionMetadataStore.readCollection(likedMetadataScope(identity), YtMusicRepository.LIKED_MUSIC) ?: return
         if (identity != listenerKey() || likedSnapshot != null) return
         publishLikedSnapshot(saved)
         if (_library.value is UiState.Loading) _library.value = UiState.Success(LibraryPage(saved.songs, emptyList(), emptyList()))
@@ -3433,7 +3487,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             likedSyncJob?.cancel()
             likedSnapshot = null
         }
-        viewModelScope.launch { scopes.forEach { CollectionMetadataStore.removeScope(it) } }
+        viewModelScope.launch {
+            scopes.forEach { CollectionMetadataStore.removeScope(it) }
+            account.profiles.forEach { LibraryOverviewStore.remove("${account.accountId}:${it.profileId}") }
+        }
     }
 
     private fun persistDetectedProfiles(channels: List<AccountChannel>) {
@@ -3480,6 +3537,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val key = listenerKey() ?: return
         listenerCache[key] = ListenerSnapshot(
             _account.value, _library.value, _history.value, _playlists.value, _playlistOwned.value,
+            libraryVerifiedAt, libraryStale,
         )
     }
 
@@ -3488,6 +3546,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun clearListenerState(restoreCached: Boolean = false) {
+        libraryRequests.cancelAll()
+        libraryVerifiedAt = 0
+        libraryStale = false
         likedSnapshot = null
         likedRevision++
         clearSearchState()
@@ -3510,6 +3571,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _library.value = UiState.Loading
         _history.value = UiState.Loading
         if (restoreCached) listenerCache[listenerKey()]?.let { cached ->
+            libraryVerifiedAt = cached.libraryVerifiedAt
+            libraryStale = cached.libraryStale
             _account.value = cached.account
             _library.value = cached.library
             _history.value = cached.history
@@ -3547,6 +3610,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         forgetAccountMetadata(current)
+        libraryRequests.cancelAll()
+        libraryVerifiedAt = 0
+        libraryStale = false
         likedSnapshot = null
         likedRevision++
         authStore.signOut()

@@ -23,7 +23,7 @@ INVENTORY = ROOT / "DAYLIGHT-CONTRIBUTIONS.json"
 ROOT_FILES = {"README.md", "CONTRIBUTING.md", "UPSTREAM.md", "MAINTAINERS.md", "COPYRIGHT.md",
               "DAYLIGHT-NOTICE.md", "build.gradle.kts", "settings.gradle.kts", "app/build.gradle.kts",
               "shared/build.gradle.kts", "sharedUi/build.gradle.kts"}
-PREFIXES = ("app/src/", "shared/src/", "sharedUi/src/", "native/", "cloudflare-jam/src/", "cloudflare-jam/public/",
+PREFIXES = ("app/src/", "shared/src/", "sharedUi/src/", "libraryCore/", "native/", "cloudflare-jam/src/", "cloudflare-jam/public/",
             "cloudflare-jam/test/", "cloudflare-daylight/test/", "cloudflare-daylight/public/",
             "tools/", "docs/", ".github/")
 EXTENSIONS = {".kt", ".kts", ".java", ".js", ".cpp", ".cc", ".h", ".py", ".xml", ".md", ".yml", ".yaml", ".html", ".css"}

@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-10.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -591,14 +591,20 @@ object YtMusicRepository {
             // liked without holding this page open behind the whole list —
             // see [syncLikedMusic] and MainViewModel's fetchLibrary.
             val liked = async { browseSongs(LIKED_MUSIC).getOrNull() }
-            val shelves = LIBRARY_FEEDS
+            val shelfResponses = LIBRARY_FEEDS
                 .map { (title, browseId) ->
                     async {
-                        HomeShelf(title, runCatching { libraryItemsPaged(browseId) }.getOrDefault(emptyList()))
+                        val result = try { Result.success(libraryItemsPaged(browseId)) }
+                        catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                        catch (error: Exception) { Result.failure(error) }
+                        title to result
                     }
                 }
                 .awaitAll()
-                .filter { it.items.isNotEmpty() }
+
+            val shelves = shelfResponses.mapNotNull { (title, response) ->
+                response.getOrNull()?.takeIf { it.isNotEmpty() }?.let { HomeShelf(title, it) }
+            }
 
             val likedPage = liked.await()
             val likedSongs = likedPage?.songs.orEmpty()
@@ -612,6 +618,7 @@ object YtMusicRepository {
                 shelves = shelves,
                 likedContinuation = likedPage?.continuation,
                 likedLoaded = likedPage != null,
+                loadedShelfTitles = shelfResponses.filter { it.second.isSuccess }.mapTo(HashSet()) { it.first },
             )
         }
     }
@@ -907,7 +914,7 @@ object YtMusicRepository {
      * so collecting the full bounded set before publishing is preferable to a
      * shelf that looks complete and silently is not.
      */
-    private suspend fun itemsPaged(browseId: String, params: String? = null): List<ShelfItem> {
+    private suspend fun itemsPaged(browseId: String, params: String? = null, requireComplete: Boolean = false): List<ShelfItem> {
         val out = LinkedHashMap<String, ShelfItem>()
         var response = Innertube.browse(browseId, params)
         var page = 1
@@ -919,12 +926,19 @@ object YtMusicRepository {
             }
             val token = parsed.continuation ?: break
             if (page++ >= MAX_PAGES) break
-            response = runCatching { Innertube.browseContinuation(token) }.getOrNull() ?: break
+            response = try { Innertube.browseContinuation(token) }
+            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (error: Exception) {
+                // Library refreshes must not replace a full cached section with
+                // just its first page after a transient continuation failure.
+                if (requireComplete) throw error
+                break
+            }
         }
         return out.values.toList()
     }
 
-    private suspend fun libraryItemsPaged(browseId: String): List<ShelfItem> = itemsPaged(browseId, null)
+    private suspend fun libraryItemsPaged(browseId: String): List<ShelfItem> = itemsPaged(browseId, requireComplete = true)
 
     const val MAX_PAGES = 10
 

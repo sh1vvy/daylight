@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-10 through 2026-10-10.
+ * Daylight changes: 2026-10-10 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -38,10 +38,13 @@ class CollectionMetadataCacheTest {
         assertEquals(original.creator, restored.creator)
         assertEquals(original.trackIds, restored.trackIds)
         assertTrue(restored.complete)
-        val raw = directory.listFiles()!!.single().readText()
+        val raw = directory.walkTopDown().single { it.isFile && it.extension == "snapshot" }.readText()
         assertFalse(raw.contains("audio.flac"))
         assertFalse(raw.contains("queue-only"))
         assertFalse(raw.contains("Private queue"))
+        val warm = CollectionMetadataCache(directory)
+        warm.save("youtube:account:profile", original)
+        assertEquals("Warm cache is also catalogue-only", listOf(song, song), warm.readCollection("youtube:account:profile", "VLLM")!!.songs)
     }
     @Test fun googleProfilesAndSpotifySessionsNeverShareRowsOrSecretFileNames() = runBlocking {
         val directory = temporary.newFolder()
@@ -54,7 +57,7 @@ class CollectionMetadataCacheTest {
         assertTrue(cache.read(spotifyMetadataScope("different-cookie")!!).isEmpty())
         assertTrue(cache.read("youtube:b:profile-one").isEmpty())
         assertEquals(listOf(song), cache.read("youtube:a:profile-one").single().songs)
-        assertTrue(directory.listFiles()!!.all { !it.name.contains("cookie") && !it.readText().contains("private-session-cookie") })
+        assertTrue(directory.walkTopDown().filter { it.isFile }.all { !it.name.contains("cookie") && !it.readText().contains("private-session-cookie") })
         assertNull(spotifyMetadataScope(""))
     }
     @Test fun onlyPlaybackMarksAPlaylistAndARefreshCannotLoseThatPlay() = runBlocking {
@@ -89,8 +92,8 @@ class CollectionMetadataCacheTest {
         val directory = temporary.newFolder()
         val cache = CollectionMetadataCache(directory, maxBytes = 2_000)
         repeat(8) { cache.save("identity-$it", snapshot()) }
-        assertTrue(directory.listFiles()!!.sumOf(File::length) <= 2_000)
-        directory.listFiles()!!.forEach { it.writeText("{broken") }
+        assertTrue(directory.walkTopDown().filter(File::isFile).sumOf(File::length) <= 2_000)
+        directory.walkTopDown().filter(File::isFile).forEach { it.writeText("{broken") }
         assertTrue(CollectionMetadataCache(directory).read("identity-7").isEmpty())
         cache.removeScope("identity-7")
         assertTrue(cache.read("identity-7").isEmpty())
@@ -116,6 +119,22 @@ class CollectionMetadataCacheTest {
         assertEquals(listOf(second), CollectionMetadataCache(directory).read("one"))
         cache.save("one", snapshot("oversized", listOf(song.copy(title = "c".repeat(3_000)))))
         assertEquals(listOf(second), CollectionMetadataCache(directory).read("one"))
-        assertTrue(directory.listFiles()!!.sumOf(File::length) <= 1_400)
+        assertTrue(directory.walkTopDown().filter(File::isFile).sumOf(File::length) <= 1_400)
+    }
+
+    @Test fun legacyBundlesMigrateOnceAndAnUpdateOnlyWritesTheChangedCollection() = runBlocking {
+        val directory = temporary.newFolder()
+        val scope = "youtube:migration:profile"
+        val name = java.security.MessageDigest.getInstance("SHA-256").digest(scope.toByteArray()).joinToString("") { "%02x".format(it) }
+        val legacy = File(directory, "$name.json")
+        legacy.writeText("""{"version":1,"collections":[{"id":"VLLM","title":"Liked","subtitle":"","cover":null,"creator":null,"songs":[],"complete":true,"updated":1000,"played":0},{"id":"playlist","title":"Saved playlist","subtitle":"","cover":null,"creator":null,"songs":[],"complete":true,"updated":1000,"played":0}]}""")
+        val cache = CollectionMetadataCache(directory)
+        assertEquals(setOf("VLLM", "playlist"), cache.read(scope).map { it.browseId }.toSet())
+        assertFalse(legacy.exists())
+        val originals = directory.walkTopDown().filter { it.isFile }.associate { it.path to it.readBytes().toList() }
+        cache.save(scope, cache.readCollection(scope, "playlist")!!.copy(title = "Renamed playlist"))
+        assertEquals(1, directory.walkTopDown().filter { it.isFile }.count { originals[it.path] != it.readBytes().toList() })
+        assertEquals("Liked", CollectionMetadataCache(directory).readCollection(scope, "VLLM")!!.title)
+        assertEquals("Renamed playlist", CollectionMetadataCache(directory).readCollection(scope, "playlist")!!.title)
     }
 }

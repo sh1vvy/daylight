@@ -163,6 +163,7 @@ fun PlayerExperienceScreen(
         return
     }
     val reduced by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
+    val reduceBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val offset by PlayerSettings.lyricsOffsetMs.collectAsStateWithLifecycle()
     val controlsLocked = rememberControlsLocked()
     var panel by rememberSaveablePlayerPanel()
@@ -214,6 +215,7 @@ fun PlayerExperienceScreen(
         stringResource(Res.string.shuffle_on), stringResource(Res.string.shuffle_off),
         stringResource(Res.string.repeat_one), stringResource(Res.string.repeat_all), stringResource(Res.string.repeat_off),
         stringResource(Res.string.autoplay_on), stringResource(Res.string.autoplay_off),
+        stringResource(Res.string.daylight_player_return),
     )
     fun guarded(action: () -> Unit) { if (controlsLocked) onBlockedControl() else action() }
     val actions = PlayerActions(onPlayPause, { guarded(onPrevious) }, { guarded(onNext) },
@@ -234,7 +236,8 @@ fun PlayerExperienceScreen(
                 onSeekToLine = { actions.seekMs(adjustedLyricsSeekTarget(it, offset)) },
                 controlsOpen = true, onRevealControls = {}, onHideControls = {},
                 modifier = mod.testTag("daylight-accompanist-lyrics"))
-        }, modifier = modifier.hazeSource(haze).then(if (panel != PlayerPanel.ARTWORK) Modifier.containSheetGestures() else Modifier), motion = motion)
+        }, modifier = modifier.hazeSource(haze).then(if (panel != PlayerPanel.ARTWORK) Modifier.containSheetGestures() else Modifier), motion = motion,
+        queueBlurEnabled = !reduceBlur && renderEffectBlurSupported)
     if (outputOpen) AudioOutputSheet(haze, accountName, { outputOpen = false }, { pipelineOpen = true }, { castOpen = true })
     if (pipelineOpen) PlayerPlatform.host.AudioPipelineDialog(haze, isPlaying) { pipelineOpen = false }
     if (castOpen) PlayerPlatform.host.CastDialog(haze) { castOpen = false }

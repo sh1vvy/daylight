@@ -41,8 +41,10 @@ replacement window or audio engine.
 
 ## Interaction
 
-- Artwork extends into the background without a framed cover. Tap opens the
-  artwork viewer; horizontal swipes change tracks when permitted.
+- Artwork extends into the background without a framed cover. In the main
+  view, tapping opens the artwork viewer and horizontal swipes change tracks
+  when permitted. Tapping the small cover in Lyrics or Queue instead returns
+  to the full player through the same expanding-cover spring as the panel gesture.
 - The heart sits left of the title, the anchored menu right. Native Material
   play/pause glyphs crossfade and scale briefly inside a themed tonal button.
 - The full surface expands from and settles into the measured mini-player pill.
@@ -52,13 +54,19 @@ replacement window or audio engine.
   The cover uses the same fold progress for its corner radius, reaching the
   actual scaled mini cover radius before the final surface handoff.
 - Swipe up on the artwork player to reveal the queue with an upward spring.
-  Swipe down on the queue handle, press Back, or tap Queue to return. Queue
+  Swipe down on the shared handle above the song title, press Back, or tap the
+  selected panel button to return. This gesture area is separate from the top
+  lane, which still minimizes the entire player. Queue
   scrolling does not turn into a track-change or sheet-dismiss gesture. Both
   panels shrink the cover and lift the track into a compact header, without
   opaque floating cards. The playback deck stays
   available; the queue button also provides an accessible alternative to swiping.
-  Queue-only playback-mode pills label shuffle, repeat and autoplay states and
-  use a contrasting selected fill. They do not appear on the lyrics page.
+  Queue-only playback-mode pills use icons and a contrasting selected fill,
+  with accessible state descriptions. They do not appear on the lyrics page.
+  No visible Queue heading appears. Inset song labels and bottom content padding
+  keep the final rows reachable. A 40dp bottom strip softly blurs and fades the
+  queue into the deck, sampling at a third resolution; reduced blur and older
+  platforms retain the fade without the blur effect.
 - The new timeline moves under a fixed center marker, with a thick upcoming
   segment and thin translucent elapsed segment. Horizontal dragging moves
   audio time opposite to the dragged track; accessibility supports direct
@@ -86,7 +94,7 @@ recomposing the player each frame. Existing lyric blur/glow and reduced-motion
 preferences continue to apply. Word progression uses draw-local timing;
 paused playback stops the presentation frame clock. There is
 one existing audio owner and one Canvas decoder, with no extra provider search,
-audio cache, background blur animation or duplicate playback session.
+audio cache, full-screen animated blur or duplicate playback session.
 The cover holds its last decoded frame while paused, during Automix's cover
 handoff and while the lyric/queue panel or artwork viewer is open.
 

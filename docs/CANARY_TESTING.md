@@ -27,7 +27,12 @@ Original authors' notices and licenses remain applicable to their material.
   Removed the extra Lyrics heading, provider menu and settings button from the
   panel. Preferences remain in app settings. No extra lyric request or audio owner.
 - Queue-only shuffle, repeat and autoplay pills have contrasting selected fills
-  and explicit state labels. Lyrics stay free of these controls. The closing
+  and accessible state descriptions, with no visible labels. Lyrics stay free of
+  these controls. Both panels return to the full player by tapping the small
+  cover or swiping down on the handle above the song name; the top close lane
+  still minimizes the player. Removed the Queue heading and softened its bottom
+  edge with a narrow, reduced-resolution blur/fade and inset labels.
+  The closing
   cover rounds continuously to the measured mini cover radius, including glass
   accessory scaling. Timeline endpoints stay rounded at the viewport edges;
   the main heart/menu glyphs align with the elapsed/remaining timers.

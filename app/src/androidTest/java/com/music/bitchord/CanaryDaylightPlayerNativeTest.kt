@@ -248,25 +248,44 @@ class CanaryDaylightPlayerNativeTest {
                 compose.onNodeWithText("Daylight line 2").performClick()
                 assertEquals(1_000L, seek)
                 screenshot("daylight-lyrics")
+                val lyricTitle = compose.onNodeWithText("An ordinary track").fetchSemanticsNode().boundsInRoot
+                val returnLane = compose.onNodeWithTag("daylight-player-panel-return").fetchSemanticsNode().boundsInRoot
+                val closeLane = compose.onNodeWithTag("daylight-player-close").fetchSemanticsNode().boundsInRoot
+                assertTrue("Panel-return gestures sit above the song title, separate from player dismissal", closeLane.bottom <= returnLane.top && returnLane.bottom <= lyricTitle.top)
+                compose.onNodeWithTag("daylight-player-artwork-action", useUnmergedTree = true).performClick()
+                compose.waitForIdle()
+                compose.onNodeWithTag("daylight-player-lyric-list").assertDoesNotExist()
+                compose.onNodeWithTag("daylight-player").assertIsDisplayed()
+                compose.onNodeWithTag("daylight-player-lyrics").performClick()
+                compose.waitForIdle()
+                compose.onNodeWithTag("daylight-player-panel-return").performTouchInput { swipeDown(startY = 1f, endY = height - 1f, durationMillis = 300) }
+                compose.waitForIdle()
+                compose.onNodeWithTag("daylight-player-lyric-list").assertDoesNotExist()
                 compose.onNodeWithTag("daylight-player-queue").performClick()
                 compose.waitForIdle()
+                compose.onNodeWithText("Queue").assertDoesNotExist()
+                compose.onNodeWithTag("daylight-player-queue-bottom-fade").assertIsDisplayed()
                 compose.onNodeWithTag("daylight-player-autoplay").assertIsSelected().performClick().assertIsNotSelected()
-                compose.onNodeWithText("AutoPlay off").assertIsDisplayed()
+                compose.onNodeWithContentDescription("AutoPlay off").assertIsDisplayed()
+                compose.onNodeWithText("AutoPlay off").assertDoesNotExist()
                 compose.onNodeWithTag("daylight-player-shuffle").assertIsNotSelected().performClick().assertIsSelected()
                 compose.onNodeWithTag("daylight-player-repeat").assertIsNotSelected().performClick().assertIsSelected()
-                compose.onNodeWithText("Repeat one").assertIsDisplayed()
+                compose.onNodeWithContentDescription("Repeat one").assertIsDisplayed()
+                compose.onNodeWithText("Repeat one").assertDoesNotExist()
                 compose.onAllNodesWithText("Second track").assertCountEquals(2)
                 compose.onAllNodesWithText("Second track")[0].performClick()
                 assertEquals(1, jumped)
                 compose.onAllNodesWithContentDescription("Remove from queue")[1].performClick()
                 assertEquals(1, removed)
                 screenshot("daylight-queue")
-                compose.onNodeWithTag("daylight-player-queue").performClick()
+                compose.onNodeWithTag("daylight-player-artwork-action", useUnmergedTree = true).performClick()
                 compose.waitForIdle()
+                compose.onNodeWithTag("daylight-player-queue-list").assertDoesNotExist()
+                compose.onNodeWithTag("daylight-player").assertIsDisplayed()
                 compose.onNodeWithTag("daylight-player").performTouchInput { swipeUp(startY = height * .65f, endY = height * .28f, durationMillis = 300) }
                 compose.waitForIdle()
                 compose.onNodeWithTag("daylight-player-queue-list").assertIsDisplayed()
-                compose.onNodeWithTag("daylight-player-queue-handle").performTouchInput { swipeDown(startY = 1f, endY = height - 1f, durationMillis = 300) }
+                compose.onNodeWithTag("daylight-player-panel-return").performTouchInput { swipeDown(startY = 1f, endY = height - 1f, durationMillis = 300) }
                 compose.waitForIdle()
                 compose.onNodeWithTag("daylight-player-queue-list").assertDoesNotExist()
                 compose.runOnIdle { AppSettings.smartMixInProgress.value = true; AppSettings.smartMixBlend.value = MixBlend(500f, System.nanoTime(), true,

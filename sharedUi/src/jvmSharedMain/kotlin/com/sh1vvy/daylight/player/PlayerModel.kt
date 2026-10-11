@@ -72,4 +72,5 @@ data class PlayerLabels(
     val shuffleOn: String, val shuffleOff: String,
     val repeatOne: String, val repeatAll: String, val repeatOff: String,
     val autoplayOn: String, val autoplayOff: String,
+    val returnToPlayer: String,
 )

@@ -27,11 +27,14 @@ Original authors' notices and licenses remain applicable to their material.
   seeds, with two concurrent requests, four-second timeouts and bounded reuse.
   Existing language/dislike filtering and Play my mix remain.
 
-**Validation:** 1,476 unit checks passed, with one optional live-provider check
+**Validation:** 1,481 unit checks passed, with one optional live-provider check
 skipped. The long-list check indexes 2,000 occurrences exactly once each across
 100 pages. Targeted checks cover shared requests, partial refreshes, retained
 lists, durable completion, edits, cancellation, token loops, Home ordering,
 failed sections, account changes and recommendation diversity/concurrency.
+Edits during initial reads or continuation loading remain applied to later
+pages; late partial writes cannot overwrite the completed retained list.
+Continuation failures and immediate closing retain the edited metadata too.
 Six distinct native emulator checks passed, including a cached 500-track remote
 playlist with its creator/related shelves/saved flag, 80 editable playlists,
 Home restoration, the existing liked/library caches, Quick Picks, endless mix,

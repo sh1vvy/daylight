@@ -86,17 +86,92 @@ class CollectionRepositoryTest {
         assertEquals(listOf("New"), writes)
     }
 
-    @Test fun editCancelsOldContinuationAndItsWriteCannotOverwriteTheEdit() = runTest {
+    @Test fun editDuringPaginationKeepsLoadingAndLaterPagesCannotOverwriteTheEdit() = runTest {
         val more = CompletableDeferred<CollectionBatch<String, Row>>()
         val writes = mutableListOf<CollectionListing<String, Row>>()
         val repo = repository(first = { CollectionBatch("Old", listOf(Row("one")), "next") }, next = { _, _ -> more.await() },
             save = { _, value, current -> if (current()) writes += value })
         val state = repo.open("list"); runCurrent()
         repo.edit({ it == "list" }) { it.copy(header = "Edited", rows = it.rows + Row("added")) }
+        assertTrue(state.value.loading)
         more.complete(CollectionBatch(null, listOf(Row("late")), null)); runCurrent()
         assertEquals("Edited", state.value.listing!!.header)
-        assertEquals(listOf(Row("one"), Row("added")), state.value.listing!!.rows)
+        assertEquals(listOf(Row("one"), Row("late"), Row("added")), state.value.listing!!.rows)
+        assertTrue(state.value.listing!!.complete)
         assertEquals(state.value.listing, writes.last())
+    }
+
+    @Test fun editDuringInitialFetchAndDuringFinalPersistenceSurvivesRestart() = runTest {
+        val first = CompletableDeferred<CollectionBatch<String, Row>>()
+        val writing = CompletableDeferred<Unit>()
+        val durable = CompletableDeferred<Unit>()
+        var stored: CollectionListing<String, Row>? = null
+        val repo = repository(first = { first.await() }, save = { _, value, current ->
+            writing.complete(Unit); durable.await(); if (current()) stored = value
+        })
+        val state = repo.open("list"); runCurrent()
+        repo.edit({ it == "list" }) { it.copy(header = "Renamed") }
+        first.complete(CollectionBatch("Original", listOf(Row("one")), null)); runCurrent()
+        assertTrue(writing.isCompleted)
+        repo.edit({ it == "list" }) { it.copy(rows = it.rows + Row("added")) }
+        durable.complete(Unit); runCurrent()
+        assertEquals("Renamed", state.value.listing!!.header)
+        assertEquals(listOf(Row("one"), Row("added")), stored!!.rows)
+        assertEquals(stored, state.value.listing)
+    }
+
+    @Test fun editOfCompletedListCancelsAnOlderRefreshWithoutDiscardingRows() = runTest {
+        val more = CompletableDeferred<CollectionBatch<String, Row>>()
+        val cached = CollectionListing("Old", listOf(Row("one"), Row("two")), complete = true, checkedAt = 1)
+        val repo = repository(first = { CollectionBatch("Stale", listOf(Row("old")), "next") }, next = { _, _ -> more.await() }, read = { cached })
+        val state = repo.open("list"); runCurrent()
+        repo.edit({ it == "list" }) { it.copy(header = "Renamed") }
+        more.complete(CollectionBatch(null, listOf(Row("late")), null)); runCurrent()
+        assertEquals(cached.rows, state.value.listing!!.rows)
+        assertEquals("Renamed", state.value.listing!!.header); assertFalse(state.value.loading)
+    }
+
+    @Test fun editWhileReadingFreshDiskMetadataIsPersistedBeforeCompletion() = runTest {
+        val disk = CompletableDeferred<CollectionListing<String, Row>?>()
+        var stored: CollectionListing<String, Row>? = null
+        val repo = repository(first = { error("Fresh metadata must avoid network") }, read = { disk.await() },
+            save = { _, value, current -> if (current()) stored = value })
+        val state = repo.open("list"); runCurrent()
+        repo.edit({ it == "list" }) { it.copy(header = "Renamed") }
+        disk.complete(CollectionListing("Old", listOf(Row("one")), complete = true, checkedAt = 89_000)); runCurrent()
+        assertEquals("Renamed", stored!!.header); assertEquals(stored, state.value.listing)
+    }
+
+    @Test fun latePartialEditWriteCannotReplaceACompletedListing() = runTest {
+        val more = CompletableDeferred<CollectionBatch<String, Row>>()
+        val partialWrite = CompletableDeferred<Unit>()
+        var stored: CollectionListing<String, Row>? = null
+        val repo = repository(first = { CollectionBatch("Header", listOf(Row("one")), "next") }, next = { _, _ -> more.await() },
+            save = { _, value, current ->
+                if (!value.complete && value.header == "Renamed") partialWrite.await()
+                if (current()) stored = value
+            })
+        val state = repo.open("list"); runCurrent()
+        repo.edit({ it == "list" }) { it.copy(header = "Renamed") }; runCurrent()
+        more.complete(CollectionBatch(null, listOf(Row("two")), null)); runCurrent()
+        assertTrue(stored!!.complete); assertEquals(listOf(Row("one"), Row("two")), stored!!.rows)
+        partialWrite.complete(Unit); runCurrent()
+        assertEquals(stored, state.value.listing); assertTrue(stored!!.complete)
+    }
+
+    @Test fun editingAPartialListSurvivesAContinuationFailureOrImmediateClose() = runTest {
+        for (close in listOf(false, true)) {
+            val more = CompletableDeferred<CollectionBatch<String, Row>>()
+            var stored: CollectionListing<String, Row>? = null
+            val repo = repository(first = { CollectionBatch("Header", listOf(Row("one")), "next") }, next = { _, _ -> more.await() },
+                save = { _, value, current -> if (current()) stored = value })
+            val state = repo.open("list"); runCurrent()
+            repo.edit({ it == "list" }) { it.copy(header = "Renamed") }
+            if (close) repo.release("list") else more.completeExceptionally(IllegalStateException("Offline"))
+            runCurrent()
+            assertEquals("Renamed", stored!!.header)
+            assertFalse(state.value.loading); assertFalse(stored!!.complete)
+        }
     }
 
     @Test fun releasingOneScreenKeepsAnotherSubscriberAliveButClosingAllStopsPaging() = runTest {

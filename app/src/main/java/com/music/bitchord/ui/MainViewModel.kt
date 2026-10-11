@@ -981,7 +981,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     if (identity != listenerKey() || key.sourceRevision != Innertube.responseCacheScope) return@takeWhile false
                     state.listing?.let {
                         _playlists.value = pendingPlaylistCreations.mergeOwnPlaylists(identity, it.rows)
-                        it.rows.forEach { row -> setPlaylistOwned(row.browseId, true) }
+                        val owned = it.rows.associate { row -> row.browseId to true }
+                        _playlistOwned.update { current -> current + owned }
                     }
                     state.loading
                 }.collect { }

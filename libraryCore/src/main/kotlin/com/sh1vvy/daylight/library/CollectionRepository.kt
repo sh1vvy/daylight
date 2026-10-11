@@ -34,6 +34,9 @@ class CollectionRepository<K, H, T>(
 ) {
     private inner class Entry {
         val revision = AtomicLong()
+        val editRevision = AtomicLong()
+        val writeRevision = AtomicLong()
+        val pendingEdits = ArrayList<(CollectionListing<H, T>) -> CollectionListing<H, T>>()
         val state = MutableStateFlow(CollectionLoad<H, T>())
         var job: Job? = null
     }
@@ -46,6 +49,7 @@ class CollectionRepository<K, H, T>(
         if (force || (entry.job?.isActive != true && (saved == null || !saved.complete || now() - saved.checkedAt !in 0 until freshnessMs))) {
             val revision = entry.revision.incrementAndGet()
             entry.job?.cancel()
+            entry.pendingEdits.clear()
             entry.state.value = entry.state.value.copy(loading = true, failure = null)
             entry.job = scope.launch(io, start = CoroutineStart.LAZY) { load(key, entry, revision, force) }.also { it.start() }
         }
@@ -59,24 +63,45 @@ class CollectionRepository<K, H, T>(
             if (entry.state.subscriptionCount.value == 0 && entry.job?.isActive == true) {
                 entry.revision.incrementAndGet(); entry.job?.cancel()
                 entry.state.value = entry.state.value.copy(loading = false)
+                if (entry.pendingEdits.isNotEmpty()) entry.state.value.listing?.let { scheduleSave(key, entry, it) }
             }
         }
         trim(null)
     }
 
     fun edit(matches: (K) -> Boolean, transform: (CollectionListing<H, T>) -> CollectionListing<H, T>): Set<K> = synchronized(lock) {
-        val matched = entries.filter { matches(it.key) && it.value.state.value.listing != null }
+        val matched = entries.filter { matches(it.key) && (it.value.state.value.listing != null || it.value.job?.isActive == true) }
         matched.forEach { (key, entry) ->
-            val previous = entry.state.value.listing ?: return@forEach
+            val previous = entry.state.value.listing
+            // A mutation during an initial/paged load overlays every subsequent page.
+            // Keeping the request alive avoids leaving an edited playlist half loaded.
+            if (entry.job?.isActive == true && previous?.complete != true) {
+                entry.pendingEdits += transform
+                entry.editRevision.incrementAndGet()
+                if (previous != null) {
+                    val value = transform(previous).copy(checkedAt = now())
+                    entry.state.value = entry.state.value.copy(listing = value)
+                    scheduleSave(key, entry, value)
+                }
+                return@forEach
+            }
+            if (previous == null) return@forEach
             val transformed = transform(previous)
             if (transformed == previous) return@forEach
             val value = transformed.copy(checkedAt = now())
             val revision = entry.revision.incrementAndGet()
             entry.job?.cancel()
+            entry.pendingEdits.clear()
             entry.state.value = CollectionLoad(value)
-            scope.launch(io) { save(key, value) { entry.revision.get() == revision } }
+            scheduleSave(key, entry, value)
         }
         matched.keys.toSet()
+    }
+
+    private fun scheduleSave(key: K, entry: Entry, value: CollectionListing<H, T>) {
+        val revision = entry.revision.get()
+        val write = entry.writeRevision.incrementAndGet()
+        scope.launch(io) { save(key, value) { entry.revision.get() == revision && entry.writeRevision.get() == write } }
     }
 
     fun invalidate(matches: (K) -> Boolean) = synchronized(lock) {
@@ -93,12 +118,37 @@ class CollectionRepository<K, H, T>(
     private suspend fun load(key: K, entry: Entry, revision: Long, force: Boolean) {
         val owner = currentCoroutineContext()
         fun current() = owner.isActive && entry.revision.get() == revision
-        fun publish(value: CollectionLoad<H, T>) = synchronized(lock) { if (current()) entry.state.value = value }
+        fun overlay(value: CollectionListing<H, T>) = entry.pendingEdits.fold(value) { listing, edit -> edit(listing) }
+        fun publish(value: CollectionLoad<H, T>) = synchronized(lock) {
+            if (current()) entry.state.value = value.copy(listing = value.listing?.let(::overlay))
+        }
+        suspend fun persist(value: CollectionListing<H, T>, finish: Boolean = false) {
+            while (current()) {
+                val (updated, editVersion, writeVersion) = synchronized(lock) { Triple(overlay(value), entry.editRevision.get(), entry.writeRevision.incrementAndGet()) }
+                save(key, updated) { current() && entry.editRevision.get() == editVersion && entry.writeRevision.get() == writeVersion }
+                val saved = synchronized(lock) {
+                    if (!current()) true
+                    else if (entry.editRevision.get() != editVersion || entry.writeRevision.get() != writeVersion) false
+                    else {
+                        if (finish) {
+                            entry.pendingEdits.clear()
+                            entry.state.value = CollectionLoad(updated)
+                        }
+                        true
+                    }
+                }
+                if (saved) return
+                yield()
+            }
+        }
         try {
             val previous = entry.state.value.listing ?: read(key)
             if (!current()) return
             if (previous != null) publish(CollectionLoad(previous, loading = true))
-            if (!force && previous?.complete == true && now() - previous.checkedAt in 0 until freshnessMs) return
+            if (!force && previous?.complete == true && now() - previous.checkedAt in 0 until freshnessMs) {
+                persist(previous, finish = true)
+                return
+            }
             val started = now()
             var batch = first(key)
             if (!current()) return
@@ -116,7 +166,7 @@ class CollectionRepository<K, H, T>(
             if (previous?.complete != true || batch.next == null) {
                 val value = listing(batch.next == null)
                 publish(CollectionLoad(value, loading = true))
-                if (batch.next != null) save(key, value, ::current)
+                if (batch.next != null) persist(value)
             }
             val tokens = HashSet<String>()
             while (batch.next != null) {
@@ -132,8 +182,7 @@ class CollectionRepository<K, H, T>(
             }
             if (!current()) return
             val complete = listing(true)
-            save(key, complete, ::current)
-            publish(CollectionLoad(complete))
+            persist(complete, finish = true)
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (failure: Exception) { synchronized(lock) { if (current()) entry.state.value = entry.state.value.copy(failure = failure) } }
         finally {

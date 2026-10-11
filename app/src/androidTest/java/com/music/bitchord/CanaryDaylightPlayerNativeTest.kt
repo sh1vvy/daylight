@@ -61,6 +61,8 @@ import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Before
+import org.junit.After
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
@@ -73,6 +75,10 @@ class CanaryDaylightPlayerNativeTest {
     private var seek = -1L
     private var jumped = -1
     private var removed = -1
+    private var moved: Pair<Int, Int>? = null
+    private val dragChanges = mutableListOf<Boolean>()
+    private var sessionQueue by mutableStateOf<List<Song>?>(null)
+    private var sessionIndex by mutableIntStateOf(0)
     private var mode by mutableStateOf(PlayerExperience.DAYLIGHT)
     private var playing by mutableStateOf(false)
     private var autoplay by mutableStateOf(true)
@@ -83,6 +89,7 @@ class CanaryDaylightPlayerNativeTest {
     private var dark by mutableStateOf(true)
     private var pink by mutableStateOf(false)
     private var fontScale by mutableFloatStateOf(1f)
+    private var originalReducedMotion = false
     private val lines = (0..16).map { LyricLine(it * 2_000L, "Daylight line ${it + 1}",
         listOf(LyricWord(it * 2_000L, it * 2_000L + 1_000L, "Daylight"), LyricWord(it * 2_000L + 1_000L, it * 2_000L + 1_800L, "line ${it + 1}"))) }
 
@@ -90,6 +97,17 @@ class CanaryDaylightPlayerNativeTest {
         assumeTrue(context.packageName.endsWith(".dev"))
         assumeTrue(Build.HARDWARE == "ranchu" || Build.HARDWARE == "goldfish")
         assumeTrue(AuthStore(context).sessions.isEmpty())
+    }
+
+    @Before fun enableMotionForFixture() {
+        requireDisposableEmulator()
+        originalReducedMotion = AppSettings.reduceAnimation.value
+        AppSettings.setReduceAnimation(false)
+    }
+
+    @After fun restoreMotionPreference() {
+        if (Build.HARDWARE == "ranchu" || Build.HARDWARE == "goldfish")
+            AppSettings.setReduceAnimation(originalReducedMotion)
     }
 
     private fun art(name: String, a: Int, b: Int): String {
@@ -106,18 +124,21 @@ class CanaryDaylightPlayerNativeTest {
     }
 
     @Composable private fun fixture(song: Song) {
+        val queue = sessionQueue ?: listOf(song, song.copy(title = "Second track", queueEntryId = "second"), song.copy(title = "Second track", queueEntryId = "third"))
         CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
         BitChordTheme(darkTheme = dark, pinkCloud = pink) {
             PlayerExperienceScreen(experience = mode, onDismiss = { taps.incrementAndGet() }, song = song,
                 isPlaying = playing, isLoading = false, position = position, durationMs = 120_000,
                 audioVersionSwitching = false, qualityUpgraded = false,
-                queue = listOf(song, song.copy(title = "Second track", queueEntryId = "second"), song.copy(title = "Second track", queueEntryId = "third")),
-                queueIndex = 0, hasPrevious = true, hasNext = true, repeatMode = repeat, shuffleEnabled = shuffled, autoplayEnabled = autoplay,
+                queue = queue,
+                queueIndex = sessionIndex, hasPrevious = true, hasNext = true, repeatMode = repeat, shuffleEnabled = shuffled, autoplayEnabled = autoplay,
                 signedIn = true, accountName = "Daylight QA", likeStatus = LikeStatus.INDIFFERENT,
                 onToggleLike = { taps.incrementAndGet() }, onPlayPause = { taps.incrementAndGet(); playing = !playing }, onNext = { taps.incrementAndGet() }, onPrevious = { taps.incrementAndGet() },
                 onBlockedControl = {}, onSeek = { seek = it }, onSeekFraction = { seek = (it * 120_000).toLong() },
                 onToggleShuffle = { taps.incrementAndGet(); shuffled = !shuffled }, onCycleRepeat = { taps.incrementAndGet(); repeat = (repeat + 1) % 3 }, onToggleAutoplay = { taps.incrementAndGet(); autoplay = !autoplay },
-                onJumpTo = { jumped = it }, onRemoveFromQueue = { removed = it }, onMoveInQueue = { _, _ -> }, onClearQueue = { taps.incrementAndGet() },
+                onJumpTo = { jumped = it }, onRemoveFromQueue = { removed = it; sessionQueue = queue.filterIndexed { index, _ -> index != it } },
+                onMoveInQueue = { from, to -> moved = from to to; sessionQueue = queue.toMutableList().apply { add(to, removeAt(from)) } },
+                onQueueDragActiveChange = { dragChanges += it }, onClearQueue = { taps.incrementAndGet() },
                 onOpenMenu = { taps.incrementAndGet() }, onOpenAlbum = {}, onOpenArtist = { _, _ -> }, onOpenPlaybackSource = {}, onListenTogether = {},
                 lyrics = if (missing) emptyList() else lines, lyricsSource = null, lyricsProviderStates = emptyMap(), onSelectLyricsProvider = {},
                 lyricsUnavailable = missing, lyricsMissing = missing, lyricsOffsetOpen = false, onDismissLyricsOffset = {},
@@ -152,7 +173,7 @@ class CanaryDaylightPlayerNativeTest {
             compose.waitForIdle()
             val half = compose.onNodeWithTag("daylight-player-artwork", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
             screenshot("daylight-dock-midpoint")
-            assertTrue("Cover narrows continuously", half.width < full.width && half.width > 40 * context.resources.displayMetrics.density)
+            assertTrue("Cover narrows continuously: full=$full, half=$half, travel=${dock.sheetTravel}", half.width < full.width && half.width > 40 * context.resources.displayMetrics.density)
             compose.runOnIdle { held = dock.sheetTravel }
             compose.waitForIdle()
             val landed = compose.onNodeWithTag("daylight-player-artwork", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
@@ -250,8 +271,8 @@ class CanaryDaylightPlayerNativeTest {
                 screenshot("daylight-lyrics")
                 val lyricTitle = compose.onNodeWithText("An ordinary track").fetchSemanticsNode().boundsInRoot
                 val returnLane = compose.onNodeWithTag("daylight-player-panel-return").fetchSemanticsNode().boundsInRoot
-                val closeLane = compose.onNodeWithTag("daylight-player-close").fetchSemanticsNode().boundsInRoot
-                assertTrue("Panel-return gestures sit above the song title, separate from player dismissal", closeLane.bottom <= returnLane.top && returnLane.bottom <= lyricTitle.top)
+                compose.onNodeWithTag("daylight-player-close").assertIsNotDisplayed()
+                assertTrue("The panel-return handle sits above the song title without a separate dismissal row", returnLane.bottom <= lyricTitle.top)
                 compose.onNodeWithTag("daylight-player-artwork-action", useUnmergedTree = true).performClick()
                 compose.waitForIdle()
                 compose.onNodeWithTag("daylight-player-lyric-list").assertDoesNotExist()
@@ -273,9 +294,11 @@ class CanaryDaylightPlayerNativeTest {
                 compose.onNodeWithContentDescription("Repeat one").assertIsDisplayed()
                 compose.onNodeWithText("Repeat one").assertDoesNotExist()
                 compose.onAllNodesWithText("Second track").assertCountEquals(2)
+                compose.onAllNodesWithText("An ordinary track").assertCountEquals(1)
                 compose.onAllNodesWithText("Second track")[0].performClick()
                 assertEquals(1, jumped)
-                compose.onAllNodesWithContentDescription("Remove from queue")[1].performClick()
+                val removeAction = compose.onNodeWithTag("daylight-queue-row-6:second:0").fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsActions.CustomActions].first { it.label == "Remove from queue" }
+                compose.runOnIdle { assertTrue(removeAction.action()) }
                 assertEquals(1, removed)
                 screenshot("daylight-queue")
                 compose.onNodeWithTag("daylight-player-artwork-action", useUnmergedTree = true).performClick()
@@ -302,6 +325,53 @@ class CanaryDaylightPlayerNativeTest {
                 compose.onNodeWithTag("daylight-player-close").performClick()
             }
         } finally { AppSettings.setAnimatedCanvas(originalCanvas); AppSettings.setLyricsOffsetMs(originalOffset); AppSettings.smartMixBlend.value = null; AppSettings.smartMixInProgress.value = false }
+    }
+
+    @Test fun upcomingQueueReordersByHandleAndRemovesBySwipeWithoutMovingTheCurrentTrack() {
+        requireDisposableEmulator()
+        AppSettings.setAnimatedCanvas(false)
+        val song = Song("current", "Current track", "Daylight QA", art("queue-flow", Color.rgb(165, 43, 73), Color.rgb(33, 25, 41)), queueEntryId = "current")
+        sessionIndex = 1
+        sessionQueue = listOf(song.copy(videoId = "past", title = "Played track", queueEntryId = "past"), song,
+            song.copy(videoId = "a", title = "Upcoming A", queueEntryId = "a"),
+            song.copy(videoId = "b", title = "Upcoming B", queueEntryId = "b"),
+            song.copy(videoId = "c", title = "Upcoming C", queueEntryId = "c"))
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { it.setContent { fixture(song) } }
+            compose.waitForIdle()
+            compose.onNodeWithTag("daylight-player-queue").performClick()
+            compose.waitForIdle()
+            compose.onAllNodesWithText("Current track").assertCountEquals(1)
+            compose.onNodeWithText("Played track").assertDoesNotExist()
+            compose.onNodeWithContentDescription("Close player").assertDoesNotExist()
+            val handle = compose.onNodeWithTag("daylight-queue-drag-1:a:0", useUnmergedTree = true)
+            val first = handle.fetchSemanticsNode().boundsInRoot
+            val target = compose.onNodeWithTag("daylight-queue-drag-1:b:0", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+            handle.performTouchInput {
+                down(center)
+                moveBy(androidx.compose.ui.geometry.Offset(0f, target.center.y - first.center.y), delayMillis = 450)
+                advanceEventTime(200)
+                up()
+            }
+            compose.waitForIdle()
+            assertEquals("One absolute timeline move is committed on drop", 2 to 3, moved)
+            assertEquals(listOf(true, false), dragChanges)
+            assertEquals(listOf("past", "current", "b", "a", "c"), sessionQueue!!.map { it.queueEntryId })
+            assertEquals(1, sessionIndex)
+            assertFalse(playing)
+            val newA = compose.onNodeWithTag("daylight-queue-row-1:a:0").fetchSemanticsNode().boundsInRoot
+            val newB = compose.onNodeWithTag("daylight-queue-row-1:b:0").fetchSemanticsNode().boundsInRoot
+            assertTrue("The visual order follows the engine's acknowledged reorder", newB.top < newA.top)
+            screenshot("daylight-reordered-queue")
+            compose.onNodeWithTag("daylight-queue-row-1:a:0").performTouchInput { swipeLeft(startX = width * .9f, endX = width * .1f, durationMillis = 450) }
+            compose.waitForIdle()
+            assertEquals("Removal uses the live index after reordering", 3, removed)
+            assertEquals(listOf("past", "current", "b", "c"), sessionQueue!!.map { it.queueEntryId })
+            compose.onAllNodesWithText("Current track").assertCountEquals(1)
+            compose.onNodeWithTag("daylight-player-artwork-action", useUnmergedTree = true).performClick()
+            compose.waitForIdle()
+            compose.onNodeWithTag("daylight-player-queue-list").assertDoesNotExist()
+        }
     }
 
     @Test fun animatedCoverDecodesAndPausesWithoutReplacingThePlayer() {

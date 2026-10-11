@@ -158,7 +158,7 @@
       "last_modified": "2026-10-12",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "d8c7ddd9f1c4d7762a9a115f6b1412f1bd3708ed2d5855121f3e899b232c87a4"
+      "source_sha256": "9e933d44d6387c11779f8d3f80ff0e76309dc7e8ab84570c838302bdee89afa7"
     },
     {
       "path": "app/src/androidTest/java/com/music/bitchord/CanaryDetailDiscoveryNativeTest.kt",
@@ -3755,7 +3755,7 @@
       "last_modified": "2026-10-12",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "b0de1c5d29c1bceae27ebb395840bb3b3fed970f7fdfb21748fc2cca96850376"
+      "source_sha256": "9f71324d06b8acafdd9c81f1ca81658dc5088753496c57e0a4939b88459e2df5"
     },
     {
       "path": "docs/DESIGN_LANGUAGE.md",
@@ -3821,7 +3821,7 @@
       "last_modified": "2026-10-12",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "b1114664b5acc951a546e520a9d27af04d07c2da1edd982e42dcd585d47b1544"
+      "source_sha256": "fb1f77d8f894e4bdcf1552d0b6c60bdf549bfe9f0315e5668c2357c2822733b9"
     },
     {
       "path": "docs/releases/0.2.2-dev.7.md",
@@ -4844,7 +4844,7 @@
       "last_modified": "2026-10-12",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "4b02214fd52bf79241ac9b3b2e9d79a1d53e2476",
-      "source_sha256": "a3b0501abefe046c096f834200b96a4c746da8d9d5195fd8055e72358d348f15"
+      "source_sha256": "7abe4315365c1a53a14a7d9e78dcf741d759bbc53d3af0232bdfef00e6c59b59"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/AppUi.kt",
@@ -5130,7 +5130,7 @@
       "last_modified": "2026-10-12",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "155c14a2d6337c8d1d7bfda9f904214972b66a8dcee00814ab19b1a55338789d"
+      "source_sha256": "21787588f7066f939dd383b5f978ca40c8b9b2b32eba35d34247d93e42886222"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/PlayerHost.kt",
@@ -5383,7 +5383,18 @@
       "last_modified": "2026-10-12",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "c21387be41b5f664d8711a8887eee1400fa2b237b69c7cc2c9a104cf5d27763a"
+      "source_sha256": "22fded9f4daba4f979363cebad6bb7ce0d817a37804c8771683c1c94ed9e6f25"
+    },
+    {
+      "path": "sharedUi/src/jvmSharedMain/kotlin/com/sh1vvy/daylight/player/DaylightQueue.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-12",
+      "last_modified": "2026-10-12",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "63091a568e6bdc83211e277a53226044e87886e790c00b7b15f7b49a74e6ddd5"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/sh1vvy/daylight/player/DaylightTimeline.kt",
@@ -5405,7 +5416,7 @@
       "last_modified": "2026-10-12",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "129b8c8fb442b897ce9f740b42d1f7e35e949e50dbe191899eeb483b642349f7"
+      "source_sha256": "b0c79bf34aa11ecefb2ccd30066f5f03b3d2d90822fec7fdf7754d3522ede50c"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/sh1vvy/daylight/player/PlayerMotion.kt",
@@ -5417,6 +5428,17 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
       "source_sha256": "8264bc2729c09e6c4e7811b638b69ff62581895b4c77e4b5bcaad3a8b58983a8"
+    },
+    {
+      "path": "sharedUi/src/jvmSharedMain/kotlin/com/sh1vvy/daylight/player/PlayerQueueModel.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-12",
+      "last_modified": "2026-10-12",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "0483fe4e14c82644994d9da20be6bd12bf331518a53212fcaeda413e900711f1"
     },
     {
       "path": "sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/components/ListKeysTest.kt",
@@ -5582,6 +5604,17 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
       "source_sha256": "e8a5fe23915a0e2e3ec24c89c07d61fdbd56389baf4fbbeb5de6edfc3f8ee5f7"
+    },
+    {
+      "path": "sharedUi/src/jvmTest/kotlin/com/sh1vvy/daylight/player/PlayerQueueModelTest.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-12",
+      "last_modified": "2026-10-12",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "6d9599cc498c364b7f342e2f25bc693d68d35b9be2faa9bc019362b0b68d7fe3"
     },
     {
       "path": "tools/daylight_attribution.py",

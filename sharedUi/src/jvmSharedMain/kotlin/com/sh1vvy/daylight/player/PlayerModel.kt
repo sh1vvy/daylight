@@ -14,7 +14,10 @@ import androidx.compose.runtime.Immutable
 enum class PlayerExperience { CURRENT, DAYLIGHT }
 
 @Immutable
-data class PlayerTrack(val id: String, val title: String, val artist: String, val artwork: String?, val key: String = id)
+data class PlayerTrack(val id: String, val title: String, val artist: String, val artwork: String?, val key: String = id,
+    val lane: PlayerQueueLane = PlayerQueueLane.COLLECTION)
+
+enum class PlayerQueueLane { ADDED, COLLECTION, RADIO }
 
 @Immutable
 data class PlayerSession(
@@ -61,6 +64,8 @@ data class PlayerActions(
     val remove: (Int) -> Unit,
     val clear: () -> Unit,
     val blocked: () -> Unit,
+    val move: (Int, Int) -> Unit,
+    val queueDragActive: (Boolean) -> Unit,
 )
 
 @Immutable
@@ -73,4 +78,6 @@ data class PlayerLabels(
     val repeatOne: String, val repeatAll: String, val repeatOff: String,
     val autoplayOn: String, val autoplayOff: String,
     val returnToPlayer: String,
+    val continuePlaying: String, val source: String, val queueEmpty: String,
+    val reorder: String, val moveEarlier: String, val moveLater: String,
 )

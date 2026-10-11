@@ -250,6 +250,11 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="library_collection_options">Collection options</string>
     <string name="daylight_player_close">Close player</string>
     <string name="daylight_player_return">Return to full player</string>
+    <string name="daylight_player_continue">Continue Playing</string>
+    <string name="daylight_player_from">From %1$s</string>
+    <string name="daylight_player_queue_empty">Nothing up next</string>
+    <string name="daylight_player_move_earlier">Move earlier</string>
+    <string name="daylight_player_move_later">Move later</string>
     <string name="daylight_player_lyrics">Lyrics</string>
     <string name="daylight_player_shuffle">Shuffle</string>
     <string name="daylight_player_repeat">Repeat</string>

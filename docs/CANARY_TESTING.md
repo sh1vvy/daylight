@@ -29,10 +29,13 @@ Original authors' notices and licenses remain applicable to their material.
 - Queue-only shuffle, repeat and autoplay pills have contrasting selected fills
   and accessible state descriptions, with no visible labels. Lyrics stay free of
   these controls. Both panels return to the full player by tapping the small
-  cover or swiping down on the handle above the song name; the top close lane
-  still minimizes the player. Removed the Queue heading and softened its bottom
+  cover or swiping down on the single top handle above the song name. Removed
+  the extra panel dismissal row and down arrows; the main player still minimizes
+  with a downward gesture. Removed the Queue heading and softened its bottom
   edge with a narrow, reduced-resolution blur/fade and inset labels.
-  The closing
+  The queue shows only upcoming songs, with three-line drag handles, viewport
+  edge scrolling and swipe-to-remove. Drag previews commit one timeline move on
+  release, without moving the current track or crossing queue tiers. The closing
   cover rounds continuously to the measured mini cover radius, including glass
   accessory scaling. Timeline endpoints stay rounded at the viewport edges;
   the main heart/menu glyphs align with the elapsed/remaining timers.

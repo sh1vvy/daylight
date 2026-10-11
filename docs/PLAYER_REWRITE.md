@@ -55,8 +55,9 @@ replacement window or audio engine.
   actual scaled mini cover radius before the final surface handoff.
 - Swipe up on the artwork player to reveal the queue with an upward spring.
   Swipe down on the shared handle above the song title, press Back, or tap the
-  selected panel button to return. This gesture area is separate from the top
-  lane, which still minimizes the entire player. Queue
+  selected panel button to return. Queue and Lyrics have one compact top handle;
+  the redundant dismissal row and all down-arrow icons are removed. A downward
+  pull on the main artwork view still minimizes the entire player. Queue
   scrolling does not turn into a track-change or sheet-dismiss gesture. Both
   panels shrink the cover and lift the track into a compact header, without
   opaque floating cards. The playback deck stays
@@ -67,6 +68,13 @@ replacement window or audio engine.
   keep the final rows reachable. A 40dp bottom strip softly blurs and fades the
   queue into the deck, sampling at a third resolution; reduced blur and older
   platforms retain the fade without the blur effect.
+  The compact header shows the current track once. The list projects only
+  upcoming timeline entries, preserving later occurrences of the same song.
+  Three-line handles support local drag previews, edge scrolling and a spring
+  drop. Each completed drag commits one absolute-index move to the existing
+  audio owner. Manual, collection and radio boundaries remain intact. Swipe
+  left to remove; accessible remove and move actions provide alternatives.
+  Interrupted gestures and playback changes cancel a stale preview.
 - The new timeline moves under a fixed center marker, with a thick upcoming
   segment and thin translucent elapsed segment. Horizontal dragging moves
   audio time opposite to the dragged track; accessibility supports direct
@@ -101,7 +109,7 @@ handoff and while the lyric/queue panel or artwork viewer is open.
 This is a presentation rewrite, not a replacement audio engine. The adapter and
 its inherited dependencies remain subject to their existing licenses. A later
 engine/provider rewrite is separate work. Translation, romanization, lyric-card
-sharing, queue drag reordering and the Jam context header are not yet presented
+sharing and the Jam context header are not yet presented
 in the new mode; Current retains those controls. The new mode still obeys Jam
 queue and seeking permissions and uses the same playback session.
 

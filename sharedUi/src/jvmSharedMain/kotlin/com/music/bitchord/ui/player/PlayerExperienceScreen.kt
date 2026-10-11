@@ -201,7 +201,8 @@ fun PlayerExperienceScreen(
     val lyricPlayhead = rememberLyricPlayhead(position)
     val sourceCredit = if (lyrics.isNullOrEmpty()) null else if (lyricsSource != null)
         stringResource(Res.string.lyrics_by, lyricsSource.label) else stringResource(Res.string.lyrics_saved_with_download)
-    val tracks = remember(queue) { queue.map { PlayerTrack(it.videoId, it.title, it.artist, it.thumbnailUrl?.artworkAt(CARD_ART_PX), it.queueEntryId ?: it.videoId) } }
+    val tracks = remember(queue) { queue.map { PlayerTrack(it.videoId, it.title, it.artist, it.thumbnailUrl?.artworkAt(CARD_ART_PX), it.queueEntryId ?: it.videoId,
+        when (it.queueTier) { QueueTier.USER_QUEUE -> PlayerQueueLane.ADDED; QueueTier.CONTEXT -> PlayerQueueLane.COLLECTION; QueueTier.AUTOPLAY -> PlayerQueueLane.RADIO }) } }
     val current = remember(song) { PlayerTrack(song.videoId, song.title, song.artist, remoteArt) }
     val pastRestart by remember(position) { derivedStateOf { position.positionMs > com.music.bitchord.playback.BACK_RESTARTS_AFTER_MS } }
     val session = PlayerSession(isPlaying, isLoading || audioVersionSwitching, durationMs,
@@ -216,12 +217,17 @@ fun PlayerExperienceScreen(
         stringResource(Res.string.repeat_one), stringResource(Res.string.repeat_all), stringResource(Res.string.repeat_off),
         stringResource(Res.string.autoplay_on), stringResource(Res.string.autoplay_off),
         stringResource(Res.string.daylight_player_return),
+        stringResource(Res.string.daylight_player_continue),
+        (song.playbackSource ?: song.albumName)?.takeIf(String::isNotBlank)?.let { stringResource(Res.string.daylight_player_from, it) }.orEmpty(),
+        stringResource(Res.string.daylight_player_queue_empty), stringResource(Res.string.drag_to_reorder),
+        stringResource(Res.string.daylight_player_move_earlier), stringResource(Res.string.daylight_player_move_later),
     )
     fun guarded(action: () -> Unit) { if (controlsLocked) onBlockedControl() else action() }
     val actions = PlayerActions(onPlayPause, { guarded(onPrevious) }, { guarded(onNext) },
         { guarded { onSeekFraction(it) } }, { guarded { onSeek(it.coerceAtLeast(0)) } }, onToggleLike, onOpenMenu,
         onDismiss, { artworkOpen = true }, openOutput, { guarded(onToggleShuffle) }, { guarded(onCycleRepeat) }, { guarded(onToggleAutoplay) },
-        { guarded { onJumpTo(it) } }, { guarded { onRemoveFromQueue(it) } }, { guarded(onClearQueue) }, onBlockedControl)
+        { guarded { onJumpTo(it) } }, { guarded { onRemoveFromQueue(it) } }, { guarded(onClearQueue) }, onBlockedControl,
+        { from, to -> guarded { onMoveInQueue(from, to) } }, onQueueDragActiveChange)
     DaylightPlayer(current, session, clock, tracks, queueIndex, colors, labels, actions, reduced, panel, { panel = it }, onMenuAnchor,
         artwork = { mod -> DaylightArtwork(song, art, isPlaying, panel != PlayerPanel.ARTWORK || artworkOpen || docking,
             { motion?.expansion?.invoke() ?: 1f }, mod) },

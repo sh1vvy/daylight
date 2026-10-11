@@ -28,8 +28,6 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
@@ -71,15 +69,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
-import androidx.compose.ui.layout.ContentScale
-import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeInputScale
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
 import kotlin.math.abs
 import kotlinx.coroutines.isActive
 
@@ -190,13 +179,11 @@ fun DaylightPlayer(
                     onDrawBehind { drawRect(bottom); drawRect(top) }
                 })
         }
-        Row(Modifier.fillMaxWidth().graphicsLayer { alpha = expansion() }
-            .surfaceSwipe(panel != PlayerPanel.ARTWORK, motion, {}, actions.dismiss), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = actions.dismiss, modifier = Modifier.testTag("daylight-player-close")) {
-                Icon(Icons.Rounded.KeyboardArrowDown, labels.close, tint = if (panel == PlayerPanel.ARTWORK) Color.White else colors.ink)
-            }
-            Spacer(Modifier.weight(1f))
-        }
+        // Main-view dismissal remains gesture-first, with an invisible accessible target.
+        Box(Modifier.fillMaxWidth().graphicsLayer { alpha = expansion() * (1f - panelExpansion.value) }
+            .testTag("daylight-player-close")
+            .clickable(enabled = panel == PlayerPanel.ARTWORK, onClickLabel = labels.close, onClick = actions.dismiss)
+            .semantics { if (panel == PlayerPanel.ARTWORK) contentDescription = labels.close })
         PlayerTrackHeader(track, session, colors, labels, actions, onMenuAnchor,
             Modifier.graphicsLayer { alpha = ((expansion() - .2f) / .8f).coerceIn(0f, 1f) })
         PlayerPanelContent(panel, session, queue, queueIndex, colors, labels, actions, reduceMotion, queueBlurEnabled, lyricsContent,
@@ -220,7 +207,7 @@ fun DaylightPlayer(
                 }
             }
         }
-        // A separate panel gesture lane: the top close lane still minimizes the player.
+        // The compact panel handle returns to artwork; only the main view can minimize.
         Box(Modifier.fillMaxWidth().graphicsLayer { alpha = expansion() * panelExpansion.value }
             .testTag("daylight-player-panel-return")
             .panelReturnSwipe(panel != PlayerPanel.ARTWORK) { currentOnPanel(PlayerPanel.ARTWORK) }
@@ -247,7 +234,7 @@ fun DaylightPlayer(
         val headerWidth = (deckWidth + headerOverhang * 2 - (panelT * 56.dp.toPx()).roundToInt()).coerceAtLeast(1)
         val header = measurables[2].measure(Constraints(minWidth = headerWidth, maxWidth = headerWidth, maxHeight = height))
         val fullHeaderY = (deckY - header.height - 10.dp.roundToPx()).coerceAtLeast(statusTop + 48.dp.roundToPx())
-        val panelHeaderY = statusTop + 96.dp.roundToPx()
+        val panelHeaderY = statusTop + 48.dp.roundToPx()
         val headerY = androidx.compose.ui.util.lerp(fullHeaderY.toFloat(), panelHeaderY.toFloat(), panelT).roundToInt()
         val expandedArt = if (landscape) Rect(0f, 0f, laneX.toFloat(), height.toFloat()) else Rect(0f, 0f, width.toFloat(), (fullHeaderY + header.height + 85.dp.roundToPx()).toFloat())
         val panelArt = Rect((laneX + gutter).toFloat(), panelHeaderY.toFloat(), (laneX + gutter + 48.dp.roundToPx()).toFloat(), (panelHeaderY + 48.dp.roundToPx()).toFloat())
@@ -272,13 +259,13 @@ fun DaylightPlayer(
         val panelReturn = measurables[6].measure(Constraints.fixed(deckWidth, 48.dp.roundToPx()))
         layout(width, height) {
             art.place(artRect.left.roundToInt(), artRect.top.roundToInt())
-            close.place(laneX + gutter, statusTop)
+            if (panelT < 1f) close.place(laneX + gutter, statusTop)
             body.place(laneX + gutter, panelY)
             val destinationY = mini?.top ?: headerY.toFloat()
             header.place(laneX + gutter - headerOverhang + (panelT * 56.dp.toPx()).roundToInt(), androidx.compose.ui.util.lerp(destinationY, headerY.toFloat(), t).roundToInt())
             deck.place(laneX + gutter, androidx.compose.ui.util.lerp(destinationY, deckY.toFloat(), t).roundToInt())
             compact.place(compactX.roundToInt(), (mini?.top ?: height.toFloat()).roundToInt())
-            if (panelT > 0f) panelReturn.place(laneX + gutter, statusTop + 48.dp.roundToPx())
+            if (panelT > 0f) panelReturn.place(laneX + gutter, statusTop)
         }
     }
 }
@@ -366,7 +353,6 @@ private fun TransportButton(label: String, icon: ImageVector, enabled: Boolean, 
 }
 
 @Composable
-@OptIn(ExperimentalHazeApi::class)
 private fun PlayerPanelContent(panel: PlayerPanel, session: PlayerSession,
     queue: List<PlayerTrack>, queueIndex: Int, colors: PlayerColors, labels: PlayerLabels, actions: PlayerActions,
     reduceMotion: Boolean, queueBlurEnabled: Boolean, lyricsContent: @Composable (Modifier) -> Unit, modifier: Modifier) {
@@ -396,38 +382,8 @@ private fun PlayerPanelContent(panel: PlayerPanel, session: PlayerSession,
                         session.autoplay, !session.controlsLocked, colors, actions.autoplay, reduceMotion,
                         Modifier.weight(1f).testTag("daylight-player-autoplay"))
                 }
-                val list = androidx.compose.foundation.lazy.rememberLazyListState(initialFirstVisibleItemIndex = queueIndex.coerceIn(0, (queue.size - 1).coerceAtLeast(0)))
-                LaunchedEffect(queueIndex) { if (queueIndex >= 0 && !list.isScrollInProgress) list.animateScrollToItem(queueIndex.coerceAtMost((queue.size - 1).coerceAtLeast(0))) }
-                val queueHaze = remember { HazeState() }
-                Box(Modifier.weight(1f)) {
-                    LazyColumn(Modifier.fillMaxSize().testTag("daylight-player-queue-list")
-                        .then(if (queueBlurEnabled) Modifier.hazeSource(queueHaze) else Modifier), state = list,
-                        contentPadding = PaddingValues(bottom = 48.dp)) {
-                        itemsIndexed(queue, key = { index, item -> "${item.key}:$index" }) { index, item ->
-                            Row(Modifier.fillMaxWidth().background(if (index == queueIndex) colors.container else Color.Transparent, RoundedCornerShape(16.dp))
-                                .clickable(enabled = !session.controlsLocked) { actions.jump(index) }.padding(start = 8.dp, end = 4.dp, top = 9.dp, bottom = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-                                AsyncImage(item.artwork, null, Modifier.size(44.dp).graphicsLayer { shape = RoundedCornerShape(8.dp); clip = true }, contentScale = ContentScale.Crop)
-                                Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                                    Text(item.title, color = colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text(item.artist, color = colors.muted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
-                                IconButton({ actions.remove(index) }, enabled = !session.controlsLocked) { Icon(Icons.Rounded.Close, labels.remove, tint = colors.muted) }
-                            }
-                        }
-                        item { TextButton(actions.clear, enabled = !session.controlsLocked, modifier = Modifier.padding(start = 8.dp, top = 8.dp)) { Text(labels.clear, color = colors.accent) } }
-                    }
-                    // Only this narrow strip samples the scrolling queue. The deck stays sharp,
-                    // and the final row can scroll above it rather than becoming hidden behind it.
-                    Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(40.dp)
-                        .testTag("daylight-player-queue-bottom-fade")
-                        .then(if (queueBlurEnabled) Modifier.hazeEffect(queueHaze,
-                            HazeStyle(backgroundColor = colors.background, tints = emptyList(), blurRadius = 10.dp,
-                                noiseFactor = 0f, fallbackTint = HazeTint(colors.background))) {
-                            inputScale = HazeInputScale.Fixed(.33f)
-                            mask = Brush.verticalGradient(0f to Color.Transparent, 1f to Color.Black)
-                        } else Modifier)
-                        .background(Brush.verticalGradient(0f to Color.Transparent, .45f to colors.background.copy(alpha = .12f), 1f to colors.background)))
-                }
+                DaylightQueue(queue, queueIndex, session.controlsLocked, colors, labels, actions,
+                    reduceMotion, queueBlurEnabled, Modifier.weight(1f))
             }
         }
     }

@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- DAYLIGHT-ATTRIBUTION
+Daylight modifications by sh1vvy.
+Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+Daylight changes: 2026-10-08 through 2026-10-11.
+Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+Original authors' notices and licenses remain applicable to their material.
+-->
+
 <resources>
     <string name="analysis_complete">analysed</string>
     <string name="analysis_in_progress">analysing…</string>
@@ -229,4 +237,15 @@
     <string name="lossless_beta_unavailable">Lossless beta: source unavailable</string>
     <string name="home_play_my_mix">Play my mix</string>
     <string name="home_mix_empty">Add some music to your library to start a mix.</string>
+    <string name="library_recently_added">Recently Added</string>
+    <string name="library_collections_empty">Your saved albums and playlists appear here.</string>
+    <string name="library_collection_empty">No collections to show.</string>
+    <string name="library_search_collection">Search %1$s</string>
+    <string name="library_clear_search">Clear search</string>
+    <string name="library_grid">Grid</string>
+    <string name="library_list">List</string>
+    <string name="library_order_recent">Recently added</string>
+    <string name="library_order_title">Title: A–Z</string>
+    <string name="library_order_title_reverse">Title: Z–A</string>
+    <string name="library_collection_options">Collection options</string>
 </resources>

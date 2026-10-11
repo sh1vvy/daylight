@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -129,25 +137,19 @@ const val SPOTIFY_BROWSE_ID = "app:spotify"
 /** The Cached songs folder's page id — one of the `local:` device folders. */
 const val CACHE_FOLDER_BROWSE_ID = "local:cache"
 
-/** Replay stays reachable without reading or repeating its charts in Library. */
+/** A small header pill keeps Replay visible without repeating its statistics. */
 @Composable
 fun LibraryReplayEntry(onOpenReplay: (ReplayStoryPage) -> Unit) {
     Surface(
         onClick = { onOpenReplay(ReplayStoryPage.INTRO) },
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = PAGE_GUTTER, vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f),
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-        ) {
-            Icon(Icons.Rounded.AutoAwesome, contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-            Text(stringResource(R.string.your_replay), style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f))
-            Icon(BitChordIcons.ChevronRight, contentDescription = null, modifier = Modifier.size(20.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp),
+            modifier = Modifier.padding(horizontal = 13.dp, vertical = 11.dp)) {
+            Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(stringResource(R.string.replay), style = MaterialTheme.typography.labelLarge)
         }
     }
 }

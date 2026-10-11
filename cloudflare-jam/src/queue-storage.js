@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-10 through 2026-10-10.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 // SQLite Durable Object KV values are bounded. Keep whole tracks in small chunks,
 // and avoid rewriting the catalogue for heartbeat, play/pause and seek updates.
 const CHUNK_SIZE = 64;

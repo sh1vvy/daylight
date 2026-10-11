@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 import java.util.Properties
 import java.io.FileInputStream
 
@@ -56,8 +64,8 @@ require(discordApplicationId.isEmpty() || discordApplicationId.all(Char::isDigit
 }
 
 // Advance only the development channel until a stable release is requested.
-val developmentVersionName = "0.2.2-dev.9"
-val developmentVersionCode = 32
+val developmentVersionName = "0.2.2-canary.12"
+val developmentVersionCode = 33
 
 android {
     namespace = "com.music.bitchord"
@@ -114,6 +122,7 @@ android {
             versionName = developmentVersionName
             versionCode = developmentVersionCode
             resValue("string", "app_name", if (developmentVersionName.contains("canary")) "Daylight Canary" else "Daylight Dev")
+            resValue("string", "development_launcher_name", if (developmentVersionName.contains("canary")) "Daylight Canary" else "Daylight Dev")
         }
         create("prod") {
             dimension = "env"
@@ -226,6 +235,18 @@ kotlin {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
+
+// One canonical set of legal documents is packaged in every Android variant.
+val packageDaylightLegalNotices = tasks.register<Sync>("packageDaylightLegalNotices") {
+    val names = listOf("LICENSE", "COPYRIGHT.md", "DAYLIGHT-NOTICE.md", "DAYLIGHT-CONTRIBUTIONS.json")
+    from(rootProject.projectDir) { include(names) }
+    into(layout.buildDirectory.dir("generated/daylightLegalAssets/legal"))
+    doFirst {
+        names.forEach { name -> require(rootProject.file(name).isFile) { "Missing Daylight legal document: $name" } }
+    }
+}
+android.sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/daylightLegalAssets"))
+tasks.named("preBuild").configure { dependsOn(packageDaylightLegalNotices) }
 
 /*
  * NewPipeExtractor ships its own org.schabi.newpipe.extractor.utils.Utils, and

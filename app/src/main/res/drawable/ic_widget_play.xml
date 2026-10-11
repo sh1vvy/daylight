@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- DAYLIGHT-ATTRIBUTION
+Daylight modifications by sh1vvy.
+Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+Daylight changes: 2026-10-09 through 2026-10-09.
+Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+Original authors' notices and licenses remain applicable to their material.
+-->
+
 <!--
   Play. Rounded rather than sharp, to sit alongside the Icons.Rounded glyphs the
   mini player and the full player use.

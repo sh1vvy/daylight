@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { landing } from '../src/website.js';
@@ -25,7 +33,7 @@ test('homepage has a server-rendered code form and real Android installation gui
   assert.ok(hrefs(html).some(href => href.startsWith('https://github.com/sh1vvy/daylight')));
   assert.ok(hrefs(html).includes('https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk'));
   assert.ok(hrefs(html).includes('https://github.com/sh1vvy/daylight/releases/latest'));
-  assert.ok(hrefs(html).includes('https://github.com/sh1vvy/daylight/releases/latest/download/daylight-dev.apk'));
+  assert.ok(hrefs(html).includes('https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.6/daylight-dev.apk'));
   assert.match(html, /class="download-badge"/);
   assert.match(html, /Download Daylight/);
   assert.match(html, /Android · v0\.2\.1 · APK/);
@@ -46,7 +54,7 @@ test('active invite preserves the server and code through both Android links and
   assert.match(html, /id="install-help"/);
   assert.match(html, /Open in Daylight/);
   assert.ok(links.includes('https://github.com/sh1vvy/daylight/releases/latest/download/daylight.apk'));
-  assert.ok(links.includes('https://github.com/sh1vvy/daylight/releases/latest/download/daylight-dev.apk'));
+  assert.ok(links.includes('https://github.com/sh1vvy/daylight/releases/download/v0.2.2-dev.6/daylight-dev.apk'));
   assert.match(html, /data-copy-code(?:="ABC123")?/);
   assert.ok(html.includes(room.hostName));
 });
@@ -111,7 +119,7 @@ test('HTML uses same-origin assets without allowing inline scripts, remote reque
   }
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
   assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff');
-  assert.match(html, /\bhref="\/assets\/jam-v2\.css"/);
+  assert.match(html, /\bhref="\/assets\/jam-v4\.css"/);
   assert.match(html, /<script\b[^>]*\bsrc="\/assets\/jam-v1\.js"[^>]*>\s*<\/script>/);
   assert.match(html, /\bhref="\/assets\/favicon\.svg"/);
   assert.ok(!/<style\b|\bstyle=|\bon(?:click|load|error)=/i.test(html));

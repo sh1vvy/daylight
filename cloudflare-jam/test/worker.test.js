@@ -1,6 +1,15 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 import {test,before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {fileURLToPath} from 'node:url';
+import {readFile} from 'node:fs/promises';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 import {assetLinks} from '../src/asset-links.js';
 let mf, ip = 0;
@@ -158,9 +167,10 @@ test('full invitation keeps an app-opening action and redacts private identity',
 });
 test('static assets load with correct types without intercepting app verification or the protocol',async () => {
   const assets=[
-    ['/assets/jam-v2.css',/^text\/css/],
+    ['/assets/jam-v4.css',/^text\/css/],
     ['/assets/jam-v1.js',/^(?:text|application)\/javascript/],
     ['/assets/daylight-mark.svg',/^image\/svg\+xml/],
+    ['/assets/daylight-wordmark-v2.svg',/^image\/svg\+xml/],
     ['/assets/favicon.svg',/^image\/svg\+xml/],
     ['/assets/Inter-Regular-v4.1.woff2',/^font\/woff2/],
     ['/assets/Inter-SemiBold-v4.1.woff2',/^font\/woff2/],
@@ -180,6 +190,14 @@ test('static assets load with correct types without intercepting app verificatio
   assert.deepEqual(await links.json(),assetLinks);
   assert.equal((await (await request('/healthz')).json()).service,'daylight-jam');
   assert.equal((await request('/assets/does-not-exist.svg')).status,404);
+});
+
+test('legal notices are accessible as unchanged static documents', async () => {
+  for (const name of ['LICENSE','COPYRIGHT.md','DAYLIGHT-NOTICE.md','DAYLIGHT-CONTRIBUTIONS.json']) {
+    const response = await request('/legal/' + name);
+    assert.equal(response.status,200,name);
+    assert.equal(await response.text(),await readFile(new URL('../../'+name,import.meta.url),'utf8'),name);
+  }
 });
 
 test('a full liked collection passes the socket size bound and survives hibernation',async()=>{

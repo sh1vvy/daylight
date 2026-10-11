@@ -1,3 +1,12 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-08.
+ * Existing upstream license retained; no Daylight additional terms applied.
+ * See COPYRIGHT.md for contribution provenance.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 /*
  * Vendored from Kyant0/backdrop v2.0.0 (io.github.kyant0:backdrop)
  * https://github.com/Kyant0/backdrop — Copyright 2025 Kyant0, Apache License 2.0

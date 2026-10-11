@@ -1,3 +1,11 @@
+<!-- DAYLIGHT-ATTRIBUTION
+Daylight modifications by sh1vvy.
+Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+Daylight changes: 2026-10-08 through 2026-10-11.
+Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+Original authors' notices and licenses remain applicable to their material.
+-->
+
 # Contributing to Daylight
 
 Thank you for contributing to Daylight. Follow these guidelines to ensure an efficient development and review process.
@@ -69,5 +77,20 @@ All pull requests require review and approval by repository maintainers before m
 
 ## Dependencies and Licensing
 Daylight is licensed under the **GNU General Public License v3.0 (GPLv3)**.
+Identified Daylight additions carry the reasonable attribution and origin terms
+in [DAYLIGHT-NOTICE.md](DAYLIGHT-NOTICE.md), under GPLv3 sections 7(b) and 7(c).
+Original BitChord and third-party licenses and notices must remain intact.
+
+Keep existing authorship notices when editing source. Add your own dated notice
+for your copyrightable contributions; contributing does not assign your rights
+to sh1vvy. Update the contribution inventory with
+`python3 tools/daylight_attribution.py --update --author YOUR_NAME`, using the
+actual author's name for new files, and run
+`python3 tools/daylight_attribution.py --check` before submission. Existing
+authors are not overwritten by this command. For an existing file, also add
+your own notice alongside its retained author notices where appropriate.
+
+These checks protect provenance and package the legal documents; they do not
+add a permission requirement for downstream reuse or claim ownership of ideas.
 
 All contributed code and dependencies must be strictly compatible with GPLv3. Avoid introducing external dependencies unless strictly necessary; any new dependency must be evaluated for necessity, binary size, and license compliance.

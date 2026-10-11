@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.player
 
 import android.content.Context
@@ -7,7 +15,7 @@ import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.widget.Toast
+import com.music.bitchord.ui.feedback.AppFeedback
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -186,7 +194,7 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
     }
 
     override fun showMessage(message: String) {
-        main.post { Toast.makeText(app, message, Toast.LENGTH_SHORT).show() }
+        main.post { AppFeedback.makeText(app, message, AppFeedback.LENGTH_SHORT).show() }
     }
 
     override val castState: StateFlow<CastUi> by lazy {

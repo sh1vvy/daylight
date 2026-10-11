@@ -1,3 +1,11 @@
+<!-- DAYLIGHT-ATTRIBUTION
+Daylight modifications by sh1vvy.
+Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+Daylight changes: 2026-10-08 through 2026-10-11.
+Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+Original authors' notices and licenses remain applicable to their material.
+-->
+
 # Upstream and attribution
 
 Daylight is an independently maintained Android app by [sh1vvy](https://github.com/sh1vvy), based on [BitChord](https://github.com/kushagrasinghx/BitChord), created by Kushagra Singh and its contributors.
@@ -5,6 +13,12 @@ Daylight is an independently maintained Android app by [sh1vvy](https://github.c
 Upstream baseline: `2c599a6cd7a195227a11dab5769f88da8fd08194`.
 
 Daylight-specific changes began on 8 October 2026. The GitHub repository became standalone on the same date. The original Git history, copyright notices, dependency credits, and [GPLv3 license](LICENSE) are retained. Original contributor names are preserved in [UPSTREAM_MAINTAINERS.md](docs/UPSTREAM_MAINTAINERS.md).
+
+Daylight's copyrightable additions are attributed to sh1vvy in
+[COPYRIGHT.md](COPYRIGHT.md), the dated [contribution inventory](DAYLIGHT-CONTRIBUTIONS.json)
+and source-file notices. The reasonable [attribution/origin terms](DAYLIGHT-NOTICE.md)
+apply only to identified Daylight material distributed with them from
+11 October 2026; original and separately licensed material retain their terms.
 
 Daylight’s public app ID is `com.sh1vvy.daylight`; development uses `.dev`. Internal `com.music.bitchord` source namespaces, JNI entry points, and playback URI names remain compatible with the inherited engine. They are implementation identifiers, not the product’s install identity. The current checkout contains the Android app and Cloudflare Jam service. Removed desktop and legacy server sources remain available in the original Git history.
 

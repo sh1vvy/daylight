@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-10 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord
 
 import android.graphics.Bitmap
@@ -15,6 +23,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.performClick
 import com.music.bitchord.auth.AuthStore
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.spotify.LocalPlaylistStore
@@ -82,6 +94,7 @@ class CanaryLibraryMotionNativeTest {
                     it.contentDescription?.toString() == context.getString(R.string.library) &&
                         bounds(it).centerY() > context.resources.displayMetrics.heightPixels / 2
                 }
+                compose.onNodeWithTag("library-overview").performScrollToNode(hasText("Canary 7"))
                 waitNode("newest playlist") { text(it, "Canary 7") }
                 screenshot("library-$theme-glass-$glass-reduced-$reduced")
                 val originalTop = cardBounds("Canary 7").top
@@ -128,25 +141,25 @@ class CanaryLibraryMotionNativeTest {
                 val returnedTop = cardBounds("Canary 7").top
                 assertTrue("Returning keeps the Library viewport ($originalTop → $returnedTop)", kotlin.math.abs(originalTop - returnedTop) < 16)
 
-                clickText(context.getString(R.string.show_all))
-                waitNode("playlist grid") { text(it, "Canary 3") }
+                compose.onNodeWithTag("library-overview").performScrollToNode(hasTestTag("library-category:library:playlists"))
+                compose.onNodeWithTag("library-category:library:playlists").performClick()
+                waitNode("playlist grid") { text(it, "Canary 7") }
                 screenshot("grid-$theme-glass-$glass-reduced-$reduced")
                 clickText("Canary 7")
                 waitNode("grid playlist loaded") { text(it, "Canary track 1") }
                 assertEquals(1, model!!.detailStack.value.size)
                 back()
-                waitNode("grid restored") { text(it, "Canary 3") }
+                waitNode("grid restored") { text(it, "Canary 7") }
                 assertTrue(model!!.detailStack.value.isEmpty())
                 // A different card must get its own cover/visit and a fresh detail viewport.
                 clickText("Canary 6")
                 waitNode("second playlist loaded") { text(it, "Canary track 1") }
                 assertEquals(playlists[5].browseId, model!!.detailStack.value.single().browseId)
                 back()
-                waitNode("grid remains active") { text(it, "Canary 3") }
+                waitNode("grid remains active") { text(it, "Canary 7") }
                 back()
                 waitNode("Library feed restored") { text(it, context.getString(R.string.library)) }
-                // The preview has two rows and a short extra column.
-                // Show all remains the destination for the full collection.
+                compose.onNodeWithTag("library-overview").performScrollToNode(hasText("Canary 4"))
                 val sidewaysLeft = cardBounds("Canary 4").left
                 clickText("Canary 4")
                 waitNode("second shelf playlist loaded") { text(it, "Canary track 1") }

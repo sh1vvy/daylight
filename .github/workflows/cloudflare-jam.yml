@@ -1,3 +1,11 @@
+# DAYLIGHT-ATTRIBUTION
+# Daylight modifications by sh1vvy.
+# Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+# Daylight changes: 2026-10-08 through 2026-10-11.
+# Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+# Original authors' notices and licenses remain applicable to their material.
+# END DAYLIGHT-ATTRIBUTION
+
 name: Cloudflare Jam checks
 on:
   push:
@@ -15,6 +23,11 @@ jobs:
         working-directory: cloudflare-jam
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify attribution and original license
+        working-directory: .
+        run: python3 tools/daylight_attribution.py --check
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

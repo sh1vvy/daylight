@@ -1,3 +1,11 @@
+<!-- DAYLIGHT-ATTRIBUTION
+Daylight modifications by sh1vvy.
+Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+Daylight changes: 2026-10-10 through 2026-10-10.
+Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+Original authors' notices and licenses remain applicable to their material.
+-->
+
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="166dp" android:height="49.252dp" android:viewportWidth="1210" android:viewportHeight="359">
     <!-- Vector outlines of Shivvy's supplied wordmark; no font file is embedded. -->
     <group android:translateY="359" android:scaleX="0.1" android:scaleY="-0.1">

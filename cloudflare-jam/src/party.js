@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-10.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 // Daylight's Cloudflare adaptation of BitChord's backend/party and protocol code.
 // Original authors and GPLv3 terms are retained in the repository's LICENSE and UPSTREAM.md.
 export const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTUVWXYZ';

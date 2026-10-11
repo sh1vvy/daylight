@@ -1,3 +1,12 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-08.
+ * Existing upstream license retained; no Daylight additional terms applied.
+ * See COPYRIGHT.md for contribution provenance.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 /*
  * The selection pill's motion — the travel spring, the held lift, the
  * acceleration squash and the glass-to-flat hand-off, with their constants —

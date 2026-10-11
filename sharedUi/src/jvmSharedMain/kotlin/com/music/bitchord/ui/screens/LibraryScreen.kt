@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.screens
 
 import com.music.bitchord.sharedui.resources.*
@@ -8,21 +16,34 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.material.icons.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
+import kotlinx.coroutines.launch
+import com.music.bitchord.data.settings.LibraryViewType
+import com.music.bitchord.data.model.ROW_ART_PX
+import com.music.bitchord.data.model.artworkAt
+import com.music.bitchord.ui.components.LocalLibraryCoverMotion
+import com.music.bitchord.ui.components.libraryCoverMotion
+import com.music.bitchord.ui.components.longPressMenuClickable
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
-import androidx.compose.ui.platform.LocalDensity
-import com.music.bitchord.ui.player.PlayerSettings
 import androidx.compose.foundation.Image
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.clickable
@@ -59,6 +80,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,22 +97,17 @@ import com.music.bitchord.data.model.playlistCreationOrderKey
 import com.music.bitchord.data.settings.LibrarySort
 import com.music.bitchord.ui.AppUi
 import com.music.bitchord.ui.icons.BitChordIcons
-import com.music.bitchord.ui.components.LIBRARY_GRID_SPACING
 import com.music.bitchord.ui.components.MessageState
 import com.music.bitchord.ui.components.PAGE_GUTTER
+import com.music.bitchord.ui.components.LIBRARY_GRID_SPACING
 import com.music.bitchord.ui.components.PullToRefresh
 import com.music.bitchord.ui.components.SHELF_CARD_WIDTH
 import com.music.bitchord.ui.components.libraryGrid
 import com.music.bitchord.ui.components.shelfItemKeys
+import com.music.bitchord.ui.components.stableItemKeys
 import com.music.bitchord.ui.components.rememberCoverSourceValue
 
-/**
- * The signed-in library: the saved collections, as shelves of cards.
- *
- * Liked songs opens the liked collection from the shortcut list; saved playlists,
- * albums and artists stay in their own shelves. First-page liked data also
- * seeds the app's heart state without holding up the tab for the entire list.
- */
+/** The collection hub shares one lazy viewport with its Recently Added artwork. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
@@ -101,9 +118,7 @@ fun LibraryScreen(
     onShelfItemLongPress: (ShelfItem) -> Unit,
     onNewPlaylist: () -> Unit,
     onImportSpotifyPlaylist: (() -> Unit)? = null,
-    /** Opens the full vertical collection grid, including the smaller shelf previews. */
     onShowAll: (HomeShelf) -> Unit,
-    /** A compact entry to Replay; its statistics load only after opening it. */
     replay: @Composable () -> Unit,
     onSignIn: () -> Unit,
     onRetry: () -> Unit,
@@ -112,125 +127,94 @@ fun LibraryScreen(
     pullState: PullToRefreshState,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues,
-    /**
-     * The device's folders — downloads, local files, the remote libraries this
-     * build supports — drawn as compact shortcuts under Replay. Built by the
-     * app, since which of those exist is the platform's business.
-     */
     links: List<LibraryLink>,
-    /**
-     * The "On device" shelf under that list: the releases kept on this device
-     * whole. Left off the page entirely while there are none.
-     */
     deviceItems: List<ShelfItem>,
-    /** Whether the page draws its own Library heading. */
     showTitle: Boolean = true,
-    /** Successful creation/addition history supplied by Android; absent on other platforms. */
     createdPlaylistIds: List<String> = emptyList(),
-    /** Local creations share Playlists; downloaded collections keep On device. */
     personalPlaylists: List<ShelfItem> = emptyList(),
 ) {
-    val livePinnedPlaylists by AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
-    val pinnedPlaylists = rememberCoverSourceValue("library-pins", livePinnedPlaylists)
-    val visibleState = rememberCoverSourceValue("library-feed", state)
-    val visiblePersonalPlaylists = rememberCoverSourceValue("library-personal", personalPlaylists)
-    val visibleDeviceItems = rememberCoverSourceValue("library-device", deviceItems)
-    val visibleCreatedIds = rememberCoverSourceValue("library-created", createdPlaylistIds)
-    // Keep collection instances while only chrome/playback state changes.
-    // A fresh flattened list inside a lazy item defeats strong skipping and
-    // makes the preview reorder/sort all playlists again unnecessarily.
-    val remotePlaylists = remember(visibleState) {
-        (visibleState as? UiState.Success)?.data?.shelves.orEmpty()
-            .filter { it.isPlaylistLibraryShelf() }.flatMap { it.items }
+    val livePins by AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
+    val pins = rememberCoverSourceValue("library-pins", livePins)
+    val visible = rememberCoverSourceValue("library-feed", state)
+    val personal = rememberCoverSourceValue("library-personal", personalPlaylists)
+    val activity = rememberCoverSourceValue("library-created", createdPlaylistIds)
+    val device = rememberCoverSourceValue("library-device", deviceItems)
+    val collections = remember(visible, personal, pins, activity) {
+        libraryCollections((visible as? UiState.Success)?.data, personal, pins, activity)
     }
-    val playlists = remember(remotePlaylists, visiblePersonalPlaylists, pinnedPlaylists, visibleCreatedIds) {
-        HomeShelf(PLAYLISTS, visiblePersonalPlaylists + remotePlaylists).withoutLikedMusic()
-            .orderedForLibrary(pinnedPlaylists, LibrarySort.DEFAULT, visibleCreatedIds)
+    val recentRows = remember(collections.recent) { collections.recent.chunked(2) }
+    val recentKeys = remember(recentRows) { stableItemKeys(recentRows) { pair -> pair.joinToString("|") { it.browseId ?: it.title } } }
+    val categories = listOf(
+        LibraryLink(ShelfItem(stringResource(Res.string.playlists), "", null, null, "library:playlists"), Icons.Rounded.QueueMusic),
+        LibraryLink(ShelfItem(stringResource(Res.string.artists), "", null, null, "library:artists"), Icons.Rounded.Mic),
+        LibraryLink(ShelfItem(stringResource(Res.string.albums), "", null, null, "library:albums"), Icons.Rounded.LibraryMusic),
+    ) + links.filter { it.item.browseId == YtMusicRepository.LIKED_MUSIC || it.item.browseId == "local:downloads" }
+    val utilities = links.filterNot { it.item.browseId == YtMusicRepository.LIKED_MUSIC || it.item.browseId == "local:downloads" }
+    fun openCategory(item: ShelfItem) {
+        when (item.browseId) {
+            "library:playlists" -> onShowAll(collections.playlists)
+            "library:artists" -> onShowAll(collections.artists)
+            "library:albums" -> onShowAll(collections.albums)
+            else -> onShelfItemClick(item)
+        }
     }
-    val otherShelves = remember(visibleState) {
-        (visibleState as? UiState.Success)?.data?.shelves.orEmpty()
-            .filterNot { it.isPlaylistLibraryShelf() }
-    }
-    val onDevice = stringResource(Res.string.on_device)
-    PullToRefresh(
-        refreshing = refreshing,
-        onRefresh = onRefresh,
-        state = pullState,
-        modifier = modifier,
-    ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = contentPadding,
-        ) {
-            if (showTitle) {
-                item {
-                    Text(
-                        text = stringResource(Res.string.library),
-                        style = MaterialTheme.typography.displayLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp),
-                    )
+    PullToRefresh(refreshing, onRefresh, pullState, modifier) {
+        LazyColumn(state = listState, modifier = Modifier.fillMaxSize().testTag("library-overview"),
+            contentPadding = contentPadding, verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            if (showTitle) item(key = "library-heading", contentType = "heading") {
+                Row(Modifier.fillMaxWidth().padding(horizontal = PAGE_GUTTER + 4.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(Res.string.library), style = MaterialTheme.typography.displayLarge,
+                        color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                    replay()
                 }
             }
-            item(key = "replay") { replay() }
-            if (links.isNotEmpty()) {
-                item(key = "links") { LibraryLinkList(links = links, onClick = onShelfItemClick) }
+            item(key = "library-categories", contentType = "categories") {
+                LibraryCategoryRows(categories, ::openCategory)
             }
-            item(key = "shelf:$PLAYLISTS") {
-                PlaylistShelf(
-                    shelf = playlists,
-                    savedLocally = !signedIn,
-                    loading = signedIn && visibleState is UiState.Loading && playlists.items.isEmpty(),
-                    onItemClick = onShelfItemClick,
-                    onItemLongPress = onShelfItemLongPress,
-                    onNewPlaylist = onNewPlaylist,
-                    onImportSpotifyPlaylist = onImportSpotifyPlaylist,
-                    onShowAll = { onShowAll(playlists) },
-                    pinnedPlaylists = pinnedPlaylists,
-                    newestCreatedPlaylistId = playlists.newestCreatedPlaylistId(visibleCreatedIds),
-                )
+            if (visible is UiState.Error) item(key = "library-error", contentType = "message") {
+                MessageState(visible.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
             }
-            if (visibleDeviceItems.isNotEmpty()) {
-                item(key = "shelf:$onDevice") {
-                    val onDeviceShelf = remember(onDevice, visibleDeviceItems, visibleCreatedIds, pinnedPlaylists) {
-                        HomeShelf(title = onDevice, items = visibleDeviceItems)
-                            .orderedForLibrary(pinnedPlaylists, LibrarySort.DEFAULT, visibleCreatedIds)
-                    }
-                    LibraryGridShelf(
-                        shelf = onDeviceShelf,
-                        onItemClick = onShelfItemClick,
-                        onItemLongPress = onShelfItemLongPress,
-                        onShowAll = { onShowAll(onDeviceShelf) },
-                    newestCreatedPlaylistId = onDeviceShelf.newestCreatedPlaylistId(visibleCreatedIds),
-                    )
+            if (recentRows.isNotEmpty() || signedIn && visible is UiState.Loading) {
+                item(key = "recent-heading", contentType = "heading") {
+                    Text(stringResource(Res.string.library_recently_added), style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(start = PAGE_GUTTER + 4.dp, end = PAGE_GUTTER + 4.dp, top = 26.dp, bottom = 18.dp))
                 }
-            }
-            if (!signedIn) {
-                item {
-                    MessageState(
-                        message = stringResource(Res.string.library_sign_in_description),
-                        actionLabel = stringResource(Res.string.sign_in),
-                        onAction = onSignIn,
-                    )
-                }
-                return@LazyColumn
-            }
-            when (visibleState) {
-                is UiState.Loading -> Unit // The playlist grid reserves its loading space above.
-                is UiState.Error -> item {
-                    MessageState(visibleState.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
-                }
-                is UiState.Success -> otherShelves.forEach { shelf ->
-                    item(key = "shelf:${shelf.title}") {
-                        LibraryGridShelf(
-                            shelf = shelf,
-                            onItemClick = onShelfItemClick,
-                            onItemLongPress = onShelfItemLongPress,
-                            onShowAll = { onShowAll(shelf) },
-                        )
+                if (recentRows.isEmpty()) items(2, key = { "library-placeholder-$it" }, contentType = { "placeholder" }) {
+                    Row(Modifier.padding(horizontal = PAGE_GUTTER + 4.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        repeat(2) { Box(Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)) }
                     }
                 }
+                itemsIndexed(recentRows, key = { index, _ -> "recent:${recentKeys[index]}" },
+                    contentType = { _, _ -> "cover-pair" }) { _, pair ->
+                    Row(Modifier.fillMaxWidth().padding(horizontal = PAGE_GUTTER + 4.dp).padding(bottom = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        pair.forEach { item ->
+                            ShelfCard(item = item, libraryCardKey = "recent:${item.browseId}",
+                                onClick = { onShelfItemClick(item) }, onLongPress = { onShelfItemLongPress(item) },
+                                isPinned = item.browseId in pins, modifier = Modifier.weight(1f))
+                        }
+                        if (pair.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+            } else item(key = "library-empty", contentType = "message") {
+                Text(stringResource(Res.string.library_collections_empty), style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = PAGE_GUTTER + 4.dp, vertical = 24.dp))
+            }
+            if (!signedIn) item(key = "library-sign-in", contentType = "message") {
+                MessageState(stringResource(Res.string.library_sign_in_description),
+                    actionLabel = stringResource(Res.string.sign_in), onAction = onSignIn)
+            }
+            if (device.isNotEmpty()) item(key = "library-device", contentType = "device") {
+                LibraryGridShelf(HomeShelf(stringResource(Res.string.on_device), device), onShelfItemClick,
+                    onShelfItemLongPress, onShowAll = { onShowAll(HomeShelf("On device", device)) })
+            }
+            item(key = "library-tools", contentType = "categories") {
+                LibraryCategoryRows(utilities, onShelfItemClick)
             }
         }
     }
@@ -240,140 +224,24 @@ fun LibraryScreen(
 /** [logo], when set, is drawn in place of [icon] — a service's own mark. */
 data class LibraryLink(val item: ShelfItem, val icon: ImageVector, val logo: DrawableResource? = null)
 
-/** Compact music shortcuts leave the collection covers close to the top. */
+/** Soft inset separators and a single hierarchy work with all three themes. */
 @Composable
-private fun LibraryLinkList(links: List<LibraryLink>, onClick: (ShelfItem) -> Unit) {
-    Column(Modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        links.chunked(2).forEach { pair ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                pair.forEach { link ->
-                    Surface(onClick = { onClick(link.item) }, shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        modifier = Modifier.weight(1f).heightIn(min = 56.dp)) {
-                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            if (link.logo != null) {
-                                Icon(painterResource(link.logo), contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
-                            } else {
-                                Icon(link.icon, contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-                            }
-                            Text(link.item.title, style = MaterialTheme.typography.labelLarge,
-                                maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                        }
-                    }
+private fun LibraryCategoryRows(links: List<LibraryLink>, onClick: (ShelfItem) -> Unit) {
+    Column(Modifier.padding(horizontal = PAGE_GUTTER + 4.dp)) {
+        links.forEach { link ->
+            Column(Modifier.fillMaxWidth().testTag("library-category:${link.item.browseId}").clickable { onClick(link.item) }) {
+                Row(Modifier.fillMaxWidth().heightIn(min = 62.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                    if (link.logo != null) Icon(painterResource(link.logo), null,
+                        tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(27.dp))
+                    else Icon(link.icon, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(28.dp))
+                    Text(link.item.title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Normal),
+                        color = MaterialTheme.colorScheme.onSurface, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Icon(BitChordIcons.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                        modifier = Modifier.size(20.dp))
                 }
-                if (pair.size == 1) Spacer(Modifier.weight(1f))
-            }
-        }
-    }
-}
-
-/** Four visible columns and up to four rows; only playlists occupy cover slots. */
-@Composable
-private fun PlaylistShelf(
-    shelf: HomeShelf,
-    onItemClick: (ShelfItem) -> Unit,
-    onItemLongPress: (ShelfItem) -> Unit,
-    onNewPlaylist: () -> Unit,
-    onImportSpotifyPlaylist: (() -> Unit)? = null,
-    onShowAll: () -> Unit,
-    pinnedPlaylists: List<String> = emptyList(),
-    savedLocally: Boolean = false,
-    loading: Boolean = false,
-    newestCreatedPlaylistId: String? = null,
-) {
-    val reduceAnimation by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
-    val gridState = rememberLazyGridState()
-    val previewItems = remember(shelf.items) { shelf.items.take(6) }
-    val itemKeys = remember(previewItems) { shelfItemKeys(previewItems) }
-    var optionsOpen by remember { mutableStateOf(false) }
-    var observedNewest by remember { mutableStateOf(newestCreatedPlaylistId) }
-    LaunchedEffect(newestCreatedPlaylistId) {
-        if (observedNewest != newestCreatedPlaylistId) {
-            observedNewest = newestCreatedPlaylistId
-            if (newestCreatedPlaylistId != null) gridState.scrollToItem(0)
-        }
-    }
-    Column(Modifier.padding(bottom = 24.dp)) {
-        Row(Modifier.fillMaxWidth().padding(start = PAGE_GUTTER, end = PAGE_GUTTER - 8.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(Res.string.playlists), style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
-            if (shelf.items.isNotEmpty()) {
-                TextButton(onClick = onShowAll) { Text(stringResource(Res.string.show_all)) }
-            }
-            IconButton(onClick = onNewPlaylist) {
-                    Icon(BitChordIcons.Plus, stringResource(Res.string.new_playlist),
-                        tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(22.dp))
-            }
-            if (onImportSpotifyPlaylist != null) {
-                Box {
-                    IconButton(onClick = { optionsOpen = true }) {
-                        Icon(Icons.Rounded.MoreHoriz, stringResource(Res.string.more),
-                            tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(22.dp))
-                    }
-                    DropdownMenu(expanded = optionsOpen, onDismissRequest = { optionsOpen = false }) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.import_spotify)) },
-                            leadingIcon = { Icon(painterResource(Res.drawable.spotify_logo), null, modifier = Modifier.size(20.dp)) },
-                            onClick = { optionsOpen = false; onImportSpotifyPlaylist() },
-                        )
-                    }
-                }
-            }
-        }
-        if (shelf.items.isEmpty() && !loading) {
-            Text(stringResource(if (savedLocally) Res.string.on_device else Res.string.saved_to_youtube_music),
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp))
-        } else {
-            BoxWithConstraints(Modifier.fillMaxWidth().animateContentSize(
-                animationSpec = tween(if (reduceAnimation) 0 else 220))) {
-                val gap = 12.dp
-                val peek = if (!loading && previewItems.size > 4) 36.dp else 0.dp
-                val cellWidth = ((maxWidth - PAGE_GUTTER * 2 - gap - peek) / 2).coerceAtLeast(48.dp)
-                val cardWidth = cellWidth.coerceAtMost(136.dp)
-                val count = if (loading) 4 else previewItems.size
-                val rows = if (count <= 2) 1 else 2
-                val labelHeight = with(LocalDensity.current) { MaterialTheme.typography.labelMedium.lineHeight.toDp() * 2 }
-                val rowHeight = cardWidth + 6.dp + labelHeight
-                LazyHorizontalGrid(
-                    rows = GridCells.Fixed(rows),
-                    state = gridState,
-                    contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
-                    horizontalArrangement = Arrangement.spacedBy(gap),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth().height(rowHeight * rows + 12.dp * (rows - 1)),
-                ) {
-                    if (loading) {
-                        items(4, key = { "playlist-placeholder-$it" }) {
-                            Box(Modifier.width(cellWidth), contentAlignment = Alignment.TopCenter) {
-                                Box(Modifier.size(cardWidth).clip(RoundedCornerShape(10.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh))
-                            }
-                        }
-                    } else {
-                        itemsIndexed(previewItems, key = { index, _ -> itemKeys[index] }, contentType = { _, _ -> "playlist" }) { index, item ->
-                            Box(Modifier.width(cellWidth).animateItem(
-                                fadeInSpec = null, fadeOutSpec = null,
-                                placementSpec = if (reduceAnimation) null else tween(220)),
-                                contentAlignment = Alignment.TopCenter) {
-                            ShelfCard(
-                                item = item,
-                                libraryCardKey = "shelf:${shelf.title}:${itemKeys[index]}",
-                                onClick = { onItemClick(item) },
-                                onLongPress = { onItemLongPress(item) },
-                                isPinned = item.browseId in pinnedPlaylists,
-                                compact = true,
-                                modifier = Modifier.width(cardWidth),
-                            )
-                            }
-                        }
-                    }
-                }
+                HorizontalDivider(Modifier.padding(start = 46.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
             }
         }
     }
@@ -390,7 +258,7 @@ private const val LIBRARY_ROW_MAX_ITEMS = 5
  * vertically-scrolling grid instead. See [LibraryGridPage].
  *
  * [leadingCard], if given, occupies the first slot and counts against that
- * cap — see [PlaylistShelf].
+ * cap.
  */
 @Composable
 internal fun LibraryGridShelf(
@@ -450,10 +318,7 @@ internal fun LibraryGridShelf(
     }
 }
 
-/**
- * Everything a Library shelf's "Show all" opens onto — the same cards, at the
- * same [libraryGrid] width, run down the screen instead of stopping at one row.
- */
+/** Full collection browser, with retained grid/list viewports and local search. */
 @Composable
 fun LibraryGridPage(
     shelf: HomeShelf,
@@ -464,66 +329,152 @@ fun LibraryGridPage(
     modifier: Modifier = Modifier,
     onNewPlaylist: (() -> Unit)? = null,
     createdPlaylistIds: List<String> = emptyList(),
+    listState: LazyListState = rememberLazyListState(),
+    searchQuery: MutableState<String> = rememberSaveable(shelf.title) { mutableStateOf("") },
 ) {
-    // Re-read live rather than trusting [shelf] to already be sorted: this page
-    // is opened from a snapshot (see `libraryShowAll` in MainActivity), and a
-    // pin toggled from this page's own long-press menu must move the card
-    // immediately rather than waiting for the row underneath to be revisited.
-    val pinnedPlaylists by AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
-    val librarySort by AppUi.host.librarySort.collectAsStateWithLifecycle()
-    // Recently created/updated playlists stay easy to find after a title sort or provider
-    // refresh. Pins and explicit sorting still arrange the older collections.
-    val sortedShelf = remember(shelf, pinnedPlaylists, librarySort, createdPlaylistIds) {
-        (if (shelf.isPlaylistLibraryShelf()) shelf.withoutLikedMusic() else shelf)
-            .orderedForLibrary(pinnedPlaylists, librarySort, createdPlaylistIds)
+    val pins by AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
+    val sort by AppUi.host.librarySort.collectAsStateWithLifecycle()
+    val views by AppUi.host.libraryCollectionViews.collectAsStateWithLifecycle()
+    val artists = shelf.title == "Artists"
+    val view = if (artists) LibraryViewType.LIST else views[shelf.title] ?: LibraryViewType.GRID
+    var query by searchQuery
+    val visibleShelf = rememberCoverSourceValue("library-browser:${shelf.title}", shelf)
+    val ordered = remember(visibleShelf, pins, sort, createdPlaylistIds) {
+        (if (visibleShelf.isPlaylistLibraryShelf()) visibleShelf.withoutLikedMusic() else visibleShelf)
+            .orderedForLibrary(pins, if (artists && sort == LibrarySort.DEFAULT) LibrarySort.TITLE_ASC else sort, createdPlaylistIds)
     }
-    val itemKeys = remember(sortedShelf.items) { shelfItemKeys(sortedShelf.items) }
-    val newestActivity = sortedShelf.newestCreatedPlaylistId(createdPlaylistIds)
-    var observedNewest by remember(gridState) { mutableStateOf(newestActivity) }
-    LaunchedEffect(newestActivity) {
-        if (observedNewest == newestActivity) return@LaunchedEffect
-        observedNewest = newestActivity
-        if (newestActivity != null) gridState.scrollToItem(0)
+    val filtered = remember(ordered.items, query) {
+        val text = query.trim()
+        if (text.isEmpty()) ordered.items else ordered.items.filter {
+            it.title.contains(text, ignoreCase = true) || it.subtitle.contains(text, ignoreCase = true)
+        }
+    }
+    val keys = remember(filtered) { shelfItemKeys(filtered) }
+    val groups = remember(filtered, artists, sort) {
+        if (artists && sort != LibrarySort.TITLE_DESC) filtered.groupBy { libraryInitial(it.title) }.entries
+            .sortedBy { if (it.key == "#") "~" else it.key } else emptyList()
+    }
+    val groupPositions = remember(groups) {
+        var index = 1 // Collection heading occupies item zero.
+        groups.associate { (letter, items) -> (letter to index).also { index += items.size + 1 } }
+    }
+    val scope = rememberCoroutineScope()
+    val newest = ordered.newestCreatedPlaylistId(createdPlaylistIds)
+    var observed by remember(shelf.title) { mutableStateOf(newest) }
+    LaunchedEffect(newest) {
+        if (observed != newest && newest != null) { gridState.scrollToItem(0); listState.scrollToItem(0) }
+        observed = newest
+    }
+    @Composable fun Heading() {
+        Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(collectionTitle(shelf.title), style = MaterialTheme.typography.displayLarge,
+                    color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                onNewPlaylist?.let { create -> IconButton(create) { Icon(BitChordIcons.Plus, stringResource(Res.string.new_playlist),
+                    tint = MaterialTheme.colorScheme.onSurface) } }
+            }
+            Spacer(Modifier.height(18.dp))
+            OutlinedTextField(query, { query = it }, singleLine = true,
+                placeholder = { Text(stringResource(Res.string.library_search_collection, collectionTitle(shelf.title))) },
+                leadingIcon = { Icon(Icons.Rounded.Search, null, modifier = Modifier.size(21.dp)) },
+                trailingIcon = if (query.isNotEmpty()) { { IconButton({ query = "" }) {
+                    Icon(Icons.Rounded.Close, stringResource(Res.string.library_clear_search)) } } } else null,
+                shape = RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth().testTag("library-collection-search"),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color.Transparent, focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer))
+            Spacer(Modifier.height(14.dp))
+        }
     }
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val grid = libraryGrid(maxWidth - PAGE_GUTTER * 2)
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(grid.columns),
-            state = gridState,
-            contentPadding = contentPadding,
-            horizontalArrangement = Arrangement.spacedBy(LIBRARY_GRID_SPACING),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-            modifier = Modifier.padding(horizontal = PAGE_GUTTER),
-        ) {
-            if (onNewPlaylist != null) {
-                item(key = "heading", span = { GridItemSpan(maxLineSpan) }, contentType = "heading") {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(Res.string.playlists), style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
-                        IconButton(onClick = onNewPlaylist) {
-                            Icon(BitChordIcons.Plus, stringResource(Res.string.new_playlist),
-                                tint = MaterialTheme.colorScheme.onBackground)
-                        }
+        val horizontal = PAGE_GUTTER + 4.dp
+        if (view == LibraryViewType.GRID) {
+            val grid = libraryGrid(maxWidth - horizontal * 2)
+            LazyVerticalGrid(GridCells.Fixed(grid.columns), state = gridState, contentPadding = contentPadding,
+                horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(22.dp),
+                modifier = Modifier.fillMaxSize().padding(horizontal = horizontal).testTag("library-collection-grid")) {
+                item(key = "heading", span = { GridItemSpan(maxLineSpan) }, contentType = "heading") { Heading() }
+                if (filtered.isEmpty()) item(key = "empty", span = { GridItemSpan(maxLineSpan) }, contentType = "message") {
+                    Text(stringResource(Res.string.library_collection_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                itemsIndexed(filtered, key = { index, _ -> keys[index] }, contentType = { _, _ -> "collection" }) { index, item ->
+                    ShelfCard(item, onClick = { onItemClick(item) }, onLongPress = { onItemLongPress(item) },
+                        modifier = Modifier.fillMaxWidth(), isPinned = item.browseId in pins, libraryCardKey = "grid:${keys[index]}")
+                }
+            }
+        } else {
+            LazyColumn(state = listState, contentPadding = contentPadding,
+                modifier = Modifier.fillMaxSize().padding(start = horizontal, end = if (groups.isEmpty()) horizontal else 36.dp)
+                    .testTag("library-collection-list")) {
+                item(key = "heading", contentType = "heading") { Heading() }
+                if (filtered.isEmpty()) item(key = "empty", contentType = "message") {
+                    Text(stringResource(Res.string.library_collection_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (groups.isEmpty()) itemsIndexed(filtered, key = { index, _ -> keys[index] }, contentType = { _, _ -> "collection-row" }) { index, item ->
+                    LibraryCollectionRow(item, artists, "list:${keys[index]}", { onItemClick(item) }, { onItemLongPress(item) })
+                } else groups.forEach { (letter, entries) ->
+                    val entryKeys = shelfItemKeys(entries)
+                    item(key = "initial:$letter", contentType = "initial") {
+                        Text(letter, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(top = 14.dp, bottom = 8.dp))
+                    }
+                    itemsIndexed(entries, key = { index, _ -> "artist:$letter:${entryKeys[index]}" }, contentType = { _, _ -> "artist-row" }) { index, item ->
+                        LibraryCollectionRow(item, true, "artist:$letter:${entryKeys[index]}", { onItemClick(item) }, { onItemLongPress(item) })
                     }
                 }
             }
-            itemsIndexed(
-                sortedShelf.items,
-                key = { index, _ -> itemKeys[index] },
-                contentType = { _, _ -> "shelf-card" },
-            ) { index, item ->
-                ShelfCard(
-                    item = item,
-                    libraryCardKey = "grid:${itemKeys[index]}",
-                    onClick = { onItemClick(item) },
-                    onLongPress = { onItemLongPress(item) },
-                    modifier = Modifier.fillMaxWidth(),
-                    isPinned = item.browseId != null && item.browseId in pinnedPlaylists,
-                )
+            if (groups.isNotEmpty()) {
+                LazyColumn(Modifier.align(Alignment.CenterEnd).width(32.dp)
+                    .heightIn(max = (maxHeight - contentPadding.calculateTopPadding() - contentPadding.calculateBottomPadding()).coerceAtLeast(48.dp))
+                    .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                    groupPositions.forEach { (letter, index) ->
+                        item(key = letter) {
+                            Text(letter, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.fillMaxWidth().clickable { scope.launch { listState.scrollToItem(index) } }
+                                    .padding(vertical = 2.dp), textAlign = TextAlign.Center)
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-/** The library feed whose cards are the account's own — see [PlaylistShelf]. */
-private const val PLAYLISTS = YtMusicRepository.PLAYLISTS_SHELF
+@Composable
+private fun LibraryCollectionRow(item: ShelfItem, artist: Boolean, key: String, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val motion = LocalLibraryCoverMotion.current
+    Column {
+    Row(Modifier.fillMaxWidth().longPressMenuClickable(onClick = {
+        if (!artist) item.browseId?.let { motion?.onSelectCard?.invoke(it, key, 10f) }
+        onClick()
+    }, onLongClick = onLongClick).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Box(Modifier.size(54.dp).then(if (artist) Modifier.clip(CircleShape) else Modifier.libraryCoverMotion(item.browseId, key, 10f))
+            .then(if (!artist && motion?.source != true) Modifier.clip(RoundedCornerShape(10.dp)) else Modifier)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
+            if (item.thumbnailUrl == null) Icon(if (artist) Icons.Rounded.Person else Icons.Rounded.LibraryMusic, null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(26.dp))
+            else AsyncImage(item.thumbnailUrl.artworkAt(ROW_ART_PX), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        }
+        Column(Modifier.weight(1f)) {
+            Text(item.title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (!artist && item.subtitle.isNotBlank()) Text(item.subtitle, style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Icon(BitChordIcons.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), modifier = Modifier.size(18.dp))
+    }
+        HorizontalDivider(Modifier.padding(start = 68.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+    }
+}
+
+@Composable
+fun collectionTitle(key: String): String = when (key) {
+    "Playlists" -> stringResource(Res.string.playlists)
+    "Albums" -> stringResource(Res.string.albums)
+    "Artists" -> stringResource(Res.string.artists)
+    "On device" -> stringResource(Res.string.on_device)
+    else -> key
+}

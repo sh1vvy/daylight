@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.data.settings
 
 import android.content.Context
@@ -13,6 +21,8 @@ import com.music.bitchord.data.lyrics.LyricsSource
 import com.music.bitchord.data.sources.SourceKind
 import com.music.bitchord.playback.EqLayout
 import com.music.bitchord.playback.EqualizerPreset
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
 import kotlinx.coroutines.flow.MutableStateFlow
 
 
@@ -528,6 +538,7 @@ object AppSettings {
     val homeRecentsViewType = MutableStateFlow(LibraryViewType.LIST)
     val excludedRecommendationLanguages = MutableStateFlow<Set<String>>(emptySet())
     val librarySort = MutableStateFlow(LibrarySort.DEFAULT)
+    val libraryCollectionViews = MutableStateFlow<Map<String, LibraryViewType>>(emptyMap())
 
     /**
      * Each album/playlist page's track-list order, keyed by browse id —
@@ -841,6 +852,10 @@ object AppSettings {
         localMusicViewType.value = readLibraryViewType(KEY_LOCAL_MUSIC_VIEW_TYPE)
         downloadedMusicViewType.value = readLibraryViewType(KEY_DOWNLOADED_MUSIC_VIEW_TYPE)
         homeRecentsViewType.value = readLibraryViewType(KEY_HOME_RECENTS_VIEW_TYPE)
+        libraryCollectionViews.value = runCatching {
+            Json.decodeFromString<Map<String, String>>(prefs.getString(KEY_LIBRARY_COLLECTION_VIEWS, "{}") ?: "{}")
+                .mapNotNull { (key, value) -> LibraryViewType.entries.firstOrNull { it.name == value }?.let { key to it } }.toMap()
+        }.getOrDefault(emptyMap())
         librarySort.value = prefs.getString(KEY_LIBRARY_SORT, null)
             ?.let { saved -> LibrarySort.entries.firstOrNull { it.name == saved } }
             ?: LibrarySort.DEFAULT
@@ -1564,6 +1579,13 @@ object AppSettings {
         prefs.edit().putString(KEY_DOWNLOADED_MUSIC_SORT, value.name).apply()
     }
 
+    fun setLibraryCollectionView(key: String, value: LibraryViewType) {
+        if (key !in setOf("Playlists", "Albums", "Artists", "On device")) return
+        val updated = libraryCollectionViews.value + (key to value)
+        libraryCollectionViews.value = updated
+        prefs.edit().putString(KEY_LIBRARY_COLLECTION_VIEWS, Json.encodeToString(updated.mapValues { it.value.name })).apply()
+    }
+
     fun setLibrarySort(value: LibrarySort) {
         librarySort.value = value
         prefs.edit().putString(KEY_LIBRARY_SORT, value.name).apply()
@@ -1825,6 +1847,7 @@ object AppSettings {
     private const val KEY_LOCAL_MUSIC_SORT = "local_music_sort"
     private const val KEY_DOWNLOADED_MUSIC_SORT = "downloaded_music_sort"
     private const val KEY_LIBRARY_SORT = "library_sort"
+    private const val KEY_LIBRARY_COLLECTION_VIEWS = "library_collection_views"
     private const val KEY_DETAIL_SONG_SORTS = "detail_song_sorts"
     private const val KEY_LOCAL_MUSIC_VIEW_TYPE = "local_music_view_type"
     private const val KEY_DOWNLOADED_MUSIC_VIEW_TYPE = "downloaded_music_view_type"

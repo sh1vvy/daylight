@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.playback
 
 import android.app.PendingIntent
@@ -10,7 +18,7 @@ import android.media.AudioManager
 import android.media.MediaMetadataRetriever
 import android.media.audiofx.AudioEffect
 import android.net.Uri
-import android.widget.Toast
+import com.music.bitchord.ui.feedback.AppFeedback
 import android.os.Bundle
 import android.os.Handler
 import android.os.SystemClock
@@ -705,7 +713,7 @@ class PlaybackService : MediaLibraryService() {
         scope = scope,
         localPlayer = { player },
         resolve = ::resolveForCast,
-        say = { message -> Toast.makeText(applicationContext, message, Toast.LENGTH_SHORT).show() },
+        say = { message -> AppFeedback.makeText(applicationContext, message, AppFeedback.LENGTH_SHORT).show() },
     )
 
     /**

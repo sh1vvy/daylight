@@ -22,3 +22,15 @@
 
 /assets/jam-v1.js
   Cache-Control: public, max-age=31536000, immutable
+
+/assets/jam-v3.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/daylight-wordmark-v1.svg
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/jam-v4.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/daylight-wordmark-v2.svg
+  Cache-Control: public, max-age=31536000, immutable

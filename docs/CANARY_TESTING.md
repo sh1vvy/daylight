@@ -1,3 +1,80 @@
+<!-- DAYLIGHT-ATTRIBUTION
+Daylight modifications by sh1vvy.
+Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+Daylight changes: 2026-10-10 through 2026-10-11.
+Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+Original authors' notices and licenses remain applicable to their material.
+-->
+
+# Internal candidate: Canary 12
+
+**0.2.2-canary.12 · Android code 33 · internal testing only**
+
+The optimized arm64 and universal APKs update Daylight Dev in place with the
+existing `com.sh1vvy.daylight.dev` package and signing certificate, with the
+Daylight Canary launcher label. Public Dev.9/code 32 and stable 0.2.1/code 12
+remain unchanged. The source snapshot is backed up on `codex/canary-1` at the
+owner's request; no APK release or tag is published for this candidate.
+
+## Changes
+
+- Library opens with clear category rows and a two-column Recently Added area.
+  Replay stays beside the Library heading as a compact icon pill. Playlist
+  creation and import remain available without occupying collection rows.
+- Albums and playlists have rounded search, grid/list choices and sort controls.
+  Each collection remembers its view, and returning from a detail page retains
+  the search and scroll position. Artists use circular portraits, letter groups
+  and an alphabet index. The index remains scrollable on shorter windows.
+- Liked songs opens directly into its cached list with Play/Shuffle and the
+  existing song actions. Downloads has separate playlists, artists, albums and
+  songs; local music, cached songs and connected Spotify remain accessible.
+- All foreground app notices use one themed rounded floating message, including
+  queue feedback. Finite entrance/exit animations respect Reduce animation;
+  accessibility preferences extend the reading timeout. The message stays above
+  modal players without stealing taps, keyboard input or focus. New messages
+  replace previous ones instead of building an unbounded queue. Background
+  service notices retain Android's native toast without overlay permissions.
+- Lists and artwork remain lazy, with stable occurrence-aware keys. Collection
+  grouping is computed per data snapshot, scroll booleans use derived state,
+  and feedback updates have their own host outside the main app composition.
+  Existing cached metadata and cover transitions remain in use.
+- Scoped Daylight copyright and author notices identify sh1vvy's copyrightable
+  contributions while preserving the original GPLv3 and other authors' licenses.
+  Credits can open the packaged attribution/origin terms, original GPL text and
+  contribution record offline. Source checks verify dated notices and legal
+  copies; additional GPLv3 section 7 terms apply only to identified Daylight
+  material in copies distributed with those terms, never retroactively.
+
+The provider supplies ordering within its album and playlist feeds, but no
+common saved timestamps. Recently Added interleaves those feeds and promotes
+known playlist creation/addition activity; it does not fabricate dates.
+
+## Validation
+
+**1,444 Android/shared unit checks passed**, with one optional live-provider
+check skipped. Seven native emulator checks passed, covering all six Light/Dark/Pink Clouding
+and glass on/off combinations, collection search and views, artist indexing,
+Replay routing, Downloads, cached/paginated liked songs, Spotify metadata and
+account isolation. Cover opening and return retain their geometry and viewport
+with glass on/off and Reduce animation enabled.
+The new feedback check covers all three themes, real touch-through, typing,
+replacement, expiration and foreground lifecycle cleanup above a modal window.
+An additional native Android check opens the packaged GPL, attribution terms
+and original-author/contribution document from Credits without a network request.
+All four attribution-tool fixture checks and 53 website checks passed, including
+unchanged legal documents served through the Jam site's static-asset routing.
+The original GPL text matches the upstream bytes; later notice-only commits
+retain contribution dates, and a removed notice or changed license fails checks.
+
+The optimized APKs have code 33, the existing Dev signer, a non-debuggable
+manifest and bundled baseline profiles. Screenshots and checksums accompany
+the local APKs. No physical phone was connected for this candidate, and emulator
+regression checks are not a device scrolling benchmark. Phone review should
+check collection opening, long-list scrolling, liked-cache reopening, downloaded
+collections and message readability in each preferred theme.
+
+---
+
 # Daylight Dev.9 hotfix validation
 
 **0.2.2-dev.9 · Android code 32 · development prerelease**

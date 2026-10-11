@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord
 
 import android.Manifest
@@ -9,7 +17,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
+import com.music.bitchord.ui.feedback.AppFeedback
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -57,6 +65,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.material.icons.Icons
@@ -65,6 +74,9 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Sort
@@ -151,6 +163,7 @@ import com.music.bitchord.data.model.durationMillis
 import com.music.bitchord.data.scrobbling.LastFM
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.data.settings.LibrarySort
+import com.music.bitchord.data.settings.LibraryViewType
 import com.music.bitchord.data.settings.ThemeMode
 import com.music.bitchord.ui.components.AccountProfileSelector
 import com.music.bitchord.ui.components.SpotifyImportAlert
@@ -242,8 +255,7 @@ import com.music.bitchord.ui.components.backdrop.backdrops.LayerBackdrop
 import com.music.bitchord.ui.components.backdrop.backdrops.layerBackdrop
 import com.music.bitchord.ui.components.backdrop.backdrops.rememberLayerBackdrop
 import com.music.bitchord.ui.components.isGlassSupported
-import com.music.bitchord.ui.components.QueueActionNotice
-import com.music.bitchord.ui.components.QueueActionNoticeHost
+import com.music.bitchord.ui.feedback.AppFeedbackHost
 import com.music.bitchord.ui.components.TopBarAccountButton
 import com.music.bitchord.ui.components.SearchField
 import com.music.bitchord.ui.components.SearchSourceTabs
@@ -287,7 +299,11 @@ import com.music.bitchord.ui.screens.LocalMusicScreen
 import com.music.bitchord.ui.screens.HomeScreen
 import com.music.bitchord.ui.theme.daylightHomeBackground
 import com.music.bitchord.ui.theme.LocalPinkCloud
+import com.music.bitchord.ui.screens.LibrarySongsScreen
 import com.music.bitchord.ui.screens.LibraryGridPage
+import com.music.bitchord.ui.screens.LibraryCollectionOptions
+import com.music.bitchord.ui.screens.collectionTitle
+import com.music.bitchord.ui.screens.libraryCollections
 import com.music.bitchord.ui.screens.LibraryScreen
 import com.music.bitchord.ui.screens.MoodGenrePlaylistsScreen
 import com.music.bitchord.ui.screens.SearchScreen
@@ -397,6 +413,7 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
                 }
+                AppFeedbackHost()
             }
         }
     }
@@ -557,7 +574,7 @@ private fun BitChordApp(
     // cards can be laid out again as a full-screen grid. See [LibraryGridPage].
     var libraryShowAll by remember { mutableStateOf<HomeShelf?>(null) }
     var detailActiveShelf by remember { mutableStateOf<HomeShelf?>(null) }
-    var librarySortMenuOpen by remember { mutableStateOf(false) }
+    var libraryHubMenuOpen by remember { mutableStateOf(false) }
     var showLyricsSources by remember { mutableStateOf(false) }
     var showAppLanguage by remember { mutableStateOf(false) }
     var showAccountSelector by remember { mutableStateOf(false) }
@@ -900,11 +917,8 @@ private fun BitChordApp(
     // and handed to every surface, so the player, the mini player and the glass
     // bar can never disagree about whether this device may drive the music.
     val controlsLocked = partyState.controlsLocked
-    var queueNotice by remember { mutableStateOf<QueueActionNotice?>(null) }
-    var queueNoticeId by remember { mutableIntStateOf(0) }
     val showQueueNotice: (String) -> Unit = { message ->
-        queueNoticeId += 1
-        queueNotice = QueueActionNotice(queueNoticeId, message)
+        AppFeedback.makeText(context, message).show()
     }
     val finishPlaylistAdd: (PlaylistAddPlan, Boolean) -> Unit = { plan, allowDuplicates ->
         playlistActionBusy = true
@@ -947,11 +961,6 @@ private fun BitChordApp(
                 )
             }
         }
-    }
-    LaunchedEffect(queueNotice?.id) {
-        val shown = queueNotice ?: return@LaunchedEffect
-        delay(3_000)
-        if (queueNotice?.id == shown.id) queueNotice = null
     }
     // Why a control did nothing, on the same strip above the mini player that
     // already answers "added to queue". Reached from every surface that had a
@@ -1049,6 +1058,15 @@ private fun BitChordApp(
     val libraryListState = rememberLazyListState()
     val historyListState = rememberLazyListState()
     val libraryShowAllGridState = rememberLazyGridState()
+    val libraryShowAllListState = rememberLazyListState()
+    val librarySearchQuery = rememberSaveable { mutableStateOf("") }
+    val libraryGridScrolled by remember(libraryShowAllGridState) {
+        derivedStateOf { libraryShowAllGridState.firstVisibleItemIndex > 0 || libraryShowAllGridState.firstVisibleItemScrollOffset > 80 }
+    }
+    val libraryCollectionListScrolled by remember(libraryShowAllListState) {
+        derivedStateOf { libraryShowAllListState.firstVisibleItemIndex > 0 || libraryShowAllListState.firstVisibleItemScrollOffset > 80 }
+    }
+    val libraryCollectionViews by AppSettings.libraryCollectionViews.collectAsStateWithLifecycle()
     var lastPlaylistActivity by remember { mutableStateOf(createdPlaylistIds.firstOrNull()) }
     LaunchedEffect(createdPlaylistIds.firstOrNull()) {
         val newest = createdPlaylistIds.firstOrNull()
@@ -1060,7 +1078,7 @@ private fun BitChordApp(
         val belongsToShelf = (!localActivity && shelf.title == YtMusicRepository.PLAYLISTS_SHELF) ||
             (localActivity && shelf.title == context.getString(R.string.on_device)) ||
             shelf.items.any { it.browseId?.let(::playlistCreationOrderKey) == newest }
-        if (belongsToShelf) libraryShowAllGridState.requestScrollToItem(0)
+        if (belongsToShelf) { libraryShowAllGridState.requestScrollToItem(0); libraryShowAllListState.requestScrollToItem(0) }
     }
     val searchListState = rememberLazyListState()
     val currentListState = when (selectedTab) {
@@ -1540,13 +1558,13 @@ private fun BitChordApp(
                     limit = INITIAL_RADIO_TRACKS,
                 ).getOrElse {
                     if (request == playRequestGeneration) {
-                        Toast.makeText(context, R.string.couldnt_load_tracks, Toast.LENGTH_SHORT).show()
+                        AppFeedback.makeText(context, R.string.couldnt_load_tracks, AppFeedback.LENGTH_SHORT).show()
                     }
                     return@launch
                 }
                 if (related.isEmpty()) {
                     if (request == playRequestGeneration) {
-                        Toast.makeText(context, R.string.couldnt_load_tracks, Toast.LENGTH_SHORT).show()
+                        AppFeedback.makeText(context, R.string.couldnt_load_tracks, AppFeedback.LENGTH_SHORT).show()
                     }
                     return@launch
                 }
@@ -1580,10 +1598,10 @@ private fun BitChordApp(
                 // Make this station — never the queue from before it — what a
                 // fresh process restores, even if it is killed immediately.
                 activeController.commitRadioQueue()
-                Toast.makeText(
+                AppFeedback.makeText(
                     context,
                     context.getString(R.string.radio_started, song.title),
-                    Toast.LENGTH_SHORT,
+                    AppFeedback.LENGTH_SHORT,
                 ).show()
             }
         }
@@ -1697,10 +1715,10 @@ private fun BitChordApp(
                 ?.firstOrNull()
                 ?.item
             if (hit == null) {
-                Toast.makeText(
+                AppFeedback.makeText(
                     context,
                     context.getString(R.string.couldnt_find, name),
-                    Toast.LENGTH_SHORT,
+                    AppFeedback.LENGTH_SHORT,
                 ).show()
             } else {
                 viewModel.openDetail(
@@ -1805,10 +1823,10 @@ private fun BitChordApp(
             is LinkRequest.Track -> {
                 val song = YtMusicRepository.trackLinks(request.videoId).getOrNull()
                 if (song == null) {
-                    Toast.makeText(
+                    AppFeedback.makeText(
                         context,
                         context.getString(R.string.couldnt_open_link),
-                        Toast.LENGTH_SHORT,
+                        AppFeedback.LENGTH_SHORT,
                     ).show()
                 } else {
                     // A link is one song named on purpose, which is exactly the
@@ -1933,7 +1951,7 @@ private fun BitChordApp(
                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main.immediate) {
                         if (!viewModel.signedIn.value || request != playRequestGeneration || accountScope != Innertube.responseCacheScope || mixPartyCode != ListenTogether.state.value.code || refusedByHost()) return@withContext
                         if (songs.isEmpty()) {
-                            Toast.makeText(context, R.string.home_mix_empty, Toast.LENGTH_SHORT).show()
+                            AppFeedback.makeText(context, R.string.home_mix_empty, AppFeedback.LENGTH_SHORT).show()
                             return@withContext
                         }
                         val activeController = controller ?: return@withContext
@@ -1993,13 +2011,13 @@ private fun BitChordApp(
         when {
             target.songs.isNotEmpty() -> stamp(target.songs)
             target.browseId == null ->
-                Toast.makeText(context, context.getString(R.string.no_tracks_here), Toast.LENGTH_SHORT).show()
+                AppFeedback.makeText(context, context.getString(R.string.no_tracks_here), AppFeedback.LENGTH_SHORT).show()
             else -> viewModel.collectSongs(target.browseId, target.thumbnailUrl) { result ->
                 result.fold(
                     onSuccess = stamp,
                     onFailure = {
                         val message = it.message ?: context.getString(R.string.couldnt_load_tracks)
-                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        AppFeedback.makeText(context, message, AppFeedback.LENGTH_SHORT).show()
                     },
                 )
             }
@@ -2038,8 +2056,8 @@ private fun BitChordApp(
             }
             // The one case where refusing is fatal: below API 29 there is no
             // other way to reach the Music folder.
-            else -> Toast
-                .makeText(context, context.getString(R.string.storage_required_save), Toast.LENGTH_SHORT)
+            else -> AppFeedback
+                .makeText(context, context.getString(R.string.storage_required_save), AppFeedback.LENGTH_SHORT)
                 .show()
         }
     }
@@ -2051,7 +2069,7 @@ private fun BitChordApp(
             viewModel.reloadLocalDetail("local:downloads")
             viewModel.loadLibrarySongs()
         } else {
-            Toast.makeText(context, context.getString(R.string.storage_required_read), Toast.LENGTH_SHORT).show()
+            AppFeedback.makeText(context, context.getString(R.string.storage_required_read), AppFeedback.LENGTH_SHORT).show()
         }
     }
     val mediaPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -2196,10 +2214,10 @@ private fun BitChordApp(
             // normally needs no toast — but a refused one leaves the row exactly
             // as it was, and a button that visibly does nothing is worse than a
             // long message. So this one is said whatever the count.
-            blocked -> Toast.makeText(
+            blocked -> AppFeedback.makeText(
                 context,
                 context.getString(R.string.wifi_only_download_refusal),
-                Toast.LENGTH_LONG,
+                AppFeedback.LENGTH_LONG,
             ).show()
             requested.size > 1 -> {
                 val message = if (songs.isEmpty()) {
@@ -2211,7 +2229,7 @@ private fun BitChordApp(
                         songs.size,
                     )
                 }
-                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                AppFeedback.makeText(context, message, AppFeedback.LENGTH_SHORT).show()
             }
         }
     }
@@ -2490,10 +2508,10 @@ private fun BitChordApp(
                                 BrowseType.ARTIST,
                             )
                         } else {
-                            Toast.makeText(
+                            AppFeedback.makeText(
                                 context,
                                 context.getString(R.string.couldnt_find, name),
-                                Toast.LENGTH_SHORT,
+                                AppFeedback.LENGTH_SHORT,
                             ).show()
                         }
                     }
@@ -2766,24 +2784,25 @@ private fun BitChordApp(
                         val heldShelf = remember(key) { mutableStateOf(libraryShowAll) }
                         if (libraryShowAll != null) heldShelf.value = libraryShowAll
                         heldShelf.value?.let { shelf ->
-                            val liveShelf = if (shelf.title == YtMusicRepository.PLAYLISTS_SHELF) {
-                                val remote = (libraryState as? UiState.Success)?.data?.shelves
-                                    ?.filter { it.isPlaylistLibraryShelf() }?.flatMap { it.items }
-                                    ?: shelf.items.filterNot {
-                                        it.browseId?.startsWith("local:playlist:") == true || it.browseId?.startsWith(SPOTIFY_PAGE_PREFIX) == true
-                                    }
-                                shelf.copy(items = (personalPlaylistItems + remote).distinctBy { it.browseId })
-                            } else if (shelf.title == context.getString(R.string.on_device)) {
-                                shelf.copy(items = libraryDeviceItems(downloadedReleases))
-                            } else shelf
+                            val collections = remember(libraryState, personalPlaylistItems, createdPlaylistIds) {
+                                libraryCollections((libraryState as? UiState.Success)?.data, personalPlaylistItems, emptyList(), createdPlaylistIds)
+                            }
+                            val liveShelf = when (shelf.title) {
+                                "Playlists" -> collections.playlists
+                                "Albums" -> collections.albums
+                                "Artists" -> collections.artists
+                                "On device" -> shelf.copy(items = libraryDeviceItems(downloadedReleases))
+                                else -> shelf
+                            }
                             LibraryGridPage(
                                 shelf = coverShelf(liveShelf),
                                 createdPlaylistIds = createdPlaylistIds,
                                 gridState = libraryShowAllGridState,
+                                listState = libraryShowAllListState,
+                                searchQuery = librarySearchQuery,
                                 onItemClick = onLibraryItemClick,
                                 onItemLongPress = onBrowseLongPress,
-                                // Only the Playlists shelf can grow one — see
-                                // [PlaylistShelf].
+                                // New playlists belong in the Playlists browser.
                                 onNewPlaylist = if (shelf.title == YtMusicRepository.PLAYLISTS_SHELF) {
                                     { creatingPlaylist = true }
                                 } else {
@@ -2926,6 +2945,18 @@ private fun BitChordApp(
                                 }
                             },
                             onRetry = { viewModel.retryCreatorProfile(page.instanceId) },
+                        )
+                    } else if (page != null && page.browseId == YtMusicRepository.LIKED_MUSIC) {
+                        LibrarySongsScreen(
+                            title = context.getString(R.string.auto_liked), state = page.songs,
+                            listState = pageDetailListState, sort = songSort, currentSong = player.song, isPlaying = player.isPlaying,
+                            onSongClick = { songs, index -> playFrom(songs, index, QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId)) },
+                            onSongLongPress = openSongMenu, onSongSwipe = onSongSwipe,
+                            onPlay = { songs -> playCollectionFrom(songs, QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId)) },
+                            onShuffle = { songs -> playCollectionFrom(songs, QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId), shuffle = true) },
+                            onMore = { songs -> browseActions = BrowseTarget(page.browseId, page.title, page.subtitle, page.thumbnailUrl,
+                                page.type, songs = songs, fromCard = false, downloadId = downloadIdFor(page.browseId)) },
+                            contentPadding = listPadding,
                         )
                     } else if (page != null && page.browseId.isDeviceFolder()) {
                         // Local Music and Downloads — both the tabbed Songs / Artists /
@@ -3378,7 +3409,9 @@ private fun BitChordApp(
                             onNewPlaylist = { creatingPlaylist = true },
                             onImportSpotifyPlaylist = { showSpotifyImportDialog = true },
                             onShowAll = { shelf ->
+                                librarySearchQuery.value = ""
                                 libraryShowAllGridState.requestScrollToItem(0)
+                                libraryShowAllListState.requestScrollToItem(0)
                                 libraryShowAll = shelf
                             },
                             replay = {
@@ -3574,7 +3607,7 @@ private fun BitChordApp(
                         showSpotify && detail == null -> stringResource(R.string.spotify)
                         showDiscord -> "Discord"
                         showHistory -> stringResource(R.string.history)
-                        libraryShowAll != null && detail == null -> libraryShowAll?.title.orEmpty()
+                        libraryShowAll != null && detail == null -> libraryShowAll?.let { collectionTitle(it.title) }.orEmpty()
                         showAccountScrobbling -> stringResource(R.string.account_scrobbling)
                         showListenTogether -> stringResource(R.string.listen_together)
                         showEqualizer -> stringResource(R.string.equalizer)
@@ -3599,11 +3632,14 @@ private fun BitChordApp(
                         showSettings || showAccountScrobbling || showListenTogether ||
                             showEqualizer ||
                             showDiscord || showHistory ||
-                            (libraryShowAll != null && detail == null) ||
                             (detail != null && detailActiveShelf != null) ||
                             selectedMoodGenre != null -> true
                         // The page leads with its own large "Replay", so the bar
                         // stays out of the way until that has been scrolled off.
+                        libraryShowAll != null && detail == null -> if (libraryShowAll?.title == "Artists" ||
+                            libraryCollectionViews[libraryShowAll?.title] == LibraryViewType.LIST) {
+                            libraryCollectionListScrolled
+                        } else libraryGridScrolled
                         showReplay -> replayScrolled
                         detail != null -> detailScrolled
                         else -> scrolled || selectedTab == TAB_SEARCH
@@ -3754,51 +3790,32 @@ private fun BitChordApp(
                             if (!showHistory && !showReplay && !showDiscord && libraryShowAll == null &&
                                 detail == null && selectedTab == TAB_LIBRARY
                             ) {
-                                IconButton(
-                                    onClick = {
-                                        showHistory = true
-                                        viewModel.loadHistory()
-                                    },
-                                ) {
-                                    Icon(
-                                        Icons.Rounded.History,
-                                        contentDescription = stringResource(R.string.listening_history),
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                    )
+                                IconButton(onClick = { creatingPlaylist = true }) {
+                                    Icon(BitChordIcons.Plus, stringResource(R.string.new_playlist), tint = MaterialTheme.colorScheme.onSurface)
                                 }
-                            }
-                            // Left of the account photo, and only on a Library
-                            // "Show all" grid — the same control the Downloads
-                            // folder offers (see `LocalSearchField`), adapted to
-                            // the one thing a playlist or album card carries: a
-                            // title.
-                            if (libraryShowAll != null && detail == null) {
                                 Box {
-                                    IconButton(onClick = { librarySortMenuOpen = true }) {
-                                        Icon(
-                                            Icons.Rounded.Sort,
-                                            contentDescription = stringResource(R.string.sort_library),
-                                            tint = MaterialTheme.colorScheme.onSurface,
-                                        )
+                                    IconButton(onClick = { libraryHubMenuOpen = true }) {
+                                        Icon(Icons.Rounded.MoreHoriz, stringResource(R.string.more), tint = MaterialTheme.colorScheme.onSurface)
                                     }
-                                    DropdownMenu(
-                                        expanded = librarySortMenuOpen,
-                                        onDismissRequest = { librarySortMenuOpen = false },
-                                    ) {
-                                        LibrarySort.entries.forEach { option ->
-                                            DropdownMenuItem(
-                                                text = { Text(option.localizedLabel()) },
-                                                trailingIcon = if (option == librarySort) {
-                                                    { Icon(Icons.Rounded.Check, contentDescription = null) }
-                                                } else null,
-                                                onClick = {
-                                                    AppSettings.setLibrarySort(option)
-                                                    librarySortMenuOpen = false
-                                                },
-                                            )
+                                    DropdownMenu(libraryHubMenuOpen, { libraryHubMenuOpen = false },
+                                        shape = RoundedCornerShape(26.dp), containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        tonalElevation = 0.dp) {
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.listening_history)) },
+                                            leadingIcon = { Icon(Icons.Rounded.History, null) },
+                                            onClick = { libraryHubMenuOpen = false; showHistory = true; viewModel.loadHistory() })
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.import_spotify)) },
+                                            leadingIcon = { Icon(Icons.Rounded.Add, null) },
+                                            onClick = { libraryHubMenuOpen = false; showSpotifyImportDialog = true })
+                                        libraryLinks().filterNot { it.item.browseId == YtMusicRepository.LIKED_MUSIC || it.item.browseId == "local:downloads" }.forEach { link ->
+                                            DropdownMenuItem(text = { Text(link.item.title) },
+                                                leadingIcon = { Icon(link.icon, null) },
+                                                onClick = { libraryHubMenuOpen = false; onLibraryItemClick(link.item) })
                                         }
                                     }
                                 }
+                            }
+                            if (libraryShowAll != null && detail == null) {
+                                LibraryCollectionOptions(libraryShowAll!!.title, AppSettings::setLibrarySort)
                             }
                             // Left of the account photo, and only on an album or
                             // playlist page — an artist page has no single track
@@ -3917,7 +3934,6 @@ private fun BitChordApp(
                         .fillMaxWidth()
                         .onSizeChanged { floatingBarsHeight.intValue = it.height },
                 ) {
-                    QueueActionNoticeHost(queueNotice)
                     // One player/tab component in both material modes, with
                     // the same folding, transport and player-opening gestures.
                     PlayerNavigationBar(
@@ -4382,14 +4398,14 @@ private fun BitChordApp(
                             // one thing the system's own paste confirmation
                             // doesn't say, and an empty log is a real
                             // outcome worth seeing rather than a silent one.
-                            Toast.makeText(
+                            AppFeedback.makeText(
                                 context,
                                 context.resources.getQuantityString(
                                     R.plurals.log_copied_line_count,
                                     text.lineSequence().count(),
                                     text.lineSequence().count(),
                                 ),
-                                Toast.LENGTH_SHORT,
+                                AppFeedback.LENGTH_SHORT,
                             ).show()
                         }
                     }
@@ -4742,13 +4758,13 @@ private fun BitChordApp(
                     {
                         val nowPinned = AppSettings.togglePinnedPlaylist(id)
                         if (!nowPinned && id !in pinnedPlaylists) {
-                            Toast.makeText(
+                            AppFeedback.makeText(
                                 context,
                                 context.getString(
                                     R.string.pinned_playlist_limit,
                                     AppSettings.MAX_PINNED_PLAYLISTS,
                                 ),
-                                Toast.LENGTH_SHORT,
+                                AppFeedback.LENGTH_SHORT,
                             ).show()
                         }
                         browseActions = null

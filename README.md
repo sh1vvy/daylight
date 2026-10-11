@@ -1,3 +1,11 @@
+<!-- DAYLIGHT-ATTRIBUTION
+Daylight modifications by sh1vvy.
+Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+Daylight changes: 2026-10-08 through 2026-10-11.
+Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+Original authors' notices and licenses remain applicable to their material.
+-->
+
 <div align="center">
 
 <img src="docs/assets/daylight-banner.png" alt="Daylight — Android music player" width="100%" />
@@ -111,7 +119,9 @@ Daylight currently supports Android. Start with the [development guide](docs/DEV
 
 ## Credits and license
 
-Developed by **[sh1vvy](https://sh1vvy.com)**. Licensed under **[GNU GPL v3.0](LICENSE)**. Original copyright notices and corresponding source are retained.
+Developed by **[sh1vvy](https://sh1vvy.com)**. **Copyright © 2026 sh1vvy for copyrightable Daylight contributions.**
+
+Licensed under **[GNU GPL v3.0](LICENSE)**, with reasonable [Daylight attribution and origin terms](DAYLIGHT-NOTICE.md) for identified Daylight additions. Original copyright notices and licenses remain intact. [Copyright and contribution record](COPYRIGHT.md).
 
 Based on **BitChord**.
 

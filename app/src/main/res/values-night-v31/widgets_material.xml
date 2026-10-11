@@ -1,4 +1,12 @@
 <?xml version="1.0" ?>
+<!-- DAYLIGHT-ATTRIBUTION
+Daylight modifications by sh1vvy.
+Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+Daylight changes: 2026-10-09 through 2026-10-09.
+Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+Original authors' notices and licenses remain applicable to their material.
+-->
+
 <resources>
     <color name="widget_material_surface">@android:color/system_neutral1_900</color>
     <color name="widget_material_on_surface">@android:color/system_neutral1_50</color>

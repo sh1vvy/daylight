@@ -1,4 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
+<!-- DAYLIGHT-ATTRIBUTION
+Daylight modifications by sh1vvy.
+Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+Daylight changes: 2026-10-08 through 2026-10-11.
+Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+Original authors' notices and licenses remain applicable to their material.
+-->
+
 <resources>
     <string name="app_name">Daylight</string>
     <string name="playback_channel_name">Tocando agora</string>
@@ -1325,4 +1333,5 @@
     <string name="recommendation_languages_reset">Mostrar todos os idiomas</string>
     <string name="song_menu_go_to">Ir para</string>
     <string name="song_menu_more">Mais opções</string>
+    <string name="library_liked_empty">As músicas de que você gosta aparecem aqui.</string>
 </resources>

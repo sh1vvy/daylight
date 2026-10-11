@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- DAYLIGHT-ATTRIBUTION
+Daylight modifications by sh1vvy.
+Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+Daylight changes: 2026-10-08 through 2026-10-11.
+Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+Original authors' notices and licenses remain applicable to their material.
+-->
+
 <resources>
     <string name="app_name">Daylight</string>
     <string name="playback_channel_name">Đang phát</string>
@@ -1238,4 +1246,5 @@
     <string name="recommendation_languages_reset">Hiện tất cả ngôn ngữ</string>
     <string name="song_menu_go_to">Đi đến</string>
     <string name="song_menu_more">Tùy chọn khác</string>
+    <string name="library_liked_empty">Những bài hát bạn thích sẽ xuất hiện ở đây.</string>
 </resources>

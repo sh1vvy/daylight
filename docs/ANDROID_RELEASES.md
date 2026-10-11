@@ -1,3 +1,11 @@
+<!-- DAYLIGHT-ATTRIBUTION
+Daylight modifications by sh1vvy.
+Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+Daylight changes: 2026-10-08 through 2026-10-11.
+Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+Original authors' notices and licenses remain applicable to their material.
+-->
+
 # Daylight Android releases
 
 The latest public release is **v0.2.1**, Android version code **12**. Releases
@@ -16,17 +24,20 @@ existing package and signer so an in-place update preserves library and settings
 
 ## Internal canaries
 
-The current public development release is **0.2.2-dev.9**, Android code **32**,
-following Dev.8 and internal **canary.9–11** (codes 28–30). Build it with
-`:app:assembleDevCanary`: this optimized, non-debuggable runtime uses the existing
-Dev signer under `com.sh1vvy.daylight.dev`, despite the build type's internal name.
-Its visible label is Daylight Dev and its public Dev update checks are enabled.
+The current internal candidate is **0.2.2-canary.12**, Android code **33**,
+labelled Daylight Canary. Its update checker is disabled for manual testing.
+The public development release remains **0.2.2-dev.9**, code **32**.
+Build internal candidates with `:app:assembleDevCanary`: this optimized,
+non-debuggable runtime retains the existing Dev signer and
+`com.sh1vvy.daylight.dev` package so it updates Dev installations in place.
+Public Dev versions use the same build type with their requested Dev version
+name, Daylight Dev label and enabled update checker.
 
 The universal GitHub asset is `daylight-dev.apk`; the arm64 APK can be used for
 local phone testing. Both update existing Dev/Canary installations in place.
 Canaries disable their checker and should manually install the latest Dev once without
 uninstalling. Stable remains **0.2.1**, code **12**. Its release and website badge
-are unchanged. The next public Dev release is **dev.10**, with a code above 32.
+are unchanged. The next public Dev release is **dev.10**, with a code above 33.
 
 Future internal canaries remain private and manually installed. Do not publish,
 tag or push a canary without the owner requesting it. See [internal checks](CANARY_TESTING.md).

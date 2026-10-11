@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-11 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui
 
 import androidx.compose.runtime.Composable
@@ -28,6 +36,9 @@ interface AppUiHost {
     /** How a Library "Show all" grid is ordered. */
     val librarySort: StateFlow<LibrarySort>
 
+    val libraryCollectionViews: StateFlow<Map<String, LibraryViewType>> get() = emptyCollectionViews
+    fun setLibraryCollectionView(key: String, value: LibraryViewType) {}
+
     /** Video ids of the tracks already downloaded, for the mark on their rows. */
     @Composable
     fun downloadedIds(): Set<String>
@@ -53,3 +64,5 @@ object AppUi {
  * refresh nobody asked for — so the desktop switches it off.
  */
 val LocalPullToRefreshEnabled = staticCompositionLocalOf { true }
+
+private val emptyCollectionViews = kotlinx.coroutines.flow.MutableStateFlow<Map<String, LibraryViewType>>(emptyMap())

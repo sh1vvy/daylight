@@ -1,6 +1,14 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-11 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.screens
 
-import android.widget.Toast
+import com.music.bitchord.ui.feedback.AppFeedback
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,7 +87,7 @@ fun PartyServerEditor(hazeState: HazeState, onDismiss: () -> Unit) {
                         ServerConnectionState.Checking -> null
                     }
                     if (messageRes != null) {
-                        Toast.makeText(context, context.getString(messageRes), Toast.LENGTH_SHORT).show()
+                        AppFeedback.makeText(context, context.getString(messageRes), AppFeedback.LENGTH_SHORT).show()
                     }
                     onDismiss()
                 }
@@ -93,10 +101,10 @@ fun PartyServerEditor(hazeState: HazeState, onDismiss: () -> Unit) {
         scope.launch {
             ListenTogether.setCustomServerUrl("")
             busy = false
-            Toast.makeText(
+            AppFeedback.makeText(
                 context,
                 context.getString(R.string.listen_together_switched_to_default),
-                Toast.LENGTH_SHORT,
+                AppFeedback.LENGTH_SHORT,
             ).show()
             onDismiss()
         }

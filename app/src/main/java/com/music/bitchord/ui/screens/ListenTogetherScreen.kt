@@ -1,8 +1,16 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.screens
 
 import android.content.Intent
 import android.text.format.DateFormat
-import android.widget.Toast
+import com.music.bitchord.ui.feedback.AppFeedback
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -454,10 +462,10 @@ fun ListenTogetherScreen(
                     },
                     onCopyCode = {
                         clipboard.setText(AnnotatedString(state.code.orEmpty()))
-                        Toast.makeText(
+                        AppFeedback.makeText(
                             context,
                             context.getString(R.string.copy_code),
-                            Toast.LENGTH_SHORT,
+                            AppFeedback.LENGTH_SHORT,
                         ).show()
                     },
                 )

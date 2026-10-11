@@ -1,7 +1,15 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const appUrl = 'https://github.com/sh1vvy/daylight';
 const downloadUrl = `${appUrl}/releases/latest/download/daylight.apk`;
-const devDownloadUrl = `${appUrl}/releases/latest/download/daylight-dev.apk`;
+const devDownloadUrl = `${appUrl}/releases/download/v0.2.2-dev.6/daylight-dev.apk`;
 const releaseUrl = `${appUrl}/releases/latest`;
 const appVersion = '0.2.1';
 const icons = {
@@ -38,7 +46,7 @@ function codeForm({error, input = ''} = {}) {
 function illustration() {
   return `<div class="hero-art" aria-hidden="true">
     <div class="art-caption">a little closer, one song at a time</div>
-    <div class="sleeve"><span class="sleeve-word">daylight</span><div class="sleeve-sun"></div><div class="sleeve-horizon"></div><span class="sleeve-note">SIDE A &nbsp; / &nbsp; TOGETHER</span></div>
+    <div class="sleeve"><img class="sleeve-word" src="/assets/daylight-wordmark-v2.svg" width="186" height="55" alt=""><div class="sleeve-sun"></div><div class="sleeve-horizon"></div><span class="sleeve-note">SIDE A &nbsp; / &nbsp; TOGETHER</span></div>
     <div class="record"><div class="record-label"><img src="/assets/daylight-mark.svg" alt="" width="64" height="46"><span>our kind of company</span><i></i></div></div>
     <div class="art-note">${icon('heart')} sounds better with you.</div>
     <span class="spark spark-one">✦</span><span class="spark spark-two">✧</span>
@@ -100,13 +108,13 @@ export function landing(room, origin, status = 200, options = {}) {
 <meta property="og:title" content="${escape(title)}"><meta property="og:description" content="${escape(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escape(inviteUrl)}">
 ${status !== 200 ? '<meta name="robots" content="noindex">' : ''}<link rel="canonical" href="${escape(inviteUrl)}"><title>${escape(title)}</title>
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="preload" href="/assets/Inter-Regular-v4.1.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/jam-v2.css"><script src="/assets/jam-v1.js" defer></script></head>
+<link rel="stylesheet" href="/assets/jam-v4.css"><script src="/assets/jam-v1.js" defer></script></head>
 <body><a class="skip-link" href="#main">Skip to content</a><div class="page">
-<header class="site-header"><a class="brand" href="/" aria-label="Daylight Jam home"><img src="/assets/daylight-mark.svg" width="42" height="31" alt=""><span>daylight</span><span class="brand-divider"></span><span class="brand-jam">jam</span></a>
+<header class="site-header"><a class="brand" href="/" aria-label="Daylight Jam home"><img class="brand-butterfly" src="/assets/daylight-mark.svg" width="36" height="26" alt=""><img class="brand-wordmark" src="/assets/daylight-wordmark-v2.svg" width="136" height="40" alt="daylight"><span class="brand-divider"></span><span class="brand-jam">jam</span></a>
 <a class="app-link" href="${downloadUrl}" aria-label="Download Daylight for Android">${icon('phone')} Get Daylight ${icon('download')}</a></header>
 <main id="main"><section class="hero${active ? ' hero-invite' : ''}">${content}${illustration()}</section>${active ? '' : steps()}</main>
 <footer class="site-footer"><div><p class="footer-message">A shared moment. A little daylight.</p><p class="byline">Made with care by <a href="https://sh1vvy.com">sh1vvy ${icon('external')}</a></p></div>
-<div class="footer-links"><a href="${appUrl}">The app ${icon('external')}</a><details class="credits"><summary>Credits</summary><div><p>Daylight is open source, based on <a href="https://github.com/kushagrasinghx/BitChord">BitChord</a>, under <a href="${appUrl}/blob/main/LICENSE">GPL-3.0</a>.</p><p>© art by 11 (<a href="https://www.instagram.com/_artbyeleven/">_artbyeleven on IG</a>)</p><p>Set in <a href="/assets/font-license.txt">Inter by Rasmus Andersson</a>.</p></div></details></div></footer>
+<div class="footer-links"><a href="${appUrl}">The app ${icon('external')}</a><details class="credits"><summary>Credits</summary><div><p>Daylight modifications by sh1vvy. Copyright © 2026 sh1vvy for copyrightable Daylight contributions. <a href="/legal/DAYLIGHT-NOTICE.md">Attribution terms</a>.</p><p>Daylight is open source, based on <a href="https://github.com/kushagrasinghx/BitChord">BitChord</a>, under <a href="${appUrl}/blob/main/LICENSE">GPL-3.0</a>.</p><p>© art by 11 (<a href="https://www.instagram.com/_artbyeleven/">_artbyeleven on IG</a>)</p><p>Set in <a href="/assets/font-license.txt">Inter by Rasmus Andersson</a>.</p></div></details></div></footer>
 </div></body></html>`, {status, headers:{
     'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer',
     'Content-Security-Policy':"default-src 'none'; style-src 'self'; script-src 'self'; font-src 'self'; img-src 'self'; connect-src 'none'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",

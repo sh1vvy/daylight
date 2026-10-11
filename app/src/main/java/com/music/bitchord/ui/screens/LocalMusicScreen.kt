@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.screens
 
 import androidx.activity.compose.BackHandler
@@ -22,6 +30,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -78,6 +87,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
@@ -93,6 +104,8 @@ import com.music.bitchord.data.model.CARD_ART_PX
 import com.music.bitchord.data.model.ROW_ART_PX
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.R
+import com.music.bitchord.sharedui.resources.Res
+import com.music.bitchord.sharedui.resources.library_collection_empty
 import com.music.bitchord.ui.components.ExplicitSongTitle
 import com.music.bitchord.data.model.artworkAt
 import com.music.bitchord.data.model.isSameTrackAs
@@ -120,6 +133,8 @@ import java.util.Locale
 private const val LOCAL_TAB_SONGS = 0
 private const val LOCAL_TAB_ARTISTS = 1
 private const val LOCAL_TAB_ALBUMS = 2
+private const val LOCAL_TAB_PLAYLISTS = 3
+private const val DOWNLOADS_HUB = -1
 
 /**
  * Local Music folder view with three tabs: Songs (default), Artists, Albums.
@@ -176,8 +191,7 @@ fun LocalMusicScreen(
     /** Copies the selected Downloads rows to the WebDAV server; null hides the action. */
     modifier: Modifier = Modifier,
 ) {
-    // Which top-level tab is selected.
-    var selectedTab by rememberSaveable { mutableIntStateOf(LOCAL_TAB_SONGS) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(if (isDownloads) DOWNLOADS_HUB else LOCAL_TAB_SONGS) }
 
     // Narrows whichever tab is showing — songs by title/artist/album, artists
     // and albums by name. Not saved across process death: a filter left on a
@@ -239,6 +253,14 @@ fun LocalMusicScreen(
         selectedAlbumKeys = emptySet()
     }
     BackHandler(enabled = inDrillDown && !selectingDownloads) { leaveDrillDown() }
+    BackHandler(enabled = isDownloads && selectedTab != DOWNLOADS_HUB && !inDrillDown && !selectingDownloads) {
+        selectedTab = DOWNLOADS_HUB
+    }
+
+    if (isDownloads && selectedTab == DOWNLOADS_HUB) {
+        DownloadedLibraryHub(contentPadding, modifier) { selectedTab = it }
+        return
+    }
 
     // The tab row is fixed above the scrolling content, so its own top
     // padding has to clear the frosted top bar / status bar that the
@@ -340,6 +362,12 @@ fun LocalMusicScreen(
                     selectedTab = LOCAL_TAB_ALBUMS
                     leaveDrillDown()
                 },
+            )
+            if (isDownloads) LocalTab(
+                icon = Icons.AutoMirrored.Rounded.QueueMusic,
+                label = stringResource(R.string.playlists),
+                selected = selectedTab == LOCAL_TAB_PLAYLISTS,
+                onClick = { selectedTab = LOCAL_TAB_PLAYLISTS; leaveDrillDown() },
             )
         }
 
@@ -454,16 +482,17 @@ fun LocalMusicScreen(
                 }
 
                 else -> {
-                    // LOCAL_TAB_ALBUMS
-                    val albums = remember(sortedSongs, collections, searchQuery) {
+                    val playlistsOnly = key == "tab:$LOCAL_TAB_PLAYLISTS"
+                    val albums = remember(sortedSongs, collections, searchQuery, playlistsOnly, isDownloads) {
                         albumEntries(sortedSongs, collections).filter {
-                            searchQuery.isBlank() ||
+                            (!isDownloads || it.playlist == playlistsOnly) && (searchQuery.isBlank() ||
                                 it.title.contains(searchQuery, ignoreCase = true) ||
-                                it.artist.contains(searchQuery, ignoreCase = true)
+                                it.artist.contains(searchQuery, ignoreCase = true))
                         }
                     }
                     AlbumsTab(
                         albums = albums,
+                        playlistsOnly = playlistsOnly,
                         viewType = viewType,
                         selectedKeys = selectedAlbumKeys,
                         onAlbumClick = { entry ->
@@ -484,6 +513,37 @@ fun LocalMusicScreen(
                         contentPadding = bodyContentPadding,
                     )
                 }
+            }
+        }
+    }
+}
+
+/** Downloads starts with the same quiet category hierarchy as the main library. */
+@Composable
+private fun DownloadedLibraryHub(contentPadding: PaddingValues, modifier: Modifier, onOpen: (Int) -> Unit) {
+    val categories = listOf(
+        Triple(LOCAL_TAB_PLAYLISTS, Icons.AutoMirrored.Rounded.QueueMusic, stringResource(R.string.playlists)),
+        Triple(LOCAL_TAB_ARTISTS, Icons.Rounded.Person, stringResource(R.string.artists)),
+        Triple(LOCAL_TAB_ALBUMS, Icons.Rounded.Album, stringResource(R.string.albums)),
+        Triple(LOCAL_TAB_SONGS, Icons.Rounded.MusicNote, stringResource(R.string.songs)),
+    )
+    LazyColumn(modifier.fillMaxSize().testTag("library-downloads-hub"), contentPadding = contentPadding) {
+        item(key = "heading", contentType = "heading") {
+            Text(stringResource(R.string.downloads), style = MaterialTheme.typography.displayLarge, color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = PAGE_GUTTER + 4.dp, vertical = 12.dp))
+        }
+        items(categories, key = { it.first }, contentType = { "category" }) { (tab, icon, title) ->
+            Column(Modifier.padding(horizontal = PAGE_GUTTER + 4.dp).testTag("library-downloads-category:$tab")
+                .clickable { onOpen(tab) }) {
+                Row(Modifier.fillMaxWidth().heightIn(min = 62.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                    Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(28.dp))
+                    Text(title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Normal),
+                        color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                    Icon(BitChordIcons.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                        modifier = Modifier.size(20.dp))
+                }
+                HorizontalDivider(Modifier.padding(start = 46.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
             }
         }
     }
@@ -937,6 +997,7 @@ private fun albumEntries(
 @Composable
 private fun AlbumsTab(
     albums: List<AlbumEntry>,
+    playlistsOnly: Boolean = false,
     viewType: LibraryViewType,
     selectedKeys: Set<String> = emptySet(),
     onAlbumClick: (AlbumEntry) -> Unit,
@@ -960,15 +1021,16 @@ private fun AlbumsTab(
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 SectionHeader(
-                    icon = Icons.Rounded.Album,
-                    title = pluralStringResource(R.plurals.album_count, albums.size, albums.size),
+                    icon = if (playlistsOnly) Icons.AutoMirrored.Rounded.QueueMusic else Icons.Rounded.Album,
+                    title = if (playlistsOnly) stringResource(R.string.playlists) else pluralStringResource(R.plurals.album_count, albums.size, albums.size),
                     modifier = Modifier.padding(horizontal = 0.dp, vertical = 10.dp),
                 )
             }
             if (albums.isEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     MessageState(
-                        message = stringResource(R.string.no_local_albums),
+                        message = if (playlistsOnly) org.jetbrains.compose.resources.stringResource(Res.string.library_collection_empty)
+                            else stringResource(R.string.no_local_albums),
                     )
                 }
             }
@@ -990,14 +1052,15 @@ private fun AlbumsTab(
         ) {
             item {
                 SectionHeader(
-                    icon = Icons.Rounded.Album,
-                    title = pluralStringResource(R.plurals.album_count, albums.size, albums.size),
+                    icon = if (playlistsOnly) Icons.AutoMirrored.Rounded.QueueMusic else Icons.Rounded.Album,
+                    title = if (playlistsOnly) stringResource(R.string.playlists) else pluralStringResource(R.plurals.album_count, albums.size, albums.size),
                 )
             }
             if (albums.isEmpty()) {
                 item {
                     MessageState(
-                        message = stringResource(R.string.no_local_albums),
+                        message = if (playlistsOnly) org.jetbrains.compose.resources.stringResource(Res.string.library_collection_empty)
+                            else stringResource(R.string.no_local_albums),
                     )
                 }
             }

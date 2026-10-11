@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-10 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord
 
 import android.graphics.Bitmap
@@ -6,6 +14,8 @@ import android.os.Build
 import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
@@ -66,7 +76,10 @@ class CanaryLibrarySongsNativeTest {
                 click { it.contentDescription?.toString() == context.getString(R.string.library) && bounds(it).centerY() > 1200 }
                 waitNode { hasText(it, context.getString(R.string.auto_liked)) }
                 waitNode { hasText(it, context.getString(R.string.downloads)) }
+                compose.onNodeWithContentDescription(context.getString(R.string.more)).performClick()
                 waitNode { hasText(it, context.getString(R.string.cached_songs)) }
+                instrumentation.sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+                compose.waitForIdle()
                 screenshot("library-songs-shortcut")
                 click { hasText(it, context.getString(R.string.auto_liked)) }
                 waitNode { hasText(it, songs.first().title) }

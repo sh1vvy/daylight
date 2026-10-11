@@ -3634,7 +3634,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "dc7bcaf4d52cb4504c7a67f7e986f946490a40950c9cebfc2110da2423b11b36"
+      "source_sha256": "bceb0a75a242ee947d04f17bb178b9790c1f96abee1ad54d80b99396a491138d"
     },
     {
       "path": "docs/DESIGN_LANGUAGE.md",
@@ -4968,6 +4968,17 @@
       "source_sha256": "91811476f33bc6393d5eaef53df2677b89623993f97780279ecdc59acf0825f4"
     },
     {
+      "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/PlayerQueue.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-09",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": "2c3024eb654df4b51f8bbe69e86ecf0e3068014c",
+      "source_sha256": "3036c1c93e39616de9e6c6bfcc6a9034e206a27322778ff3e03a41020d11bd7d"
+    },
+    {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/PlayerSidePanels.kt",
       "authors": [
         "sh1vvy"
@@ -5186,6 +5197,17 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
       "source_sha256": "b7a259710eda2ac707eb97c632060d838a67b07b0ff86837d6d1d4ad733f8865"
+    },
+    {
+      "path": "sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/player/QueueRowKeysTest.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "e4a004e709f9f42106f0f8dc27062f2e6275fb368b58a7e7e18b835025aa72e1"
     },
     {
       "path": "sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/screens/HomeQuickPicksTest.kt",

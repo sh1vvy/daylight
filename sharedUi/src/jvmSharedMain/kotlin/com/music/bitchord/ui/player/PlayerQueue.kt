@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-09 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.player
 
 import com.music.bitchord.sharedui.resources.*
@@ -169,20 +177,21 @@ private class QueueTracks(
     }
 }
 
+/** Keep entry identity through reorders, including repeated IDs from restored queues. */
+internal fun queueRowKeys(queue: List<Song>): List<String> =
+    com.music.bitchord.ui.components.stableItemKeys(queue) {
+        it.queueEntryId?.let { id -> "entry:$id" } ?: "track:${it.videoId}"
+    }
+
 private fun splitQueue(queue: List<Song>, currentIndex: Int): QueueTracks {
     if (currentIndex !in queue.indices) return QueueTracks.EMPTY
     // Keyed by the entry's own id, so a row keeps its identity through a reorder.
-    // Entries without one (a party's tracks, a queue restored from before ids
-    // existed) fall back to the song plus how many times it has come up so far
-    // — never its position, which changes on every swap and would end the drag.
-    val seen = HashMap<String, Int>()
-    val occurrence = IntArray(queue.size) { i ->
-        val id = queue[i].videoId
-        seen.getOrDefault(id, 0).also { seen[id] = it + 1 }
-    }
+    // Restored/manual requests can repeat an entry ID. Each occurrence still
+    // needs its own row; unique entry IDs retain their key through a reorder.
+    val keys = queueRowKeys(queue)
     fun track(index: Int, prefix: String): QueueTrack {
         val song = queue[index]
-        return QueueTrack(index, song, prefix + "_" + (song.queueEntryId ?: "${song.videoId}#${occurrence[index]}"))
+        return QueueTrack(index, song, prefix + "_" + keys[index])
     }
     val user = ArrayList<QueueTrack>()
     val context = ArrayList<QueueTrack>()

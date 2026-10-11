@@ -29,8 +29,11 @@ Original authors' notices and licenses remain applicable to their material.
   containers now use Daylight's warm palette. Material cards, fields, menus and
   dialogs use one corner scale; Pink and Liquid Glass retain their existing
   palettes/finish. The shared rules are in `docs/DESIGN_LANGUAGE.md`.
+- Repeated or restored queue-entry IDs receive distinct row keys. Duplicate
+  requests remain visible without a LazyColumn key collision; ordinary entry
+  identities remain stable during reordering and audio-version changes.
 
-**Validation:** 1,490 unit checks passed; one optional live-provider check skipped.
+**Validation:** 1,493 unit checks passed; one optional live-provider check skipped.
 Five distinct native emulator checks passed: magnetic Quick Picks, delayed
 refresh stability/paging, cached Home/playlist restoration, Library navigation
 and real mini-player/folding controls across all six theme/glass combinations.

@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-11 through 2026-10-11.
+ * Daylight changes: 2026-10-11 through 2026-10-12.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -25,7 +25,15 @@ import androidx.media3.datasource.cache.ContentMetadataMutations
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntOffset
+import com.music.bitchord.ui.player.PlayerDock
+import com.music.bitchord.ui.player.LocalPlayerDock
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.unit.dp
@@ -67,6 +75,9 @@ class CanaryDaylightPlayerNativeTest {
     private var removed = -1
     private var mode by mutableStateOf(PlayerExperience.DAYLIGHT)
     private var playing by mutableStateOf(false)
+    private var autoplay by mutableStateOf(true)
+    private var shuffled by mutableStateOf(false)
+    private var repeat by mutableIntStateOf(0)
     private var missing by mutableStateOf(false)
     private var landscape by mutableStateOf(false)
     private var dark by mutableStateOf(true)
@@ -101,11 +112,11 @@ class CanaryDaylightPlayerNativeTest {
                 isPlaying = playing, isLoading = false, position = position, durationMs = 120_000,
                 audioVersionSwitching = false, qualityUpgraded = false,
                 queue = listOf(song, song.copy(title = "Second track", queueEntryId = "second"), song.copy(title = "Second track", queueEntryId = "third")),
-                queueIndex = 0, hasPrevious = true, hasNext = true, repeatMode = 0, shuffleEnabled = false, autoplayEnabled = true,
+                queueIndex = 0, hasPrevious = true, hasNext = true, repeatMode = repeat, shuffleEnabled = shuffled, autoplayEnabled = autoplay,
                 signedIn = true, accountName = "Daylight QA", likeStatus = LikeStatus.INDIFFERENT,
                 onToggleLike = { taps.incrementAndGet() }, onPlayPause = { taps.incrementAndGet(); playing = !playing }, onNext = { taps.incrementAndGet() }, onPrevious = { taps.incrementAndGet() },
                 onBlockedControl = {}, onSeek = { seek = it }, onSeekFraction = { seek = (it * 120_000).toLong() },
-                onToggleShuffle = { taps.incrementAndGet() }, onCycleRepeat = { taps.incrementAndGet() }, onToggleAutoplay = { taps.incrementAndGet() },
+                onToggleShuffle = { taps.incrementAndGet(); shuffled = !shuffled }, onCycleRepeat = { taps.incrementAndGet(); repeat = (repeat + 1) % 3 }, onToggleAutoplay = { taps.incrementAndGet(); autoplay = !autoplay },
                 onJumpTo = { jumped = it }, onRemoveFromQueue = { removed = it }, onMoveInQueue = { _, _ -> }, onClearQueue = { taps.incrementAndGet() },
                 onOpenMenu = { taps.incrementAndGet() }, onOpenAlbum = {}, onOpenArtist = { _, _ -> }, onOpenPlaybackSource = {}, onListenTogether = {},
                 lyrics = if (missing) emptyList() else lines, lyricsSource = null, lyricsProviderStates = emptyMap(), onSelectLyricsProvider = {},
@@ -113,6 +124,50 @@ class CanaryDaylightPlayerNativeTest {
                 windowWidth = if (landscape) 800.dp else 360.dp, windowHeight = if (landscape) 360.dp else 800.dp,
                 modifier = Modifier)
         }
+        }
+    }
+
+    @Test fun surfaceDockUsesActualMiniBoundsAndTheTimelineSeeksAccessibly() {
+        requireDisposableEmulator()
+        AppSettings.setAnimatedCanvas(false)
+        val song = Song("new-player-qa", "An ordinary track", "Daylight QA", art("new-player-dock", Color.rgb(166, 45, 87), Color.rgb(26, 23, 52)))
+        var held by mutableFloatStateOf(0f)
+        val dock = PlayerDock().apply { sheetOffset = { held } }
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { it.setContent {
+                Box(Modifier.fillMaxSize().onSizeChanged { dock.sheetTravel = it.height.toFloat() }) {
+                    Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 88.dp, start = 16.dp, end = 16.dp).fillMaxWidth().height(56.dp)
+                        .onGloballyPositioned(dock::reportMiniSurface)) {
+                        Box(Modifier.align(Alignment.CenterStart).padding(start = 12.dp).size(40.dp).testTag("dock-target")
+                            .onGloballyPositioned { dock.reportMiniArt(it, 8.dp) })
+                    }
+                    Box(Modifier.offset { IntOffset(0, held.toInt()) }) {
+                        CompositionLocalProvider(LocalPlayerDock provides dock) { fixture(song) }
+                    }
+                }
+            } }
+            compose.waitForIdle()
+            val full = compose.onNodeWithTag("daylight-player-artwork", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+            compose.runOnIdle { held = dock.sheetTravel * .5f }
+            compose.waitForIdle()
+            val half = compose.onNodeWithTag("daylight-player-artwork", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+            screenshot("daylight-dock-midpoint")
+            assertTrue("Cover narrows continuously", half.width < full.width && half.width > 40 * context.resources.displayMetrics.density)
+            compose.runOnIdle { held = dock.sheetTravel }
+            compose.waitForIdle()
+            val landed = compose.onNodeWithTag("daylight-player-artwork", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+            val target = compose.onNodeWithTag("dock-target").fetchSemanticsNode().boundsInRoot
+            assertEquals(target.left, landed.left, 2f)
+            assertEquals(target.top, landed.top, 2f)
+            assertEquals(target.width, landed.width, 2f)
+            assertEquals(target.height, landed.height, 2f)
+            screenshot("daylight-dock-landed")
+            compose.runOnIdle { held = 0f }
+            compose.waitForIdle()
+            compose.onNodeWithTag("player-progress-bar").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(.65f) }
+            assertEquals(78_000L, seek)
+            compose.onNodeWithTag("player-progress-bar").performTouchInput { swipeLeft(startX = width * .8f, endX = width * .2f) }
+            assertTrue("Dragging the track left advances time", seek > 60_000L)
         }
     }
 
@@ -138,6 +193,12 @@ class CanaryDaylightPlayerNativeTest {
                         val title = compose.onNodeWithText("An ordinary track").fetchSemanticsNode().boundsInRoot
                         assertTrue("Heart is left of the title", heart.right <= title.left)
                         assertTrue("Menu is right of the title", menu.left >= title.right)
+                        val heartGlyph = compose.onNodeWithTag("daylight-player-heart-glyph", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+                        val menuGlyph = compose.onNodeWithTag("daylight-player-menu-glyph", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+                        val elapsed = compose.onNodeWithTag("daylight-player-elapsed").fetchSemanticsNode().boundsInRoot
+                        val remaining = compose.onNodeWithTag("daylight-player-remaining").fetchSemanticsNode().boundsInRoot
+                        assertEquals("Heart shares the elapsed timer's fixed left edge", elapsed.left, heartGlyph.left, 2f)
+                        assertEquals("Menu shares the remaining timer's fixed right edge", remaining.right, menuGlyph.right, 2f)
                         compose.onNodeWithTag("daylight-player-play").performClick()
                         compose.mainClock.advanceTimeBy(600)
                         compose.onNodeWithText("An ordinary track").assertIsDisplayed()
@@ -170,16 +231,30 @@ class CanaryDaylightPlayerNativeTest {
             ActivityScenario.launch(MainActivity::class.java).use { scenario ->
                 scenario.onActivity { it.setContent { fixture(song) } }
                 compose.waitForIdle()
+                compose.runOnIdle { position.report(0L) }
                 compose.onNodeWithTag("daylight-player-lyrics").performClick()
                 compose.waitForIdle()
                 compose.onNodeWithTag("daylight-player-lyric-list").assertIsDisplayed()
+                compose.onNodeWithTag("daylight-accompanist-lyrics").assertIsDisplayed()
+                compose.onNodeWithText("Lyrics").assertDoesNotExist()
+                compose.onNodeWithContentDescription("Choose lyrics provider").assertDoesNotExist()
+                compose.onNodeWithContentDescription("Lyrics offset").assertDoesNotExist()
+                compose.onNodeWithTag("daylight-player-menu").assertIsDisplayed()
+                compose.onNodeWithTag("daylight-player-autoplay").assertDoesNotExist()
+                compose.onNodeWithTag("daylight-player-shuffle").assertDoesNotExist()
+                compose.onNodeWithTag("daylight-player-repeat").assertDoesNotExist()
                 compose.onNodeWithText("Daylight line 1").performClick()
-                assertEquals("Negative display offsets must not shift a line's audio seek target", 0L, seek)
+                assertEquals("Offset seeks match the established renderer and clamp to audio start", 0L, seek)
                 compose.onNodeWithText("Daylight line 2").performClick()
-                assertEquals(2_000L, seek)
+                assertEquals(1_000L, seek)
                 screenshot("daylight-lyrics")
                 compose.onNodeWithTag("daylight-player-queue").performClick()
                 compose.waitForIdle()
+                compose.onNodeWithTag("daylight-player-autoplay").assertIsSelected().performClick().assertIsNotSelected()
+                compose.onNodeWithText("AutoPlay off").assertIsDisplayed()
+                compose.onNodeWithTag("daylight-player-shuffle").assertIsNotSelected().performClick().assertIsSelected()
+                compose.onNodeWithTag("daylight-player-repeat").assertIsNotSelected().performClick().assertIsSelected()
+                compose.onNodeWithText("Repeat one").assertIsDisplayed()
                 compose.onAllNodesWithText("Second track").assertCountEquals(2)
                 compose.onAllNodesWithText("Second track")[0].performClick()
                 assertEquals(1, jumped)
@@ -300,7 +375,7 @@ class CanaryDaylightPlayerNativeTest {
     private fun screenshot(name: String) {
         SystemClock.sleep(400)
         val bitmap = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
-        val file = File(context.getExternalFilesDir(null), "canary-18-player/$name.png")
+        val file = File(context.getExternalFilesDir(null), "canary-19-player/$name.png")
         file.parentFile?.mkdirs(); file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }; bitmap.recycle()
     }
 }

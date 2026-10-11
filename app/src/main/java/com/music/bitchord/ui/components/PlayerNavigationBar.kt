@@ -355,6 +355,7 @@ private fun NowPlayingAccessory(
                 scaleY = pressScale
             }
             .then(modifier)
+            .playerDockSurface(dock)
             .clickable(
                 interactionSource = pressSource,
                 indication = null,

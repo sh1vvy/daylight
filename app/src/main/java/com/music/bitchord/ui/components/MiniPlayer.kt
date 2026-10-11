@@ -344,6 +344,16 @@ internal fun Modifier.playerDockArt(dock: PlayerDock?, corner: Dp): Modifier {
         .graphicsLayer { alpha = if (dock.coversMiniArt) 0f else 1f }
 }
 
+/** Reports the actual pill, including its parent's transforms, without observing scroll frames. */
+@Composable
+internal fun Modifier.playerDockSurface(dock: PlayerDock?): Modifier {
+    if (dock == null) return this
+    val placed = remember { arrayOfNulls<LayoutCoordinates>(1) }
+    DisposableEffect(dock) { onDispose { placed[0]?.let(dock::releaseMiniSurface) } }
+    return onPlaced { placed[0] = it; dock.reportMiniSurface(it) }
+        .graphicsLayer { alpha = if (dock.coversMiniContent) 0f else 1f }
+}
+
 /** Tonal mini player that shares the floating controls' theme treatment. */
 @Composable
 fun MiniPlayer(
@@ -389,6 +399,7 @@ fun MiniPlayer(
                 locked = controlsLocked,
                 onBlocked = onBlockedControl,
             )
+            .playerDockSurface(dock)
             .clip(shape)
             .then(
                 if (reduceDynamicBlur) {

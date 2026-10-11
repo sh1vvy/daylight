@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-11 through 2026-10-11.
+ * Daylight changes: 2026-10-11 through 2026-10-12.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -43,45 +43,6 @@ fun projectedPosition(sample: PlayheadSample, nowNanos: Long, playing: Boolean, 
     return if (durationMs > 0) position.coerceAtMost(durationMs) else position
 }
 
-@Immutable
-data class TimedToken(val text: String, val startMs: Long, val endMs: Long, val startChar: Int, val endChar: Int)
-
-@Immutable
-data class PlayerLyric(val text: String, val startMs: Long, val endMs: Long?, val tokens: List<TimedToken> = emptyList(), val seekMs: Long = startMs)
-
-/** One prepared index per transcription; frame reads perform a logarithmic lookup. */
-class LyricTimeline(lines: List<PlayerLyric>) {
-    val synced = lines.any { it.startMs >= 0 && (it.startMs > 0 || it.tokens.isNotEmpty() || it.endMs != null) }
-    val lines = if (synced) lines.filter { it.startMs >= 0 }.sortedBy { it.startMs } else lines
-    private val starts = this.lines.map { it.startMs }.toLongArray()
-
-    fun activeAt(positionMs: Long): Int {
-        if (!synced || starts.isEmpty() || positionMs < starts[0]) return -1
-        var low = 0
-        var high = starts.lastIndex
-        while (low <= high) {
-            val mid = (low + high).ushr(1)
-            if (starts[mid] <= positionMs) low = mid + 1 else high = mid - 1
-        }
-        return high
-    }
-
-    /** Unicode character ranges are prepared by the adapter, with repeated words kept distinct. */
-    fun revealedChars(index: Int, positionMs: Long): Float {
-        val line = lines.getOrNull(index) ?: return 0f
-        if (positionMs < line.startMs) return 0f
-        if (line.tokens.isEmpty()) return line.text.length.toFloat()
-        for (token in line.tokens) {
-            if (positionMs < token.startMs) return token.startChar.toFloat()
-            if (positionMs < token.endMs) {
-                val progress = (positionMs - token.startMs).toFloat() / (token.endMs - token.startMs).coerceAtLeast(1)
-                return token.startChar + (token.endChar - token.startChar) * progress
-            }
-        }
-        return line.text.length.toFloat()
-    }
-}
-
 data class PlayerActions(
     val playPause: () -> Unit,
     val previous: () -> Unit,
@@ -108,5 +69,7 @@ data class PlayerLabels(
     val lyrics: String, val queue: String, val output: String, val close: String,
     val like: String, val menu: String, val shuffle: String, val repeat: String,
     val autoplay: String, val remove: String, val clear: String,
-    val lyricsLoading: String, val lyricsUnavailable: String, val resumeLyrics: String,
+    val shuffleOn: String, val shuffleOff: String,
+    val repeatOne: String, val repeatAll: String, val repeatOff: String,
+    val autoplayOn: String, val autoplayOff: String,
 )

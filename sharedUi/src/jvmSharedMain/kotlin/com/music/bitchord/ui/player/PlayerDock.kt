@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-11 through 2026-10-12.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.player
 
 import androidx.compose.runtime.Stable
@@ -11,6 +19,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 
@@ -38,6 +47,22 @@ class PlayerDock {
      */
     private var miniArt: LayoutCoordinates? = null
     private var miniArtCorner: Dp = 8.dp
+    private var miniSurface: LayoutCoordinates? = null
+    var surfaceAttached by mutableStateOf(false)
+        internal set
+    var dragSurface: ((Float) -> Unit)? = null
+    var releaseSurface: ((Float) -> Unit)? = null
+
+    fun reportMiniSurface(coordinates: LayoutCoordinates) { miniSurface = coordinates }
+    fun releaseMiniSurface(coordinates: LayoutCoordinates) {
+        if (miniSurface === coordinates) miniSurface = null
+    }
+    internal fun miniSurfaceOnScreen(): Rect? {
+        val coordinates = miniSurface?.takeIf { it.isAttached } ?: return null
+        return Rect(coordinates.localToScreen(Offset.Zero), coordinates.localToScreen(Offset(coordinates.size.width.toFloat(), coordinates.size.height.toFloat())))
+    }
+    private val coversMiniContentState = derivedStateOf { surfaceAttached && openFraction() > 0f }
+    val coversMiniContent: Boolean get() = coversMiniContentState.value
 
     /**
      * How far the player sheet sits below fully open, in pixels. Set by the
@@ -85,6 +110,13 @@ class PlayerDock {
     }
 
     internal fun miniArtCorner(): Dp = miniArtCorner
+
+    /** Glass can scale its accessory; the landing radius must share that screen-space scale. */
+    internal fun miniArtRadiusOnScreen(density: Density): Float {
+        val coordinates = miniArt?.takeIf { it.isAttached && it.size.width > 0 } ?: return 0f
+        val bounds = miniArtOnScreen() ?: return 0f
+        return with(density) { miniArtCorner.toPx() } * bounds.width / coordinates.size.width
+    }
 
     /** The sheet's offset this frame, or null with no sheet laid out. */
     internal fun offset(): Float? = sheetOffset?.invoke()?.takeUnless { it.isNaN() }

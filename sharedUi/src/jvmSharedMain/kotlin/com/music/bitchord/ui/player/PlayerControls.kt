@@ -270,7 +270,7 @@ internal fun PlayerScrubber(
  * shadow gives the label a restrained glow without recomposing the player.
  */
 @Composable
-private fun MixingLabel(pulse: MixPulse, modifier: Modifier = Modifier, ink: Color = Color.White) {
+internal fun MixingLabel(pulse: MixPulse, modifier: Modifier = Modifier, ink: Color = Color.White) {
     Text(
         text = stringResource(Res.string.mixing),
         modifier = modifier.graphicsLayer { alpha = pulse.cover * pulse.alpha(1f, restShare = MIXING_LABEL_REST) },

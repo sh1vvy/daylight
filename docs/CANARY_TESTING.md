@@ -1,12 +1,46 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-10 through 2026-10-11.
+Daylight changes: 2026-10-10 through 2026-10-12.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
 
-# Internal candidate: Canary 18
+# Internal candidate: Canary 19
+
+**0.2.2-canary.19 · Android code 40 · manual testing only**
+
+- Daylight player opens from and settles into the actual mini-player pill.
+  A downward drag follows the finger; release velocity continues into the
+  shared settling spring. Surface, artwork and compact transport are connected.
+  Animated artwork holds its decoded frame during the movement.
+- Queue and lyrics reorganize the same player: the artwork becomes a compact
+  cover, track information moves to the top and the playback deck remains
+  available. Removed separate opaque panel cards. Queue opens with an upward
+  spring, supports its existing controls and stays independent of sheet drags.
+- Fixed warm center playhead with a translating timeline. Upcoming audio is a
+  thicker bright track; elapsed audio becomes thin, tinted and translucent.
+  Dragging the track seeks in the opposite direction. Accessible adjustment,
+  elapsed/remaining times, confirmed quality and Automix's subtle glow remain.
+- Uses the established lyric renderer with the credited Accompanist spring
+  trail, word/syllable highlighting, focus blur and existing timing settings.
+  Removed the extra Lyrics heading, provider menu and settings button from the
+  panel. Preferences remain in app settings. No extra lyric request or audio owner.
+- Queue-only shuffle, repeat and autoplay pills have contrasting selected fills
+  and explicit state labels. Lyrics stay free of these controls. The closing
+  cover rounds continuously to the measured mini cover radius, including glass
+  accessory scaling. Timeline endpoints stay rounded at the viewport edges;
+  the main heart/menu glyphs align with the elapsed/remaining timers.
+- Current remains available and the default for existing installs. Optimized
+  internal canary only; public Dev.9 and stable 0.2.1 are unchanged.
+
+Validation and local APKs: `output/canary-0.2.2-canary.19/`. The optional mode is
+under **Settings → Appearance → Player style → Daylight**. Rewrite boundaries
+and remaining presentation scope are documented in `docs/PLAYER_REWRITE.md`.
+
+---
+
+# Previous candidate: Canary 18
 
 **0.2.2-canary.18 · Android code 39 · manual testing only**
 

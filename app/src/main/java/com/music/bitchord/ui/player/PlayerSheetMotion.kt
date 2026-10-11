@@ -1,3 +1,11 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-11 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.player
 
 import android.view.Window
@@ -251,7 +259,31 @@ class PlayerSheetMotion(
         held = (held + delta).coerceIn(0f, travel())
     }
 
+    /** A downward pull on the expanded surface owns the same spring as the mini player's lift. */
+    fun dragExpanded(delta: Float) {
+        if (!shown()) return
+        if (!holding && delta <= 0f) return
+        closing = false
+        if (!holding) {
+            settle?.cancel()
+            closing = false
+            held = position().takeUnless { it.isNaN() } ?: 0f
+            pullStartAt = held
+            pullStartNanos = System.nanoTime()
+        }
+        settle?.cancel()
+        held = (held + delta).coerceIn(0f, travel())
+    }
+
     override fun release(velocity: Float) {
+        settlePull(velocity, .5f)
+    }
+
+    fun releaseExpanded(velocity: Float) {
+        settlePull(velocity, .22f)
+    }
+
+    private fun settlePull(velocity: Float, closeThreshold: Float) {
         if (!holding) return
         val travel = travel()
         // The finger's speed as it lifted, or across the whole pull if that
@@ -262,7 +294,7 @@ class PlayerSheetMotion(
         val flick = abs(speed) >= flingVelocity
         // A flick decides on its own, either way; otherwise it is where the
         // finger left it.
-        val open = if (flick) speed < 0f else held < travel / 2f
+        val open = if (flick) speed < 0f else held < travel * closeThreshold
         if (!open) {
             closing = true
             quietWindow()

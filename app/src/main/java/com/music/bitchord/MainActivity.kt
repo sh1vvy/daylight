@@ -4051,8 +4051,12 @@ private fun BitChordApp(
             DisposableEffect(nowPlayingSheetState) {
                 playerSheetMotion.sheet = nowPlayingSheetState
                 playerDock.sheetOffset = playerSheetMotion::position
+                playerDock.dragSurface = playerSheetMotion::dragExpanded
+                playerDock.releaseSurface = playerSheetMotion::releaseExpanded
                 onDispose {
                     playerDock.sheetOffset = null
+                    playerDock.dragSurface = null
+                    playerDock.releaseSurface = null
                     playerSheetMotion.onSheetGone()
                 }
             }

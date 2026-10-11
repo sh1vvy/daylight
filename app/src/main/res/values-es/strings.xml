@@ -1301,4 +1301,6 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="song_menu_go_to">Ir a</string>
     <string name="song_menu_more">Más opciones</string>
     <string name="library_liked_empty">Las canciones que te gusten aparecerán aquí.</string>
+    <string name="player_style">Estilo del reproductor</string>
+    <string name="player_style_current">Actual</string>
 </resources>

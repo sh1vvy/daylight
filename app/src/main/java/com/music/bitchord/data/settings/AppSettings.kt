@@ -8,6 +8,7 @@
 
 package com.music.bitchord.data.settings
 
+import com.sh1vvy.daylight.player.PlayerExperience
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
@@ -457,6 +458,7 @@ object AppSettings {
      * way — see the hero notes in
      * [NowPlayingScreen][com.music.bitchord.ui.player.NowPlayingScreen].
      */
+    val playerExperience = MutableStateFlow(PlayerExperience.CURRENT)
     val fullBleedArtwork = MutableStateFlow(true)
 
     /** Restores the expanded player to the surface the listener left open. */
@@ -818,6 +820,7 @@ object AppSettings {
         }
         animatedCanvas.value = prefs.getBoolean(KEY_ANIMATED_CANVAS, true)
         canvasOverCellular.value = prefs.getBoolean(KEY_CANVAS_OVER_CELLULAR, false)
+        playerExperience.value = runCatching { PlayerExperience.valueOf(prefs.getString("player_experience", "CURRENT") ?: "CURRENT") }.getOrDefault(PlayerExperience.CURRENT)
         fullBleedArtwork.value = prefs.getBoolean(KEY_FULL_BLEED_ARTWORK, true)
         lastPlayerScreen.value = runCatching {
             LastPlayerScreen.valueOf(
@@ -1354,6 +1357,11 @@ object AppSettings {
     fun setCanvasOverCellular(value: Boolean) {
         canvasOverCellular.value = value
         prefs.edit().putBoolean(KEY_CANVAS_OVER_CELLULAR, value).apply()
+    }
+
+    fun setPlayerExperience(value: PlayerExperience) {
+        playerExperience.value = value
+        prefs.edit().putString("player_experience", value.name).apply()
     }
 
     fun setFullBleedArtwork(value: Boolean) {

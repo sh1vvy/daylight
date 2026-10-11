@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-10.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -197,6 +197,7 @@ internal fun PlayerScrubber(
     transitionWindow: ClosedFloatingPointRange<Float>?,
     onScrub: (Float) -> Unit,
     onScrubFinished: () -> Unit,
+    ink: Color = Color.White,
     centerLabel: @Composable BoxScope.() -> Unit = {},
 ) {
     val shown = shown()
@@ -218,6 +219,9 @@ internal fun PlayerScrubber(
             mixing = mixing,
             mixPulse = mixPulse,
             transitionWindow = transitionWindow,
+            activeColor = ink.copy(alpha = .92f),
+            inactiveColor = ink.copy(alpha = .26f),
+            markerColor = ink.copy(alpha = .5f),
         )
         Box(
             modifier = Modifier
@@ -233,12 +237,12 @@ internal fun PlayerScrubber(
                 Text(
                     text = formatTime((shown * durationMs).toLong()),
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = ink.copy(alpha = 0.55f),
                 )
                 Text(
                     text = "-" + formatTime(durationMs - (shown * durationMs).toLong()),
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = ink.copy(alpha = 0.55f),
                 )
             }
             // Pinned to the box's own centre rather than squeezed into the gap
@@ -254,7 +258,7 @@ internal fun PlayerScrubber(
             }
             val mixingShown by remember { derivedStateOf { mixPulse.cover > 0f } }
             if (mixingShown) {
-                MixingLabel(mixPulse, Modifier.align(Alignment.Center))
+                MixingLabel(mixPulse, Modifier.align(Alignment.Center), ink = ink)
             }
         }
     }
@@ -266,16 +270,16 @@ internal fun PlayerScrubber(
  * shadow gives the label a restrained glow without recomposing the player.
  */
 @Composable
-private fun MixingLabel(pulse: MixPulse, modifier: Modifier = Modifier) {
+private fun MixingLabel(pulse: MixPulse, modifier: Modifier = Modifier, ink: Color = Color.White) {
     Text(
         text = stringResource(Res.string.mixing),
         modifier = modifier.graphicsLayer { alpha = pulse.cover * pulse.alpha(1f, restShare = MIXING_LABEL_REST) },
         style = MaterialTheme.typography.labelMedium.copy(
             fontWeight = FontWeight.SemiBold,
-            shadow = androidx.compose.ui.graphics.Shadow(Color.White.copy(alpha = 0.32f), blurRadius = 7f),
+            shadow = androidx.compose.ui.graphics.Shadow(ink.copy(alpha = 0.32f), blurRadius = 7f),
             fontSize = (MaterialTheme.typography.labelMedium.fontSize.value + 1).sp,
         ),
-        color = Color.White.copy(alpha = 0.85f),
+        color = ink.copy(alpha = 0.85f),
         maxLines = 1,
     )
 }
@@ -291,12 +295,14 @@ internal fun PlaybackQualityLabel(
     song: Song,
     isLoading: Boolean,
     modifier: Modifier = Modifier,
+    ink: Color = Color.White,
 ) {
     val nerdStats by NerdStats.current.collectAsStateWithLifecycle()
     val label = confirmedLosslessLabel(nerdStats) ?: return
     LosslessLabel(
         text = stringResource(if (label == ConfirmedLosslessLabel.HI_RES) Res.string.hi_res_lossless else Res.string.lossless),
         modifier = modifier,
+        ink = ink,
     )
 }
 
@@ -1425,13 +1431,14 @@ private fun LosslessLabel(
     modifier: Modifier = Modifier,
     icon: ImageVector = Icons.Rounded.Headphones,
     iconPainter: Painter? = null,
+    ink: Color = Color.White,
 ) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val tint = Color.White.copy(alpha = 0.65f)
+        val tint = ink.copy(alpha = 0.65f)
         if (iconPainter != null) {
             Icon(
                 painter = iconPainter,
@@ -1453,7 +1460,7 @@ private fun LosslessLabel(
             style = MaterialTheme.typography.labelMedium.copy(
                 fontSize = (MaterialTheme.typography.labelMedium.fontSize.value + 1).sp,
             ),
-            color = Color.White.copy(alpha = 0.65f),
+            color = ink.copy(alpha = 0.65f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

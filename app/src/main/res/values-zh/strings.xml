@@ -1306,4 +1306,6 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="song_menu_go_to">前往</string>
     <string name="song_menu_more">更多选项</string>
     <string name="library_liked_empty">你喜欢的歌曲会显示在这里。</string>
+    <string name="player_style">播放器样式</string>
+    <string name="player_style_current">当前</string>
 </resources>

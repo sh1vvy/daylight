@@ -184,6 +184,7 @@ import com.music.bitchord.data.settings.DownloadQuality
 import com.music.bitchord.data.settings.ThemeMode
 import com.music.bitchord.data.stats.Backup
 import com.music.bitchord.playback.AudioCache
+import com.sh1vvy.daylight.player.PlayerExperience
 import com.music.bitchord.ui.player.fullBleedArtworkAvailable
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -237,6 +238,7 @@ fun SettingsScreen(
     val showLyricsLanguageButtons by AppSettings.showLyricsLanguageButtons.collectAsStateWithLifecycle()
     val animatedCanvas by AppSettings.animatedCanvas.collectAsStateWithLifecycle()
     val canvasOverCellular by AppSettings.canvasOverCellular.collectAsStateWithLifecycle()
+    val playerExperience by AppSettings.playerExperience.collectAsStateWithLifecycle()
     val fullBleedArtwork by AppSettings.fullBleedArtwork.collectAsStateWithLifecycle()
     val syncedLyrics by AppSettings.syncedLyrics.collectAsStateWithLifecycle()
     val lyricsSources by AppSettings.lyricsSources.collectAsStateWithLifecycle()
@@ -464,6 +466,16 @@ fun SettingsScreen(
                     onSelect = { AppSettings.setThemeMode(ThemeMode.entries[it]) },
                     modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
                     maxLabelLines = 2,
+                )
+            }
+            val playerStyleTitle = stringResource(R.string.player_style)
+            row(playerStyleTitle, "player", "daylight", "current", "canary") {
+                SettingsRow(icon = Icons.Rounded.Headphones, title = playerStyleTitle)
+                SegmentedControl(
+                    options = listOf(stringResource(R.string.player_style_current), stringResource(R.string.player_style_daylight)),
+                    selectedIndex = PlayerExperience.entries.indexOf(playerExperience),
+                    onSelect = { AppSettings.setPlayerExperience(PlayerExperience.entries[it]) },
+                    modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
                 )
             }
             val liquidGlassTitle = stringResource(R.string.liquid_glass)

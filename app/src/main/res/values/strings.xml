@@ -1168,4 +1168,7 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="song_menu_go_to">Go to</string>
     <string name="song_menu_more">More options</string>
     <string name="library_liked_empty">Songs you like appear here.</string>
+    <string name="player_style">Player style</string>
+    <string name="player_style_current">Current</string>
+    <string name="player_style_daylight" translatable="false">Daylight</string>
 </resources>

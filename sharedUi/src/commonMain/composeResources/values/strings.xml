@@ -248,4 +248,10 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="library_order_title">Title: A–Z</string>
     <string name="library_order_title_reverse">Title: Z–A</string>
     <string name="library_collection_options">Collection options</string>
+    <string name="daylight_player_close">Close player</string>
+    <string name="daylight_player_lyrics">Lyrics</string>
+    <string name="daylight_player_shuffle">Shuffle</string>
+    <string name="daylight_player_repeat">Repeat</string>
+    <string name="daylight_player_lyrics_loading">Loading lyrics…</string>
+    <string name="daylight_player_resume_lyrics">Resume lyrics</string>
 </resources>

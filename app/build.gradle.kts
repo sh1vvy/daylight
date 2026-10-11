@@ -64,8 +64,8 @@ require(discordApplicationId.isEmpty() || discordApplicationId.all(Char::isDigit
 }
 
 // Advance only the development channel until a stable release is requested.
-val developmentVersionName = "0.2.2-canary.17"
-val developmentVersionCode = 38
+val developmentVersionName = "0.2.2-canary.18"
+val developmentVersionCode = 39
 
 android {
     namespace = "com.music.bitchord"

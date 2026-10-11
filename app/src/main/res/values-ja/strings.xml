@@ -1307,4 +1307,6 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="song_menu_go_to">移動</string>
     <string name="song_menu_more">その他のオプション</string>
     <string name="library_liked_empty">お気に入りの曲がここに表示されます。</string>
+    <string name="player_style">プレーヤーのスタイル</string>
+    <string name="player_style_current">従来</string>
 </resources>

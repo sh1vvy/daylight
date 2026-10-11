@@ -2,7 +2,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-10.
+Daylight changes: 2026-10-08 through 2026-10-11.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -237,4 +237,10 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="lossless_beta_unavailable">Beta sin pérdida: fuente no disponible</string>
     <string name="home_play_my_mix">Reproducir mi mix</string>
     <string name="home_mix_empty">Añade música a tu biblioteca para iniciar un mix.</string>
+    <string name="daylight_player_close">Cerrar reproductor</string>
+    <string name="daylight_player_lyrics">Letras</string>
+    <string name="daylight_player_shuffle">Aleatorio</string>
+    <string name="daylight_player_repeat">Repetir</string>
+    <string name="daylight_player_lyrics_loading">Cargando letras…</string>
+    <string name="daylight_player_resume_lyrics">Reanudar letras</string>
 </resources>

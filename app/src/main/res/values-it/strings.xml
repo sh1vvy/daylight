@@ -1268,4 +1268,6 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="song_menu_go_to">Go to</string>
     <string name="song_menu_more">More options</string>
     <string name="library_liked_empty">I brani che ti piacciono vengono mostrati qui.</string>
+    <string name="player_style">Stile del lettore</string>
+    <string name="player_style_current">Attuale</string>
 </resources>

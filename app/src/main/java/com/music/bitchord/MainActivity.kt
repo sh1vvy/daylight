@@ -273,6 +273,7 @@ import com.music.bitchord.ui.icons.BitChordIcons
 import androidx.media3.common.Player
 import com.music.bitchord.data.YtMusicRepository
 import com.music.bitchord.ui.player.NowPlayingScreen
+import com.music.bitchord.ui.player.PlayerExperienceScreen
 import com.music.bitchord.ui.player.PlayerSheetMotion
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.drawBehind
@@ -2389,7 +2390,10 @@ private fun BitChordApp(
                         it.memberId == playback.startedBy
                     }?.displayName?.takeIf(String::isNotBlank)
             }
-        NowPlayingScreen(
+        val playerExperience by AppSettings.playerExperience.collectAsStateWithLifecycle()
+        PlayerExperienceScreen(
+            experience = playerExperience,
+            onDismiss = dismissPlayer,
             song = displayedSong,
             playedBy = playedBy,
             accountName = account?.name,

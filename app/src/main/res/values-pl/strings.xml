@@ -1369,4 +1369,6 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="song_menu_go_to">Przejdź do</string>
     <string name="song_menu_more">Więcej opcji</string>
     <string name="library_liked_empty">Polubione utwory pojawią się tutaj.</string>
+    <string name="player_style">Styl odtwarzacza</string>
+    <string name="player_style_current">Obecny</string>
 </resources>

@@ -1334,4 +1334,6 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="song_menu_go_to">Ir para</string>
     <string name="song_menu_more">Mais opções</string>
     <string name="library_liked_empty">As músicas de que você gosta aparecem aqui.</string>
+    <string name="player_style">Estilo do player</string>
+    <string name="player_style_current">Atual</string>
 </resources>

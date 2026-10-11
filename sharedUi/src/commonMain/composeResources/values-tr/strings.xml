@@ -2,7 +2,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-10.
+Daylight changes: 2026-10-08 through 2026-10-11.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -237,4 +237,10 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="lossless_beta_unavailable">Kayıpsız beta: kaynak kullanılamıyor</string>
     <string name="home_play_my_mix">Miksimi çal</string>
     <string name="home_mix_empty">Bir miks başlatmak için arşivine müzik ekle.</string>
+    <string name="daylight_player_close">Oynatıcıyı kapat</string>
+    <string name="daylight_player_lyrics">Şarkı sözleri</string>
+    <string name="daylight_player_shuffle">Karıştır</string>
+    <string name="daylight_player_repeat">Tekrarla</string>
+    <string name="daylight_player_lyrics_loading">Şarkı sözleri yükleniyor…</string>
+    <string name="daylight_player_resume_lyrics">Şarkı sözlerini takip et</string>
 </resources>

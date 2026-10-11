@@ -1247,4 +1247,6 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="song_menu_go_to">Đi đến</string>
     <string name="song_menu_more">Tùy chọn khác</string>
     <string name="library_liked_empty">Những bài hát bạn thích sẽ xuất hiện ở đây.</string>
+    <string name="player_style">Kiểu trình phát</string>
+    <string name="player_style_current">Hiện tại</string>
 </resources>

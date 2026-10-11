@@ -1361,4 +1361,6 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="song_menu_go_to">Перейти</string>
     <string name="song_menu_more">Другие действия</string>
     <string name="library_liked_empty">Понравившиеся песни появятся здесь.</string>
+    <string name="player_style">Стиль плеера</string>
+    <string name="player_style_current">Текущий</string>
 </resources>

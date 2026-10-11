@@ -1286,4 +1286,6 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="song_menu_go_to">Git</string>
     <string name="song_menu_more">Diğer seçenekler</string>
     <string name="library_liked_empty">Beğendiğiniz şarkılar burada görünür.</string>
+    <string name="player_style">Oynatıcı stili</string>
+    <string name="player_style_current">Mevcut</string>
 </resources>

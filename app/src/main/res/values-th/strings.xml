@@ -1312,4 +1312,6 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="song_menu_go_to">ไปที่</string>
     <string name="song_menu_more">ตัวเลือกเพิ่มเติม</string>
     <string name="library_liked_empty">เพลงที่คุณชอบจะแสดงที่นี่</string>
+    <string name="player_style">รูปแบบเครื่องเล่น</string>
+    <string name="player_style_current">ปัจจุบัน</string>
 </resources>

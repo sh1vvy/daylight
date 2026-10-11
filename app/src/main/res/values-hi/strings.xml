@@ -1329,4 +1329,6 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="song_menu_go_to">पर जाएँ</string>
     <string name="song_menu_more">अन्य विकल्प</string>
     <string name="library_liked_empty">आपके पसंद किए गए गाने यहाँ दिखाई देंगे।</string>
+    <string name="player_style">प्लेयर शैली</string>
+    <string name="player_style_current">मौजूदा</string>
 </resources>

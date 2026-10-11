@@ -2,7 +2,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-10.
+Daylight changes: 2026-10-08 through 2026-10-11.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -237,4 +237,10 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="lossless_beta_unavailable">Lossless beta: sorgente non disponibile</string>
     <string name="home_play_my_mix">Riproduci il mio mix</string>
     <string name="home_mix_empty">Aggiungi musica alla libreria per avviare un mix.</string>
+    <string name="daylight_player_close">Chiudi lettore</string>
+    <string name="daylight_player_lyrics">Testo</string>
+    <string name="daylight_player_shuffle">Riproduzione casuale</string>
+    <string name="daylight_player_repeat">Ripeti</string>
+    <string name="daylight_player_lyrics_loading">Caricamento del testo…</string>
+    <string name="daylight_player_resume_lyrics">Riprendi il testo</string>
 </resources>

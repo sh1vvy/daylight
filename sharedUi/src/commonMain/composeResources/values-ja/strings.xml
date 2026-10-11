@@ -2,7 +2,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-10.
+Daylight changes: 2026-10-08 through 2026-10-11.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -237,4 +237,10 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="lossless_beta_unavailable">ロスレスベータ：音源を利用できません</string>
     <string name="home_play_my_mix">マイミックスを再生</string>
     <string name="home_mix_empty">ミックスを始めるには、ライブラリに音楽を追加してください。</string>
+    <string name="daylight_player_close">プレーヤーを閉じる</string>
+    <string name="daylight_player_lyrics">歌詞</string>
+    <string name="daylight_player_shuffle">シャッフル</string>
+    <string name="daylight_player_repeat">リピート</string>
+    <string name="daylight_player_lyrics_loading">歌詞を読み込み中…</string>
+    <string name="daylight_player_resume_lyrics">歌詞の追従を再開</string>
 </resources>

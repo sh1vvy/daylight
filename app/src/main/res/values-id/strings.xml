@@ -1306,4 +1306,6 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="song_menu_go_to">Buka</string>
     <string name="song_menu_more">Opsi lainnya</string>
     <string name="library_liked_empty">Lagu yang Anda sukai muncul di sini.</string>
+    <string name="player_style">Gaya pemutar</string>
+    <string name="player_style_current">Saat ini</string>
 </resources>

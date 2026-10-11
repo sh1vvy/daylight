@@ -6,7 +6,36 @@ Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.m
 Original authors' notices and licenses remain applicable to their material.
 -->
 
-# Internal candidate: Canary 17
+# Internal candidate: Canary 18
+
+**0.2.2-canary.18 · Android code 39 · manual testing only**
+
+- Optional Daylight player under Settings → Appearance → Player style. Current
+  remains the default and keeps its full feature set. The new presentation has
+  independently implemented models, layout, gestures, clock and lyric renderer.
+- Full-bleed normal/animated artwork fades into the player background. No large
+  Music heading or cover box. The heart sits left of the track, menu right.
+  Three tonal transport buttons use the active theme and native rounded icons
+  with short press/play-pause transitions.
+- An upward swipe reveals the queue with a spring while playback controls stay
+  available. Drag the handle down to return; Queue and Back remain alternatives.
+  Timed lyrics follow playback and support line seeking, syllable timing and
+  manual-scroll/resume. Plain lyrics retain untimed display.
+- The existing engine, provider/cache pipeline, output picker, lossless status
+  and Daylight Automix artwork dissolve/progress glow remain connected through
+  the adapter. There is no second audio session or duplicate lyric request.
+- New labels are available in all 15 supported non-English locales. Reduced
+  motion, responsive layouts and Dark/Light/Pink themes are supported.
+
+This is the first preview: translation/romanization, lyric cards, queue drag
+reordering and the Jam context header remain in Current. Rewrite boundaries and
+performance choices are documented in `docs/PLAYER_REWRITE.md`. Local optimized
+APKs and validation are in `output/canary-0.2.2-canary.18/`. No public Dev update
+or release tag is published.
+
+---
+
+# Previous candidate: Canary 17
 
 **0.2.2-canary.17 · Android code 38 · manual testing only**
 

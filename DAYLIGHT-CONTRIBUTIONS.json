@@ -103,7 +103,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "ca2ce59ca43659ab74115b43d56377a4c3b40bbe",
-      "source_sha256": "5a89c23abc8436f8e14f10833525360e9737ebbd981d436c7a1bc98d4447b03e"
+      "source_sha256": "d4ebe5ea9b9e98e5e02688d31b8db7e5f100022345a5d11facbf65846d671cd5"
     },
     {
       "path": "app/src/androidTest/java/com/music/bitchord/CanaryAppFeedbackNativeTest.kt",
@@ -148,6 +148,17 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
       "source_sha256": "9dc66e12e3e1fca5c901e2e07dffc04e402434d15b6347163abc636be9c35938"
+    },
+    {
+      "path": "app/src/androidTest/java/com/music/bitchord/CanaryDaylightPlayerNativeTest.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "2ef8f334b3da1736e0b132101b394b78816896dd0f71cd92f93adf1dcaabbcf1"
     },
     {
       "path": "app/src/androidTest/java/com/music/bitchord/CanaryDetailDiscoveryNativeTest.kt",
@@ -499,7 +510,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "a1f42d5faa2d8c91a370cd66080fec0f2377aa67",
-      "source_sha256": "d17025fa8025e57a591b097565ac5449be0a5effd1fab94411b8eb8dcc2753ef"
+      "source_sha256": "3176210f264054c5cb285089e0a7ad83763219dbf57619b05defc62257486c1b"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/auth/AuthStore.kt",
@@ -763,7 +774,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "fecfc354340bb8e4ff0ece42ae78790a8b4cfe8a",
-      "source_sha256": "4052f11c32c6ca2129854ba8496c605d91a02b27cbaac5c822fc333d51bdf9d7"
+      "source_sha256": "7189e487d85e7b60d9d88b7dd81c8bf400f6a7b7ea732520b37736bcc2b70e3e"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/data/settings/LosslessQuality.kt",
@@ -1885,7 +1896,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "f420deaddaaafe6f31648b6e395deee454b31cd0",
-      "source_sha256": "7e6124d804e0c80984cc70e90553d9c7c14867aa0d0d1cfc454b1ac53677c44a"
+      "source_sha256": "f398c42e3214c87d9f34c9e1e8ed5e5a7ef1ebd83ac3322a547f28403e296565"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/ui/screens/SpotifyLibraryScreen.kt",
@@ -2490,7 +2501,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "9f425c38a59f4d333a3c051bef25c92c548dfeda",
-      "source_sha256": "5e717e85c085ef788d30fbd102392fbf3aebbc3d9a9c22a10d2bed6b65dd3c34"
+      "source_sha256": "68fbfe54d7f0fc95dc9f7288ef80603f0339d3fef3ceb852733fd5e8beaca8ad"
     },
     {
       "path": "app/src/main/res/values-es/strings.xml",
@@ -2501,7 +2512,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "902ed59c1ac6a81fdce85dede24f8330bb49ab9e",
-      "source_sha256": "d46e1a25deb8fc7cf1adf500d9c794efb93d71c68d6628b3d88a6b85d38f68f3"
+      "source_sha256": "b9c30987779888284b7ccfa95f3e9dd838c07981c118e4ebe3c0fed6f67e4680"
     },
     {
       "path": "app/src/main/res/values-fr/strings.xml",
@@ -2512,7 +2523,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "5a5b60a7ebffb34ce43c44367583506443f98da2",
-      "source_sha256": "df6e19610fa09685f9838fdb9aa6826a4c4e7599fb308455444c589564dab93f"
+      "source_sha256": "240fac679d1b6575e725a57ffabc72bbfd5cf0ee1273c721019c2f8b94f77e29"
     },
     {
       "path": "app/src/main/res/values-he/strings.xml",
@@ -2523,7 +2534,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "e5332bcf800368466afefa446089ca487450c0a1",
-      "source_sha256": "c88064ad9fb23fe35b14be8c475e3275d3b1d868af4eb617e5ad811cff24b277"
+      "source_sha256": "0aca240817e29c01b6ae54438f1ad256e74e44bb87efff3cc8d0fb4ac6b12cfc"
     },
     {
       "path": "app/src/main/res/values-hi/strings.xml",
@@ -2534,7 +2545,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "d684cde18b144e66fea54c3555f9ad89504fa45b",
-      "source_sha256": "6fad4ad4208f42bb6d7d6adadaff3f57c8e29e1a106f106dcfe2219767e9dd25"
+      "source_sha256": "794aea72274915e6c50e1de24f08d2362261302699dbff2c4ec4ae5b75b19d52"
     },
     {
       "path": "app/src/main/res/values-id/strings.xml",
@@ -2545,7 +2556,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "619eb45a74c71e14777ca60b30a085d7e5a98fc8",
-      "source_sha256": "64b1f26b83f93233306eba515471cb4cf5332d02345a7910bd40705fd0af5970"
+      "source_sha256": "f1bf9d1bcd168fe9c149a680feefee0427ef79e8cd72b01c9ec71ca8522bf6c7"
     },
     {
       "path": "app/src/main/res/values-it/strings.xml",
@@ -2556,7 +2567,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "1ffc1f5ec8add3d1898cc6c86a00b5ef43191f4a",
-      "source_sha256": "dbb90bf3abbf9ef26a7ea4540260437d59ef99e2e4a97ada9da9c9cd08b5660e"
+      "source_sha256": "879224d8da15ea3021eed968da4e95b4f82a1bc6d4a43d43a5904eb3e21c9a3b"
     },
     {
       "path": "app/src/main/res/values-ja/strings.xml",
@@ -2567,7 +2578,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "f2ed0ee00ccc0ed553b52206cf7db12397ffe357",
-      "source_sha256": "70d0e4a30a461c394678659c94774fb15eac26cbfb92bb63d49c35d993da884d"
+      "source_sha256": "125377ddf3340222e7257ee93cf58d1528249f84dada3614537e72c39f5c09d0"
     },
     {
       "path": "app/src/main/res/values-night-v31/widget_record.xml",
@@ -2622,7 +2633,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "42882b5e3109598f1be7b446372ee9a20cfc92f2",
-      "source_sha256": "43555ba08e162d2b5c501c02fc4c6f9574271c89e316dd2ab1e4e9ddc6c2d8dc"
+      "source_sha256": "d73afb5263f63cae621e184195c402537218159767e6f311815077930093bcf8"
     },
     {
       "path": "app/src/main/res/values-pt/strings.xml",
@@ -2633,7 +2644,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "1cf65e612765b12a463efe0d9a782d980ab946d9",
-      "source_sha256": "e5e6857b83a7a1f0f27edf63de14ab911ce77402f88f61d14d68ea391943022e"
+      "source_sha256": "8020d20e1a8440723656650f48906bd94ece066bb4851b5a09bb792ac93ec716"
     },
     {
       "path": "app/src/main/res/values-ru/strings.xml",
@@ -2644,7 +2655,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "712fa3156d3a795320587d63b836aa50ab2dd441",
-      "source_sha256": "24cb2cd98d73ee64e69515f175bfa9da4c27511368b5020ff4cd963d438d19e0"
+      "source_sha256": "f719211c0ec0f547ff8a271ae568d04a7e84eb365f58f1d643e2b7ea6c1b96f5"
     },
     {
       "path": "app/src/main/res/values-th/strings.xml",
@@ -2655,7 +2666,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "9dc901742ef4b635a7f32a2347a5f37f2d4935b3",
-      "source_sha256": "560facf881e01f98fd29ec157d8da10ff1278e3b75cebbf89404390213c3ab35"
+      "source_sha256": "a1f36e490c06311ae5183679150fb3ce2dc0ce48ff93bc1967f96c2b02611b39"
     },
     {
       "path": "app/src/main/res/values-tr/strings.xml",
@@ -2666,7 +2677,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "26e068ff7f3056d3a32e01b13604d7597ebea30f",
-      "source_sha256": "3d34b8b169ffcdc69da75cad937e4eb76740bdc9f4d9e131af1a868f2e0c4f85"
+      "source_sha256": "a7c1d46cd45216dc34dfcb1627a258e77689693740a09ff055edc485293c75bb"
     },
     {
       "path": "app/src/main/res/values-v31/dimens.xml",
@@ -2710,7 +2721,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "5babe6ff85a3bd4aa6d4a207b122fe9e38aa79d4",
-      "source_sha256": "2fb7e3b647b41c4ae4b0b89af00ad0aa013a927b52e7ba3e983d6e723c3f3cc2"
+      "source_sha256": "89e1b1ab2f0ab180a9283195f02c3e7d2cfc93293fb373997689f890da4781cd"
     },
     {
       "path": "app/src/main/res/values-zh/strings.xml",
@@ -2721,7 +2732,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "8b8b912a98cdb7f889a15fc1ca1b5635c98db790",
-      "source_sha256": "87eea9858c9b0897deb94cbe85a7a80635dc1742ea663156e8dd87ce368a7241"
+      "source_sha256": "f2e2d765ec46195a4e7aa7e25feca52a047a07b07824a4d17584260d3541e7fa"
     },
     {
       "path": "app/src/main/res/values/dimens.xml",
@@ -2743,7 +2754,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "c0021f4fef3adf4c1c8845090b852a91d65629a8",
-      "source_sha256": "fbd2db45f4d349293d22e7257c52c93f672254fc3a0682e714a1146002966c69"
+      "source_sha256": "ec20a9bd20349f02da2038c93ebfbaba3eb0cfddcc2d26ca987f7ac8fc3fa159"
     },
     {
       "path": "app/src/main/res/values/widget_record.xml",
@@ -3733,7 +3744,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "f8a4f4e902578bdf3440a8e806876adfe5736f91f8cb94a1066f979e2f4a06ce"
+      "source_sha256": "ba63ae756292fae1b71e1b961711b7aede18a08a8bd4b0b51781de1da5ff2b21"
     },
     {
       "path": "docs/DESIGN_LANGUAGE.md",
@@ -3789,6 +3800,17 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
       "source_sha256": "18f2304fdd2807839c7f1cc5e28b1b50beac1f94ee31b1c8cd04c404871a5413"
+    },
+    {
+      "path": "docs/PLAYER_REWRITE.md",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "405963de9438c989d957c8436e02bdd3e9d0150121cc100258a565aa7e2447ed"
     },
     {
       "path": "docs/releases/0.2.2-dev.7.md",
@@ -4643,10 +4665,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "b2820c7b95e85bf52b10ffc9487ec86d0b825ac6",
-      "source_sha256": "9c5fe877e1851c672142ac1e45f6bc275b728777481cccf9f5be2fd89827ef18"
+      "source_sha256": "f5db8be372af3e1e0103534fdb53ec07c8aa438e96f8370dd76d5e619cf655ee"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-es/strings.xml",
@@ -4654,10 +4676,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "f5aa0d86a3ef9e213118f70b8429849bceb855d8",
-      "source_sha256": "40d25f03835bdf1b06a46ae5e1277b8b51d26d4768eb65f3a59b2e1349d2b964"
+      "source_sha256": "9f178c4d657d159737a28e9bafd043972925b91fbf69639ca3b29ca1c3338b59"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-fr/strings.xml",
@@ -4665,10 +4687,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "e9c24e6e44cebae3340ab9b937ba8dd6837cb578",
-      "source_sha256": "44a691f61cc902455f446ed6385f971cc9688eb5203ac8d9f41fbef229d3380c"
+      "source_sha256": "bd75410194f34f43f9fac734bb9a75bce19cd96b21e962d4f5a9b0dcd5bac3fc"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-he/strings.xml",
@@ -4676,10 +4698,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "f24b2a6e1a4dbfca0c1b0f81271f65d29115c91a",
-      "source_sha256": "a46469bbefa390187a341f8f2276771278d2dcd93e5b41b98219dac2a845b44b"
+      "source_sha256": "a0953fc5bd60a58e0b72afc5cb6030343a2c7de1437d67b8b2ba7eaada756dc1"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-hi/strings.xml",
@@ -4687,10 +4709,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "60ac4ce9b129d28743ed674a54b9c70bc7b2e3db",
-      "source_sha256": "29a7b63bd7567e9c8e8c174ee61aca5a63d98c126c38da627828ff2b0d9c0cff"
+      "source_sha256": "051bf57e675f995e441ebdcafea8202829fb85f1ca479cf578f53da74041230f"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-id/strings.xml",
@@ -4698,10 +4720,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "6d2f459cecf57821055e84fd82284ff494dcf07c",
-      "source_sha256": "499940777fa2bb4e7a737e9e519326394c75e57fcc491869b4cef5a519aafe7c"
+      "source_sha256": "e5b2d1c6d99867288bac79c5388fb7d45b0738eb0023a972407d87118345b2e0"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-it/strings.xml",
@@ -4709,10 +4731,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "4545cd8a8e22c005d84f4414905cf1177ae4fb52",
-      "source_sha256": "5f277353b3bb9742942e3abfe8438c79751c5a093f823d45c02071ac6024103a"
+      "source_sha256": "89434ccab94ccc362862c0f8d8b2dbbd0a9e96dedeaf82625b3247c893ba7afe"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-ja/strings.xml",
@@ -4720,10 +4742,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "2e12956bd9a5127feec3a37c72ac201b2db2b1d5",
-      "source_sha256": "ce5a29cd7d4478e1b83cb8f15424f2fbe5b796e93b6d45bf5a888e6039f20f9b"
+      "source_sha256": "556843df28255c75cbb6638df42cac6cb6850ea4ddb831613a5bedfeab8d4486"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-pl/strings.xml",
@@ -4731,10 +4753,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "705459e73ea2941ba32a75f4eeb7f4ef90c7f79b",
-      "source_sha256": "c2bc889a7bda0d530981b3ed8e324c90e76655e2e78e88e88262ab57a1391e93"
+      "source_sha256": "0d19c639fb1451a1fd0f07a9f3e80e35dfe99445164d8bf2d09669ed78816c89"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-pt/strings.xml",
@@ -4742,10 +4764,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "290ec1c065e63731545e047eb6a22c30f86be97d",
-      "source_sha256": "f4b3e55678de34609cdec0d9cedc86ac12ac4d44257876e40310153688d4ee32"
+      "source_sha256": "f95582243d1bfb4a18fb302c34b1c517930a83a9533a97c562e7b2a1769922f8"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-ru/strings.xml",
@@ -4753,10 +4775,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "cc9d5e731d0ba3606adccfb9e0d241954a58b1ba",
-      "source_sha256": "c280e3848b95baa6fabc9b2ee47382bbf8d3cfd1addb13b5621caebb0d58e285"
+      "source_sha256": "a12ccabeaef2a079f285abd059846d4d17122f825a772c0134b143bc1bc8f90b"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-th/strings.xml",
@@ -4764,10 +4786,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "4a3e695b7ff713e773dba1c8f261ff9e1b889687",
-      "source_sha256": "d211d68de3ef895ce3b8cc007851ca74970e8d148f3891ed60cb484e6814f533"
+      "source_sha256": "65a26fd0ce2974023ae26fddebbd8cd47abe2fefd355dbea5cd996bf8c6b2bd2"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-tr/strings.xml",
@@ -4775,10 +4797,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "912a9e4ec70adedefd3050c74be8316924fb419e",
-      "source_sha256": "d46b062bceb830d3b0d3361cba494d3def5985c2d68283140cbbd2ebf9b3ca28"
+      "source_sha256": "51783167c3749ca44731304a05db15899828b12da14d8aae41a872a5814222f8"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-vi/strings.xml",
@@ -4786,10 +4808,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "c3465f529e3baa79a022c94c09dc3af366a2b522",
-      "source_sha256": "b05415862a328fd6e342e4fc8ef816aea2956c10ae10aeddbbfdf372d53e53ce"
+      "source_sha256": "694cb9e29136f9563e24b8f51e2935f620a69a0ce81651798a02405d8ee0e3f8"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values-zh/strings.xml",
@@ -4797,10 +4819,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "4afdd843461f7b8a7cbaf9b91da4ae412f849f73",
-      "source_sha256": "77a2d6b682947d99473cd1305320376ac6a4c44313149cc20f7b991dd0256499"
+      "source_sha256": "1fed2c1731086eb9059295b05c920773e1616ff8ccab126a9360049e394ccbf2"
     },
     {
       "path": "sharedUi/src/commonMain/composeResources/values/strings.xml",
@@ -4811,7 +4833,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "4b02214fd52bf79241ac9b3b2e9d79a1d53e2476",
-      "source_sha256": "3ffd4b8ee920adb409246bcc2fa12a6d4bf06b66105e0e5156a98b15d60cf931"
+      "source_sha256": "2f3faebfc52eec778ae8ea1cd5c5cab5ded9035103425c8155a3d875487302c6"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/AppUi.kt",
@@ -5061,10 +5083,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "67fbe6ae825b06fc52014d5aa6e3eb6e07221331",
-      "source_sha256": "7404d00394bf1a5ac1c8186b82f8eab59649eb57cd330e02e610d465906a0bfd"
+      "source_sha256": "7eb504c35fda9047cd435ec0b68dbe6222c95d4c5cec17a65534cea34cfb3b3b"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/PlayerDrawer.kt",
@@ -5076,6 +5098,17 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "222add1ca73eac25f6eec82ed221e66240fe977f",
       "source_sha256": "08363320b3ffd8f775eaddf8a230f85d722571e8bf0aa03cca40587a9cf68ba7"
+    },
+    {
+      "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/PlayerExperienceScreen.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "0dcae857cb9ae83057fa088811fc260c65f1229eaf1512aa53abf3e02a22b16b"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/player/PlayerHost.kt",
@@ -5320,6 +5353,39 @@
       "source_sha256": "d0e9c72b462e1dbe81e970376d6eb6970d2e8138f1a7929be0c04abfc2c05d2f"
     },
     {
+      "path": "sharedUi/src/jvmSharedMain/kotlin/com/sh1vvy/daylight/player/DaylightLyrics.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "4455eeb3dabd48bd8f41136a2416e69e35343029c323f52057d0ba435cab422f"
+    },
+    {
+      "path": "sharedUi/src/jvmSharedMain/kotlin/com/sh1vvy/daylight/player/DaylightPlayer.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "da5032923053809a4d9450d7619f078abd3a2d4fabc38af3d45ae4476839d4ad"
+    },
+    {
+      "path": "sharedUi/src/jvmSharedMain/kotlin/com/sh1vvy/daylight/player/PlayerModel.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "56fd5e29e40e65ef5d93632807a3f689b2add9e0b1b095d90496f11fa6296743"
+    },
+    {
       "path": "sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/components/ListKeysTest.kt",
       "authors": [
         "sh1vvy"
@@ -5472,6 +5538,17 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
       "source_sha256": "45d8fe4f2740b40b82a98a2261efa8582b4108cdf698370b12063eb3c018a37f"
+    },
+    {
+      "path": "sharedUi/src/jvmTest/kotlin/com/sh1vvy/daylight/player/PlayerModelTest.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "34b74d32f041328bf1c11abfb85ea75c298820eedf1a58e843eee9c174c767da"
     },
     {
       "path": "tools/daylight_attribution.py",

@@ -56,9 +56,11 @@ and `DiscoveryRepository`:
   editable-playlist directories have a separate 1 MiB store. Warm edits update
   their retained lists; cold directory changes invalidate outdated records.
 - Home has a separate 4 MiB metadata store with 2,000 warm cards/four records.
-  Cached content remains while refreshing; core and history commit together,
-  and supplementary sections occupy fixed source positions. Paging retries
-  failures and stops repeated continuation tokens.
+  Cached content remains while refreshing. Core, history and supplementary
+  responses settle together, with four-second timeouts for optional requests.
+  Pagination appends after existing supplements, retries failures and stops
+  repeated continuation tokens. The screen defers replacements while away from
+  the top of the feed.
 - Quick Picks uses up to three seeds from recents, loaded likes and existing
   discovery shelves, preferring different artists. Up to two requests run at
   once, with four-second timeouts. A ten-minute, 24-pool cache retains at most

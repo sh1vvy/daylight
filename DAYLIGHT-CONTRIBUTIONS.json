@@ -103,7 +103,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "ca2ce59ca43659ab74115b43d56377a4c3b40bbe",
-      "source_sha256": "59e59d415e8db7a6a0602e0a8b009120d5f56cd9f939010206c747e7769464e2"
+      "source_sha256": "0d89b0feb021ae74b3c9c16fc66745ae7d6965231f47aaa31d673eb64662a382"
     },
     {
       "path": "app/src/androidTest/java/com/music/bitchord/CanaryAppFeedbackNativeTest.kt",
@@ -224,7 +224,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "0dce41480ad188e252d545bf2e02cb7ae09b32c2c7ae96c11a6a44eee15428d0"
+      "source_sha256": "fe3b9f50433a8c892c9ce8eaa5c9f81462b9ecd341183ce251cb8b6051faad88"
     },
     {
       "path": "app/src/androidTest/java/com/music/bitchord/CanaryLibraryMotionNativeTest.kt",
@@ -271,6 +271,17 @@
       "source_sha256": "b964f6f7a1c115d47874fad8186fae060dbe1b11d4121da6026a315382fcda98"
     },
     {
+      "path": "app/src/androidTest/java/com/music/bitchord/CanaryPlayerChromeNativeTest.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "3d1f424b1249cffd78ef460f01e892da5448d7541877b258b4b6cf052da5e73a"
+    },
+    {
       "path": "app/src/androidTest/java/com/music/bitchord/CanaryPlaylistEditNativeTest.kt",
       "authors": [
         "sh1vvy"
@@ -298,10 +309,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-10",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "5768375b3a82ae76886960885ab9c112457f4772e0d794b0c0905b29f09e3201"
+      "source_sha256": "d02d8662ec59a614e5089902b4821ae665166432cc70af33037c90200aef4b4b"
     },
     {
       "path": "app/src/androidTest/java/com/music/bitchord/CanaryRecommendationLanguagesNativeTest.kt",
@@ -466,7 +477,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "a1f42d5faa2d8c91a370cd66080fec0f2377aa67",
-      "source_sha256": "368243514b07da6bf336b5256363d9789c3269526465e097c2df4d3f8f49dddc"
+      "source_sha256": "34c9479cf4e1683d9c8c78dd79a75b82b95b9a42e5bc4534149c514581f65550"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/auth/AuthStore.kt",
@@ -1365,10 +1376,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-09",
-      "last_modified": "2026-10-09",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "14028addf57adf2f87c90e3439b2e74bdb666baf",
-      "source_sha256": "137ef24a2f23bc90733c9ef1d8c4ed5c73159679c0b9d0c2f760f62cd1a9f865"
+      "source_sha256": "688e4c7074626d80a3c6eeabe9493ffcb86d6dde5700359d8732b36364e7e385"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/ui/components/FrostedTopBar.kt",
@@ -1404,15 +1415,26 @@
       "source_sha256": "bd5dc5b140322c2e611321fbc8685abefec5eb8ce834de12ef2b872f03baeb79"
     },
     {
+      "path": "app/src/main/java/com/music/bitchord/ui/components/MiniPlayer.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": "3e9e795bf9d789d212e5288b6c1a0a67a32b0136",
+      "source_sha256": "af648c2bed78a644596f6def38f9a90f6088c15e988575298ddffe80a149e519"
+    },
+    {
       "path": "app/src/main/java/com/music/bitchord/ui/components/PlayerNavigationBar.kt",
       "authors": [
         "sh1vvy"
       ],
       "first_modified": "2026-10-09",
-      "last_modified": "2026-10-09",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "6921d9eea07e0f7200598864a9a69714f62c8056068ba4015d37211fd8550501"
+      "source_sha256": "2164f11a80750e44aaabff2282fb72f485ce5e2b63eff12774be8b2496762c88"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/ui/components/PlayerSongMenu.kt",
@@ -1816,10 +1838,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-09",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "87cd1b64d9d4806c7175e974e0f089dcbd089ea3",
-      "source_sha256": "b82256b8719b5f36c34eaac4bb2ae011ef11036f1a2fd76b29434db162f5ac94"
+      "source_sha256": "056e5832ba86923f417926e571383aaeafd53684ac83c8fe86dcb49ec5fd9086"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/widget/MaterialWidgetLayout.kt",
@@ -1973,7 +1995,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "89152f102a78d5ca9a0462fae2bbb7132c15c0e395ef2bfe617ab66a10b83a72"
+      "source_sha256": "39c3a61861a41c7cc86e3062fbb4652d5cc1a8e7522777a1800dd99c5490a77d"
     },
     {
       "path": "app/src/main/java/com/sh1vvy/daylight/library/DaylightCollections.kt",
@@ -3601,7 +3623,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "1cc380d985727d7b1d5280da5096dd146fe76a322acfe223f0856d91ff48bed4"
+      "source_sha256": "54818e91f1814675aa4d2752ff80a5fb47ab0aaaf193eb90512d8fe8cd9ee7d1"
     },
     {
       "path": "docs/CANARY_TESTING.md",
@@ -3612,7 +3634,18 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "9cf7c69e1b66b77a533a5fcdbf7cc3638bc39b5f2c6d360562f1fbd9bac79293"
+      "source_sha256": "dc7bcaf4d52cb4504c7a67f7e986f946490a40950c9cebfc2110da2423b11b36"
+    },
+    {
+      "path": "docs/DESIGN_LANGUAGE.md",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "8cbc5a6841737e84c23c003353313c0c1e612e43790f5347b4350442adf67e49"
     },
     {
       "path": "docs/DEVELOPMENT.md",
@@ -3678,7 +3711,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "df33225345e43b0a0e1aaf49460f757a0ffd0a79f174d3b55082ab2f7e951bcb"
+      "source_sha256": "f81930f9c4eb3b921fe57f38a523e89f6e7623d0ee45154c60b1689e854e002a"
     },
     {
       "path": "libraryCore/build.gradle.kts",
@@ -3711,7 +3744,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "3bc1471eb5f43816d403c391c39d242ee37ccc4de34e3cfcb0c777c943dfecf9"
+      "source_sha256": "5ffc0a2b50abfc9d3b851a00f4a09eb7a5171918c643b63401d02d97a6046dc7"
     },
     {
       "path": "libraryCore/src/main/kotlin/com/sh1vvy/daylight/library/CollectionRepository.kt",
@@ -3777,7 +3810,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "6328e091208b4d79d09458f323a2fecfdc5a1ce276706a1b19dd577f087926c8"
+      "source_sha256": "589e81128efe75ae2d5b331883179638fbc227e75bd74ac85f4f28cfd3127787"
     },
     {
       "path": "libraryCore/src/test/kotlin/com/sh1vvy/daylight/library/CollectionRepositoryTest.kt",
@@ -4715,6 +4748,17 @@
       "source_sha256": "5dbb5240c42378992a2c3d2e1b93cfbe7aa6e6f92b9dfae55714cf40b120d24f"
     },
     {
+      "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/components/ShelfRow.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": "f750d4cd5711f116114c836390b3582527594e3f",
+      "source_sha256": "18f9f57e9e832da42fa0df4e69ed04893f2e6ded96c707c976022ae9fa1230be"
+    },
+    {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/components/Skeletons.kt",
       "authors": [
         "sh1vvy"
@@ -4962,10 +5006,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-10",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "49fabe50ea86fc92542d1dd1514269bb7919cd9a3c80183ddda21c0c52d9d3be"
+      "source_sha256": "5b41b8874f5798f950059b5ade2e430944b728fa8a58981e5df55f1f16ae1aa6"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/screens/HomeScreen.kt",
@@ -4973,10 +5017,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "afd11056655056b58e26cd8160b048dabaf5ae2e",
-      "source_sha256": "979558a9645a55a6d4576cb65a55e0f231234bbf15f8767a7f8022f9000851e3"
+      "source_sha256": "2483f0e64d44da5cea6c2391366d1c1d157ebc4781fb3193d87d469c82f0b165"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/screens/LibraryCollectionOptions.kt",
@@ -4998,7 +5042,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "68b908938cc9180c71bcc49a0cfbe6d3468af3ca019bcb77f272993f0064a7df"
+      "source_sha256": "6b45ec4df184bf8731d1fe5e58110a2d8dba42175544abc8a2f724aa6628a810"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/screens/LibraryPlaylistOrder.kt",
@@ -5054,6 +5098,17 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
       "source_sha256": "3271f3d9b751087390b3aef083552f70c13ca1a9a92e5df23ef6d66dfe6e517a"
+    },
+    {
+      "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/theme/DaylightSurfaces.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-11",
+      "last_modified": "2026-10-11",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "0d30c4b1a44735133fabba5c60129c467111a0bea295c07e221297c182c4069c"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/theme/DaylightThemeStyle.kt",
@@ -5138,10 +5193,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-10",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "cb684a5b75276b488eec8dca947b7e5b595dccaef4df93d3ff65f3725ef26926"
+      "source_sha256": "17e34b4b26ff3a453ade9cb92d0c1cad1b5f8749505dba6362f9983c07800e50"
     },
     {
       "path": "sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/screens/LibraryCollectionsTest.kt",
@@ -5152,7 +5207,7 @@
       "last_modified": "2026-10-11",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "6d817d49b2452b926e8ac638f9ec66128c8c8becbc381b6c68e7aa58885e6531"
+      "source_sha256": "58a7608c5b4a7d71f1cb10e09089296d476c73a3ce1daea800fc351e78cea000"
     },
     {
       "path": "sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/screens/LibraryPlaylistOrderTest.kt",

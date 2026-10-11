@@ -1506,7 +1506,7 @@ private fun BitChordApp(
      * remixes of the same song. Album, artist and playlist pages keep [play],
      * where the surrounding list *is* the thing the user asked for.
      */
-    val playRadio: (Song, QueueSource) -> Unit = { song, source ->
+    fun playSuggestedSong(song: Song, source: QueueSource, quickPick: Boolean = false) {
         playRequestGeneration++
         activeRadioSeed = null
         scope.launch {
@@ -1515,6 +1515,12 @@ private fun BitChordApp(
             val currentTimeline = player.queue.takeIf { it.size == c.mediaItemCount }
                 ?: (0 until c.mediaItemCount).map { c.getMediaItemAt(it).toSong() }
             val currentIndex = c.currentMediaItemIndex
+            // Quick Picks explicitly starts an endless station; repeat-all would suppress it.
+            if (quickPick) {
+                AppSettings.setAutoplay(true)
+                if (ListenTogether.state.value.inParty) ListenTogether.setAutoplay(true)
+                c.repeatMode = androidx.media3.common.Player.REPEAT_MODE_OFF
+            }
             val oneOffQueue = QueueCoordinator.buildOneOffQueue(
                 currentTimeline = currentTimeline,
                 currentIndex = currentIndex,
@@ -1525,6 +1531,8 @@ private fun BitChordApp(
             // Start radio in the mini-player; the user opens the full view by tapping it.
         }
     }
+
+    val playRadio: (Song, QueueSource) -> Unit = { song, source -> playSuggestedSong(song, source) }
 
     /**
      * Starts the explicit station offered by every song overflow menu.
@@ -2089,6 +2097,14 @@ private fun BitChordApp(
     // card opens the same way from either.
     val onLibraryItemClick: (ShelfItem) -> Unit = { item ->
         item.browseId?.let { id ->
+            if (id.startsWith(com.music.bitchord.ui.screens.LIKED_ARTIST_LOOKUP_PREFIX)) {
+                scope.launch {
+                    val artistId = YtMusicRepository.findArtistPageId(item.title).getOrNull()
+                    if (artistId != null) viewModel.openDetail(artistId, item.title, "Artist", item.thumbnailUrl, BrowseType.ARTIST)
+                    else AppFeedback.makeText(context, R.string.couldnt_load_tracks, AppFeedback.LENGTH_SHORT).show()
+                }
+                return@let
+            }
             if (id == SPOTIFY_BROWSE_ID) {
                 showSpotify = true
                 return@let
@@ -3177,9 +3193,10 @@ private fun BitChordApp(
                                 // property declared in another module.
                                 val browseId = item.browseId
                                 when {
-                                    song != null -> playRadio(
+                                    song != null -> playSuggestedSong(
                                         song,
                                         QueueSource(shelfTitle, PlaybackSourceType.HOME),
+                                        quickPick = shelfTitle.equals("Quick picks", ignoreCase = true),
                                     )
                                     browseId != null -> onLibraryItemClick(item)
                                 }

@@ -6,7 +6,46 @@ Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.m
 Original authors' notices and licenses remain applicable to their material.
 -->
 
-# Internal candidate: Canary 14
+# Internal candidate: Canary 15
+
+**0.2.2-canary.15 · Android code 36 · manual testing only**
+
+- Home refreshes settle core, history and optional feeds together. Optional
+  requests have a four-second ceiling; cached content survives failed requests.
+  Later pages append after existing shelves, including supplementary feeds.
+- The visible Home feed retains its section order and cards while scrolled down.
+  Fresh replacements apply once the feed rests at the top; compatible page
+  additions extend the bottom. The generated collection shelf keeps its position.
+- Quick Picks snaps to complete three-song columns, with a hint of the next
+  column. Rounded pills give the overflow button more inset. Selecting a pick
+  enables its similar-song station and clears repeat-all, while retaining queued
+  manual requests and respecting Jam control permissions.
+- Library Artists is derived only from liked-song credits, including featured
+  artists. Duplicate credits/channel aliases collapse; saved or subscribed artist
+  cards supply matching profile artwork without adding unrelated artists.
+  Unlinked credits resolve their artist page only when tapped.
+- Standard mini-player/navigation controls share soft translucent theme surfaces,
+  accent selection and no glass rim or live blur pass. Dark/Light Material
+  containers now use Daylight's warm palette. Material cards, fields, menus and
+  dialogs use one corner scale; Pink and Liquid Glass retain their existing
+  palettes/finish. The shared rules are in `docs/DESIGN_LANGUAGE.md`.
+
+**Validation:** 1,490 unit checks passed; one optional live-provider check skipped.
+Five distinct native emulator checks passed: magnetic Quick Picks, delayed
+refresh stability/paging, cached Home/playlist restoration, Library navigation
+and real mini-player/folding controls across all six theme/glass combinations.
+The initial refresh fixture could leave
+its target within the top viewport; the corrected test verifies a nonzero scroll
+position before changing the feed and passed. Source attribution checks retain
+GPL and original notices. S22 live checks and frame-deadline results are recorded
+with the manual APK under `output/canary-0.2.2-canary.15/`.
+
+This remains an internal canary; public Dev.9 and stable 0.2.1 are unchanged.
+Source is backed up on `codex/canary-1`.
+
+---
+
+# Previous candidate: Canary 14
 
 **0.2.2-canary.14 · Android code 35 · manual testing only**
 

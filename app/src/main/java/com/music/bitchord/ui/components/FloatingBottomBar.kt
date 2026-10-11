@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-09 through 2026-10-09.
+ * Daylight changes: 2026-10-09 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -60,11 +60,10 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.settings.AppSettings
+import com.music.bitchord.ui.theme.daylightFloatingColors
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -156,7 +155,6 @@ internal const val STRETCH = 0.16f
  */
 internal const val SQUASH = 0.5f
 
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun FloatingBottomBar(
     tabs: List<BottomTab>,
@@ -169,6 +167,7 @@ fun FloatingBottomBar(
     val container = MaterialTheme.colorScheme.surface
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val useGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
+    val tonal = daylightFloatingColors(MaterialTheme.colorScheme)
     val reduceAnimation by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
     // The glass settle is exactly the motion "reduce animation" promises to
     // drop — snapping both the indicator's travel and the glyph's pop to
@@ -228,17 +227,14 @@ fun FloatingBottomBar(
             .clip(pillShape)
             .then(
                 if (reduceDynamicBlur) {
-                    Modifier.background(container)
+                    Modifier.background(if (useGlass) container else tonal.surface.copy(alpha = 1f))
                 } else if (useGlass) {
                     Modifier.liquidGlass(shape = pillShape)
                 } else {
-                    Modifier.optimizedHazeEffect(
-                        state = hazeState,
-                        style = HazeMaterials.regular(container),
-                    )
+                    Modifier.background(tonal.surface)
                 },
             )
-            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, pillShape)
+            .then(if (useGlass) Modifier.border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, pillShape) else Modifier)
             .padding(horizontal = PILL_INSET, vertical = PILL_INSET),
     ) {
         if (tabWidthPx > 0f) {
@@ -257,7 +253,7 @@ fun FloatingBottomBar(
                         scaleY = 1f - lag * STRETCH * SQUASH
                     }
                     .clip(pillShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                    .background(if (useGlass) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else tonal.selection),
             )
         }
 
@@ -322,8 +318,8 @@ fun FloatingBottomBar(
                     tab = tab,
                     selected = index == selectedIndex,
                     glassSpec = glassSpec,
-                    selectedTint = adaptiveTint,
-                    unselectedTint = adaptiveTint?.copy(alpha = 0.65f),
+                    selectedTint = adaptiveTint ?: tonal.selectedContent,
+                    unselectedTint = adaptiveTint?.copy(alpha = 0.65f) ?: tonal.secondaryContent,
                     onClick = { onTabSelected(index) },
                     modifier = Modifier.weight(1f),
                 )

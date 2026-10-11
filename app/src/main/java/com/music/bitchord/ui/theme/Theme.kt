@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-09.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -41,6 +41,29 @@ private val DarkColors = darkColorScheme(
     surfaceVariant = Color(0xFF1C1C1E),
     onSurfaceVariant = Color(0xFF8E8E93),
     outline = Color(0xFF2C2C2E),
+    primaryContainer = Color(0xFF513723),
+    onPrimaryContainer = Color(0xFFFFDEC2),
+    secondary = Color(0xFFD9BEA8),
+    onSecondary = Color(0xFF35281E),
+    secondaryContainer = Color(0xFF3E3026),
+    onSecondaryContainer = Color(0xFFF2DECE),
+    tertiary = Color(0xFFE7BAAC),
+    onTertiary = Color(0xFF422B24),
+    tertiaryContainer = Color(0xFF5B3E34),
+    onTertiaryContainer = Color(0xFFFFDBCF),
+    inversePrimary = Color(0xFF9C440E),
+    inverseSurface = Color(0xFFF5EFEC),
+    inverseOnSurface = Color(0xFF302B29),
+    scrim = Color.Black,
+    surfaceTint = Color(0xFFFFB86C),
+    surfaceBright = Color(0xFF373134),
+    surfaceDim = Color(0xFF0D0D0F),
+    surfaceContainerLowest = Color(0xFF09090B),
+    surfaceContainerLow = Color(0xFF151315),
+    surfaceContainer = Color(0xFF1E1A1C),
+    surfaceContainerHigh = Color(0xFF282326),
+    surfaceContainerHighest = Color(0xFF332D30),
+    outlineVariant = Color(0xFF40383C),
 )
 
 private val LightColors = lightColorScheme(
@@ -53,6 +76,29 @@ private val LightColors = lightColorScheme(
     surfaceVariant = Color(0xFFF2F2F7),
     onSurfaceVariant = Color(0xFF6E6E73),
     outline = Color(0xFFE5E5EA),
+    primaryContainer = Color(0xFFFFE1C7),
+    onPrimaryContainer = Color(0xFF422714),
+    secondary = Color(0xFF77604F),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFF1E1D6),
+    onSecondaryContainer = Color(0xFF362A21),
+    tertiary = Color(0xFF8B5745),
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFFFDBCF),
+    onTertiaryContainer = Color(0xFF382117),
+    inversePrimary = Color(0xFFFFB86C),
+    inverseSurface = Color(0xFF302B29),
+    inverseOnSurface = Color(0xFFFBF2ED),
+    scrim = Color.Black,
+    surfaceTint = Color(0xFF9C440E),
+    surfaceBright = Color(0xFFF7F7F9),
+    surfaceDim = Color(0xFFE1D9D5),
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color(0xFFFBF7F5),
+    surfaceContainer = Color(0xFFF5EFEC),
+    surfaceContainerHigh = Color(0xFFEEE7E3),
+    surfaceContainerHighest = Color(0xFFE8E0DB),
+    outlineVariant = Color(0xFFE2D8D1),
 )
 
 /** Soft blush surfaces with deep rose ink, including dialogs and elevated controls. */
@@ -175,6 +221,7 @@ fun BitChordTheme(
                 else -> LightColors
             },
             typography = DaylightTypography,
+            shapes = DaylightShapes,
             content = content,
         )
     }

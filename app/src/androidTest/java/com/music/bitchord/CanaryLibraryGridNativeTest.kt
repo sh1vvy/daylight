@@ -65,7 +65,7 @@ class CanaryLibraryGridNativeTest {
         val playlists = (1..60).map { ShelfItem("Playlist $it", "Daylight QA", files[it % 6].toURI().toString(), null, "VLPLqa-$it") }
         val albums = (1..60).map { ShelfItem("Album $it", "Daylight QA", files[(it + 2) % 6].toURI().toString(), null, "MPREqa-$it") }
         val artists = ('A'..'Z').flatMap { letter -> (1..12).map { ShelfItem("$letter Artist $it", "", files[it % 6].toURI().toString(), null, "UCqa-$letter-$it") } }
-        val fixture = LibraryPage(emptyList(), emptyList(), listOf(
+        val fixture = LibraryPage(artists.mapIndexed { index, artist -> Song("liked-$index", "Song $index", artist.title, null, artistId = artist.browseId) }, emptyList(), listOf(
             HomeShelf("Playlists", listOf(ShelfItem("System likes duplicate", "", null, null, YtMusicRepository.LIKED_MUSIC)) + playlists),
             HomeShelf("Albums", albums), HomeShelf("Artists", artists), HomeShelf("Subscriptions", artists.take(4))))
         try {

@@ -1,5 +1,15 @@
+/* DAYLIGHT-ATTRIBUTION
+ * Daylight modifications by sh1vvy.
+ * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
+ * Daylight changes: 2026-10-11 through 2026-10-11.
+ * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
+ * Original authors' notices and licenses remain applicable to their material.
+ */
+
 package com.music.bitchord.ui.components
 
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyListScope
@@ -36,12 +46,14 @@ fun ShelfRow(
     horizontalArrangement: Arrangement.Horizontal,
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
+    flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
     content: LazyListScope.() -> Unit,
 ) {
     LocalShelfRowChrome.current.Wrap(state) {
         LazyRow(
             modifier = modifier,
             state = state,
+            flingBehavior = flingBehavior,
             contentPadding = contentPadding,
             horizontalArrangement = horizontalArrangement,
             content = content,

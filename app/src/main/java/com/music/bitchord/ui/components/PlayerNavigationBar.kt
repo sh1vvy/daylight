@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-09 through 2026-10-09.
+ * Daylight changes: 2026-10-09 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -25,7 +25,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -63,8 +62,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
+import com.music.bitchord.ui.theme.daylightFloatingColors
 import com.music.bitchord.data.settings.AppSettings
 import com.music.bitchord.R
 import com.music.bitchord.data.model.ROW_ART_PX
@@ -90,13 +88,12 @@ import com.music.bitchord.ui.player.PlayerDock
  * of this to move; see MainActivity's `nestedScroll`.
  *
  * Glass surfaces sample the app backdrop through [Modifier.liquidGlass]. With
- * glass off, the same surfaces use regular frost; Reduce dynamic blur uses a
- * solid theme surface in both modes without recording a backdrop layer.
+ * glass off, the same controls use softly tinted theme surfaces with no blur
+ * pass. Reduce dynamic blur makes those surfaces solid.
  *
  * [song] null means nothing is playing, and the accessory is simply absent: the
  * bar is then the tab pill and Search alone, and the collapse still works.
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun PlayerNavigationBar(
     hazeState: HazeState,
@@ -124,12 +121,13 @@ fun PlayerNavigationBar(
     // this shape, and a fresh RoundedCornerShape each pass means a fresh factory
     // lambda, which the tab bar sees as a changed argument and recomposes on.
     val pillShape = remember { RoundedCornerShape(percent = 50) }
-    val contentColor = glassContentColor()
     val useGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
+    val tonal = daylightFloatingColors(MaterialTheme.colorScheme)
+    val contentColor = if (useGlass) glassContentColor() else tonal.content
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val container = MaterialTheme.colorScheme.surface
-    val selectedColor = if (com.music.bitchord.ui.theme.LocalPinkCloud.current) MaterialTheme.colorScheme.primary else contentColor
-    val unselectedColor = contentColor.copy(alpha = 0.65f)
+    val selectedColor = if (!useGlass) tonal.selectedContent else
+        if (com.music.bitchord.ui.theme.LocalPinkCloud.current) MaterialTheme.colorScheme.primary else contentColor
+    val unselectedColor = if (useGlass) contentColor.copy(alpha = 0.65f) else tonal.secondaryContent
     val haptics = rememberHaptics()
 
     // The tab content lambdas below are captured once per contentKey and held
@@ -151,14 +149,7 @@ fun PlayerNavigationBar(
             Modifier.liquidGlass(shape = pillShape)
         } else {
             Modifier.clip(pillShape)
-                .then(
-                    if (reduceDynamicBlur) Modifier.background(container)
-                    else Modifier.optimizedHazeEffect(
-                        state = hazeState,
-                        style = HazeMaterials.regular(container),
-                    ),
-                )
-                .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, pillShape)
+                .background(if (reduceDynamicBlur) tonal.surface.copy(alpha = 1f) else tonal.surface)
         }
     }
 
@@ -215,7 +206,7 @@ fun PlayerNavigationBar(
         colors = FloatingTabBarDefaults.colors(
             backgroundColor = Color.Transparent,
             accessoryBackgroundColor = Color.Transparent,
-            indicatorColor = glassIndicatorColor(),
+            indicatorColor = if (useGlass) glassIndicatorColor() else tonal.selection,
         ),
         // Flat, because the glass is not. Every surface here already draws its
         // own shadow as part of the backdrop pass, and the library's

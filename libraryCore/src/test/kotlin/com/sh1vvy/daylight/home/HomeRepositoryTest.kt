@@ -82,4 +82,31 @@ class HomeRepositoryTest {
         repo.loadMore(); runCurrent(); assertEquals(listOf("Main", "More"), repo.state.value.sections.map { it.title })
         assertNull(repo.loadMore()); assertEquals(2, calls)
     }
+    @Test fun coldFeedCommitsOnlyAfterHistoryAndSupplementsSettle() = runTest {
+        val history = CompletableDeferred<Shelf?>(); val extra = CompletableDeferred<List<Shelf>>()
+        val repo = repository({ HomeBatch(listOf(Shelf("Main")), null) }, { history.await() }, listOf({ extra.await() }))
+        repo.load("one", true); runCurrent()
+        assertTrue(repo.state.value.sections.isEmpty()); assertFalse(repo.state.value.ready)
+        history.complete(Shelf("Recents")); runCurrent(); assertTrue(repo.state.value.sections.isEmpty())
+        extra.complete(listOf(Shelf("Extra"))); runCurrent()
+        assertEquals(listOf("Recents", "Main", "Extra"), repo.state.value.sections.map { it.title })
+    }
+
+    @Test fun optionalTimeoutRetainsCacheAndCannotHangFeedOrCancelItsCore() = runTest {
+        val repo = repository({ HomeBatch(listOf(Shelf("Main")), null) }, { awaitCancellation() }, listOf({ awaitCancellation() }),
+            read = { HomeSnapshot(listOf(Shelf("Old")), Shelf("Recents"), listOf(listOf(Shelf("Extra"))), 1) })
+        repo.load("one", true); runCurrent(); advanceTimeBy(4_001); runCurrent()
+        assertEquals(listOf("Recents", "Main", "Extra"), repo.state.value.sections.map { it.title })
+        assertEquals(0, repo.state.value.pending); assertFalse(repo.state.value.recentLoading)
+    }
+
+    @Test fun paginationAppendsAfterSupplementsAndKeepsOldSectionPositions() = runTest {
+        val repo = repository({ HomeBatch(listOf(Shelf("Main")), "next") }, extras = listOf({ listOf(Shelf("Extra")) }),
+            more = { _, _ -> HomeBatch(listOf(Shelf("Main"), Shelf("More")), null) })
+        repo.load("one", false); runCurrent(); val first = repo.state.value.sections
+        repo.loadMore(); runCurrent()
+        assertEquals(first, repo.state.value.sections.take(first.size))
+        assertEquals(listOf("Main", "Extra", "More"), repo.state.value.sections.map { it.title })
+    }
+
 }

@@ -8,6 +8,8 @@
 
 package com.music.bitchord.ui.screens
 
+import com.music.bitchord.data.model.Song
+import com.music.bitchord.data.model.ArtistRef
 import com.music.bitchord.data.model.HomeShelf
 import com.music.bitchord.data.model.LibraryPage
 import com.music.bitchord.data.model.ShelfItem
@@ -25,7 +27,7 @@ class LibraryCollectionsTest {
             HomeShelf("Artists", listOf(a)), HomeShelf("Subscriptions", listOf(a, item("UCother"))),
         ), listOf(item("spotify:playlist:mine"), item("local:playlist:mine")), emptyList(), emptyList())
         assertEquals(listOf("spotify:playlist:mine", "local:playlist:mine", "VLPLone"), collections.playlists.items.map { it.browseId })
-        assertEquals(listOf("UCartist", "UCother"), collections.artists.items.map { it.browseId })
+        assertTrue(collections.artists.items.isEmpty())
         assertEquals(4, collections.recent.size)
         assertFalse(collections.recent.any { it.browseId?.startsWith("UC") == true })
     }
@@ -52,7 +54,7 @@ class LibraryCollectionsTest {
             HomeShelf("Artistes", listOf(item("UCone"))), HomeShelf("Listes", listOf(item("VLPLone")))),
             emptyList(), emptyList(), emptyList())
         assertEquals("VLOLAKalbum", collections.albums.items.single().browseId)
-        assertEquals("UCone", collections.artists.items.single().browseId)
+        assertTrue(collections.artists.items.isEmpty())
         assertEquals("VLPLone", collections.playlists.items.single().browseId)
     }
 
@@ -63,4 +65,29 @@ class LibraryCollectionsTest {
         assertEquals("#", libraryInitial("宇多田ヒカル"))
         assertEquals("#", libraryInitial(""))
     }
+    @Test fun `only artists credited on liked songs join the library`() {
+        val liked = Song("liked", "Song", "Lead & Guest", null, artists = listOf(ArtistRef("Lead", "UClead"), ArtistRef("Guest", "UCguest")))
+        val cards = listOf(item("UClead", "Lead").copy(thumbnailUrl = "lead-art"), item("UCunliked", "Unliked"))
+        val page = LibraryPage(listOf(liked), listOf(Song("playlist-only", "Song", "Unliked", null, artistId = "UCunliked")),
+            listOf(HomeShelf("Artists", cards)))
+        val artists = libraryCollections(page, emptyList(), emptyList(), emptyList()).artists.items
+        assertEquals(listOf("Lead", "Guest"), artists.map { it.title })
+        assertEquals("lead-art", artists.first().thumbnailUrl)
+        assertEquals("UCguest", artists.last().browseId)
+    }
+    @Test fun `repeated credits topic aliases and missing ids produce one artist row`() {
+        val songs = listOf(Song("one", "One", "ADÉLA", null),
+            Song("two", "Two", "Adéla", null, artistId = "UCreal"),
+            Song("three", "Three", "ADÉLA", null, artistId = "UCtopic"),
+            Song("four", "Four", "ADÉLA", null, artistId = "UCreal"))
+        val artists = likedLibraryArtists(songs, emptyList())
+        assertEquals(1, artists.size); assertEquals("UCreal", artists.single().browseId)
+    }
+    @Test fun `unlinked liked credits remain reachable without guessing a profile`() {
+        val artists = likedLibraryArtists(listOf(Song("one", "One", "Missing", null)),
+            listOf(item("UCa", "Missing"), item("UCb", "Missing")))
+        assertEquals(LIKED_ARTIST_LOOKUP_PREFIX + "missing", artists.single().browseId)
+        assertNull(artists.single().thumbnailUrl)
+    }
+
 }

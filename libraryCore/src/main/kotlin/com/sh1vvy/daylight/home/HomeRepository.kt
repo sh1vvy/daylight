@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 data class HomeBatch<S>(val sections: List<S>, val next: String?)
-data class HomeSnapshot<S>(val primary: List<S>, val recent: S?, val extras: List<List<S>>, val checkedAt: Long)
+data class HomeSnapshot<S>(val primary: List<S>, val recent: S?, val extras: List<List<S>>, val checkedAt: Long, val tail: List<S> = emptyList())
 data class HomeLoad<K, S>(val key: K? = null, val sections: List<S> = emptyList(), val ready: Boolean = false,
     val pending: Int = 0, val recentLoading: Boolean = false, val paging: Boolean = false, val failure: Throwable? = null)
 
@@ -74,9 +74,10 @@ class HomeRepository<K, S>(
                 synchronized(lock) {
                     if (revision.get() != version) return@synchronized
                     val old = snapshot ?: return@synchronized
-                    val combined = unique(old.primary + batch.sections)
-                    continuation = batch.next.takeIf { combined.size > old.primary.size }
-                    snapshot = old.copy(primary = combined)
+                    val combined = unique(_state.value.sections + batch.sections)
+                    val added = combined.drop(_state.value.sections.size)
+                    continuation = batch.next.takeIf { added.isNotEmpty() }
+                    snapshot = old.copy(tail = old.tail + added)
                     publish()
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
@@ -89,7 +90,7 @@ class HomeRepository<K, S>(
     fun edit(transform: (S) -> S) = synchronized(lock) {
         val previous = snapshot ?: return@synchronized
         val changed = previous.copy(primary = previous.primary.map(transform), recent = previous.recent?.let(transform),
-            extras = previous.extras.map { it.map(transform) })
+            extras = previous.extras.map { it.map(transform) }, tail = previous.tail.map(transform))
         if (previous == changed) return@synchronized
         val version = revision.incrementAndGet()
         loading?.cancel(); paging?.cancel()
@@ -114,44 +115,32 @@ class HomeRepository<K, S>(
                 snapshot = cached ?: HomeSnapshot(emptyList(), null, List(extras.size) { emptyList() }, 0)
                 if (cached != null) publish()
             }
-            // The core and history commit together during refresh, retaining the current
-            // ordering. An initial feed may appear while its reserved history slot loads.
+            // Cached content stays available; network results commit as one settled feed.
+            // No late source may insert a section ahead of the shelf being scrolled.
             supervisorScope {
-                val history = if (signedIn) async { runCatchingCancellable { recent(key) } } else null
-                val optional = extras.mapIndexed { index, source -> launch {
-                    val result = runCatchingCancellable { source(key) }
-                    synchronized(lock) {
-                        if (!current()) return@synchronized
-                        if (result.isSuccess) snapshot = snapshot!!.copy(extras = snapshot!!.extras.toMutableList().also {
-                            while (it.size < extras.size) it.add(emptyList())
-                            it[index] = result.getOrThrow()
-                        })
-                        _state.value = _state.value.copy(pending = (_state.value.pending - 1).coerceAtLeast(0))
-                        // Avoid supplementary sections replacing the leading cached feed before core settles.
-                        if (cached == null) publish()
-                    }
+                val history = if (signedIn) async { runCatchingCancellable { withTimeout(4_000) { recent(key) } } } else null
+                val optional = extras.map { source -> async {
+                    runCatchingCancellable { withTimeout(4_000) { source(key) } }
                 } }
                 val core = runCatchingCancellable { primary(key) }
-                if (cached == null) synchronized(lock) {
-                    if (current() && core.isSuccess) { snapshot = snapshot!!.copy(primary = core.getOrThrow().sections); publish() }
-                }
                 val leading = history?.await()
+                val additions = optional.map { it.await() }
                 synchronized(lock) {
                     if (!current()) return@synchronized
-                    if (core.isSuccess) {
-                        snapshot = snapshot!!.copy(primary = core.getOrThrow().sections)
-                        continuation = core.getOrThrow().next
-                    }
-                    if (leading?.isSuccess == true) snapshot = snapshot!!.copy(recent = leading.getOrNull())
-                    if (!signedIn) snapshot = snapshot!!.copy(recent = null)
-                    _state.value = _state.value.copy(pending = (_state.value.pending - 1).coerceAtLeast(0), recentLoading = false,
+                    val old = snapshot!!
+                    snapshot = old.copy(
+                        primary = core.getOrNull()?.sections ?: old.primary,
+                        recent = when { !signedIn -> null; leading?.isSuccess == true -> leading.getOrNull(); else -> old.recent },
+                        extras = additions.mapIndexed { index, result -> result.getOrNull() ?: old.extras.getOrNull(index).orEmpty() },
+                        tail = if (core.isSuccess) emptyList() else old.tail,
+                        checkedAt = if (core.isSuccess) now() else old.checkedAt,
+                    )
+                    if (core.isSuccess) continuation = core.getOrThrow().next
+                    _state.value = _state.value.copy(pending = 0, recentLoading = false,
                         failure = core.exceptionOrNull().takeIf { !_state.value.ready })
                     publish()
                 }
-                optional.joinAll()
-                synchronized(lock) { if (current() && core.isSuccess) snapshot = snapshot!!.copy(checkedAt = now()) }
                 if (current() && core.isSuccess) save(key, synchronized(lock) { snapshot!! }, ::current)
-                synchronized(lock) { if (current()) publish() }
             }
         } finally {
             synchronized(lock) { if (revision.get() == version) _state.value = _state.value.copy(pending = 0, recentLoading = false) }
@@ -161,7 +150,7 @@ class HomeRepository<K, S>(
     private fun publish() {
         val value = snapshot ?: return
         val base = if (_state.value.recentLoading || value.recent != null) value.primary.filterNot(isRecent) else value.primary
-        val sections = unique(listOfNotNull(value.recent) + base + value.extras.flatten())
+        val sections = unique(listOfNotNull(value.recent) + base + value.extras.flatten() + value.tail)
         _state.value = _state.value.copy(sections = sections, ready = sections.isNotEmpty() || value.checkedAt > 0,
             failure = _state.value.failure.takeIf { sections.isEmpty() })
     }
@@ -183,5 +172,6 @@ class HomeRepository<K, S>(
     }
 
     private suspend fun <T> runCatchingCancellable(block: suspend () -> T): Result<T> = try { Result.success(block()) }
+        catch (timeout: TimeoutCancellationException) { Result.failure(timeout) }
         catch (cancelled: CancellationException) { throw cancelled } catch (failure: Exception) { Result.failure(failure) }
 }

@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-10.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -59,6 +59,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -177,7 +182,21 @@ fun HomeScreen(
     val visibleRecommendations = rememberCoverSourceValue("home-recommendations", recommendedTracks)
     val visibleRecentsLoading = rememberCoverSourceValue("home-recents-loading", recentlyPlayedLoading)
     val sourceShelves = (visibleState as? UiState.Success)?.data.orEmpty()
-    val shelves = remember(sourceShelves, visibleRecommendations) { homeQuickPickShelves(sourceShelves, visibleRecommendations).filter { it.items.isNotEmpty() }.map { it.copy(subtitle = "") } }
+    val incomingShelves = remember(sourceShelves, visibleRecommendations) { homeQuickPickShelves(sourceShelves, visibleRecommendations).filter { it.items.isNotEmpty() }.map { it.copy(subtitle = "") } }
+    var retainedShelves by remember { mutableStateOf(incomingShelves) }
+    val quickPicksState = rememberLazyListState()
+    val atRestAtTop by remember(listState, quickPicksState) { derivedStateOf {
+        !listState.isScrollInProgress && !quickPicksState.isScrollInProgress &&
+            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+    } }
+    LaunchedEffect(visibleState, incomingShelves, atRestAtTop) {
+        retainedShelves = if (visibleState is UiState.Loading) emptyList() else
+            stableHomeShelves(retainedShelves, incomingShelves, atRestAtTop)
+    }
+    val shelves = retainedShelves.ifEmpty { incomingShelves }
+    val canPage = remember(shelves, incomingShelves) {
+        homeTailCompatible(shelves, incomingShelves)
+    }
     val shelfKeys = remember(shelves) { homeShelfKeys(shelves) }
     val recentsPending = visibleRecentsLoading && sourceShelves.none { it.title.equals(RECENTS_TITLE, ignoreCase = true) } && shelves.none { it.title == QUICK_PICKS_TITLE }
 
@@ -238,6 +257,7 @@ fun HomeScreen(
                                 isPlaying = isPlaying,
                                 firstIsHero = leadHero && !recentsPending,
                                 recentsViewType = recentsViewType,
+                                quickPicksState = quickPicksState,
                                 onRecentsViewTypeToggle = {},
                                 onPlayMix = onPlayMix.takeIf { signedIn },
                                 mixLoading = mixLoading,
@@ -259,12 +279,12 @@ fun HomeScreen(
         // skeleton and no request in flight to explain it. Restarting on
         // [loadingMore] re-checks the moment a page settles, so the next one is
         // asked for while the tail is still on screen to show it loading.
-        LaunchedEffect(listState, loadingMore) {
+        LaunchedEffect(listState, loadingMore, canPage) {
             snapshotFlow {
                 val layout = listState.layoutInfo
                 (layout.visibleItemsInfo.lastOrNull()?.index ?: -1) to layout.totalItemsCount
             }.collect { (lastVisible, total) ->
-                if (!loadingMore && total > 0 && lastVisible >= total - 3) loadMore()
+                if (canPage && !loadingMore && total > 0 && lastVisible >= total - 3) loadMore()
             }
         }
     }
@@ -283,6 +303,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
     isPlaying: Boolean,
     firstIsHero: Boolean = true,
     recentsViewType: LibraryViewType,
+    quickPicksState: LazyListState,
     onRecentsViewTypeToggle: () -> Unit,
     onPlayMix: (() -> Unit)? = null,
     mixLoading: Boolean = false,
@@ -312,6 +333,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedShelves(
                     currentSong = currentSong,
                     isPlaying = isPlaying,
                     viewType = recentsViewType,
+                    rowState = quickPicksState,
                     onViewTypeToggle = onRecentsViewTypeToggle,
                     coverKeyPrefix = shelfKeys[index],
                 )
@@ -365,6 +387,7 @@ private fun RecentShelf(
     currentSong: Song?,
     isPlaying: Boolean,
     viewType: LibraryViewType,
+    rowState: LazyListState,
     onViewTypeToggle: () -> Unit,
     coverKeyPrefix: String,
 ) {
@@ -381,12 +404,17 @@ private fun RecentShelf(
             BoxWithConstraints {
                 val columnWidth = (maxWidth - PAGE_GUTTER * 2 - 18.dp).coerceAtLeast(200.dp)
                 ShelfRow(
-                    contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
+                    state = rowState,
+                    flingBehavior = rememberSnapFlingBehavior(rowState, SnapPosition.Start),
+                    modifier = Modifier.testTag("home-quick-picks-pages"),
+                    contentPadding = PaddingValues(start = PAGE_GUTTER, end = PAGE_GUTTER + 18.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     itemsIndexed(
                         columns,
-                        key = { index, _ -> itemKeys[index * RECENT_TRACKS_PER_COLUMN] },
+                        // A refreshed song may move to another column. Keep the page's
+                        // position rather than anchoring the row to that moved song.
+                        key = { index, _ -> "quick-picks-column-$index" },
                         contentType = { _, _ -> "recent-column" },
                     ) { columnIndex, column ->
                         Column(Modifier.width(columnWidth), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -478,7 +506,7 @@ private fun RecentTrackRow(
 ) {
     val coverMotion = com.music.bitchord.ui.components.LocalLibraryCoverMotion.current
     androidx.compose.material3.Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.65f),
     ) {
         CompactTrackRow(
@@ -493,7 +521,7 @@ private fun RecentTrackRow(
             isCurrent = isCurrent,
             isPlaying = isPlaying,
             artworkModifier = Modifier.libraryCoverMotion(item.browseId, coverKey, 7f),
-            modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
         )
     }
 }

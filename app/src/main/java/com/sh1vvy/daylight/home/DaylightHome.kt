@@ -23,7 +23,7 @@ data class HomeContext(val identity: String?, val language: String, val sourceRe
 
 @Serializable
 private data class StoredHome(val primary: List<LibrarySection>, val recent: LibrarySection?,
-    val extras: List<List<LibrarySection>>, val checkedAt: Long)
+    val extras: List<List<LibrarySection>>, val checkedAt: Long, val tail: List<LibrarySection> = emptyList())
 
 /** Only display metadata persists. Authentication, continuation tokens and play state stay out. */
 object DaylightHomeStorage {
@@ -34,21 +34,21 @@ object DaylightHomeStorage {
         cache = SnapshotCache(File(context.filesDir, "daylight-home-v1"), object : SnapshotCodec<StoredHome> {
             override fun encode(value: StoredHome) = json.encodeToString(StoredHome.serializer(), value).toByteArray(Charsets.UTF_8)
             override fun decode(bytes: ByteArray) = json.decodeFromString(StoredHome.serializer(), bytes.toString(Charsets.UTF_8))
-            override fun weight(value: StoredHome) = (value.primary + listOfNotNull(value.recent) + value.extras.flatten()).sumOf { it.cards.size }
+            override fun weight(value: StoredHome) = (value.primary + listOfNotNull(value.recent) + value.extras.flatten() + value.tail).sumOf { it.cards.size }
         }, CacheBudget(diskBytes = 4L * 1024 * 1024, entryBytes = 1024 * 1024, memoryRows = 2_000,
             memoryEntries = 4, entriesPerAccount = 3, diskEntries = 24))
     }
     private fun key(context: HomeContext) = SnapshotKey("youtube:${context.identity ?: "guest"}", "home:${context.language}")
     suspend fun read(context: HomeContext): HomeSnapshot<HomeShelf>? = try {
         cache?.read(key(context))?.let { saved -> HomeSnapshot(shelves(saved.primary), saved.recent?.let { shelves(listOf(it)).single() },
-            saved.extras.map(::shelves), saved.checkedAt) }
+            saved.extras.map(::shelves), saved.checkedAt, shelves(saved.tail)) }
     } catch (_: IOException) { null }
     suspend fun save(context: HomeContext, value: HomeSnapshot<HomeShelf>, current: () -> Boolean) {
         fun records(shelves: List<HomeShelf>) = shelves.take(20).map { shelf -> LibrarySection(shelf.title,
             shelf.items.take(24).map { LibraryCard(it.title, it.subtitle, it.thumbnailUrl, it.browseId, it.videoId) },
             shelf.subtitle, shelf.moreBrowseId, shelf.moreParams) }
         val record = StoredHome(records(value.primary), value.recent?.let { records(listOf(it)).single() },
-            value.extras.map(::records), value.checkedAt)
+            value.extras.map(::records), value.checkedAt, records(value.tail))
         try { cache?.write(key(context), record, current) } catch (_: IOException) { }
     }
     suspend fun remove(identity: String) { try { cache?.removeAccount("youtube:$identity") } catch (_: IOException) { } }

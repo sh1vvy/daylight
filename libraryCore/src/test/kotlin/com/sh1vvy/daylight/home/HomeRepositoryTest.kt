@@ -20,9 +20,10 @@ class HomeRepositoryTest {
         recent: suspend (String) -> Shelf? = { null }, extras: List<suspend (String) -> List<Shelf>> = emptyList(),
         more: suspend (String, String) -> HomeBatch<Shelf> = { _, _ -> error("Unexpected continuation") },
         read: suspend (String) -> HomeSnapshot<Shelf>? = { null },
-        save: suspend (String, HomeSnapshot<Shelf>, () -> Boolean) -> Unit = { _, _, _ -> }) = HomeRepository(
+        save: suspend (String, HomeSnapshot<Shelf>, () -> Boolean) -> Unit = { _, _, _ -> },
+        preparedPages: Int = 0, preparedBeforeExtras: Boolean = false) = HomeRepository(
             this, primary, recent, extras, more, read, save, { it.title }, { if (it.albums) it.ids else emptySet() },
-            { it.ids.size }, { it.title == "Recents" }, now = { 90_000 }, io = StandardTestDispatcher(testScheduler))
+            { it.ids.size }, { it.title == "Recents" }, now = { 90_000 }, io = StandardTestDispatcher(testScheduler), preparedPages = preparedPages, preparedBeforeExtras = preparedBeforeExtras)
 
     @Test fun cachedFeedStaysVisibleUntilCoreAndHistoryCommitTogether() = runTest {
         val old = HomeSnapshot(listOf(Shelf("Listen again")), Shelf("Recents", setOf("old")), emptyList(), 1)
@@ -107,6 +108,49 @@ class HomeRepositoryTest {
         repo.loadMore(); runCurrent()
         assertEquals(first, repo.state.value.sections.take(first.size))
         assertEquals(listOf("Main", "Extra", "More"), repo.state.value.sections.map { it.title })
+    }
+
+    @Test fun preparedContinuationsCommitTogetherAheadOfGlobalSupplements() = runTest {
+        val page = CompletableDeferred<HomeBatch<Shelf>>()
+        val repo = repository({ HomeBatch(listOf(Shelf("Personal")), "one") },
+            extras = listOf({ listOf(Shelf("Global")) }), more = { _, _ -> page.await() },
+            preparedPages = 1, preparedBeforeExtras = true)
+        repo.load("one", false); runCurrent()
+        assertFalse(repo.state.value.ready); assertTrue(repo.state.value.sections.isEmpty())
+        page.complete(HomeBatch(listOf(Shelf("Made for you")), null)); runCurrent()
+        assertEquals(listOf("Personal", "Made for you", "Global"), repo.state.value.sections.map { it.title })
+        assertNull(repo.loadMore())
+    }
+
+    @Test fun prefetchStopsAtItsBudgetAndRetainsCompletedPagesOnTimeout() = runTest {
+        var calls = 0
+        val repo = repository({ HomeBatch(listOf(Shelf("Main")), "first") },
+            more = { _, token -> calls++; if (token == "first") HomeBatch(listOf(Shelf("Ready")), "slow") else awaitCancellation() },
+            preparedPages = 2)
+        repo.load("one", false); runCurrent(); assertFalse(repo.state.value.ready)
+        advanceTimeBy(2_501); runCurrent()
+        assertEquals(listOf("Main", "Ready"), repo.state.value.sections.map { it.title })
+        assertEquals(2, calls); assertEquals(0, repo.state.value.pending)
+    }
+
+    @Test fun boundedPrefetchDoesNotLoopAndSavesItsPreparedTail() = runTest {
+        var calls = 0; var persisted: HomeSnapshot<Shelf>? = null
+        val repo = repository({ HomeBatch(listOf(Shelf("Main")), "loop") },
+            more = { _, _ -> calls++; HomeBatch(listOf(Shelf("Ready")), "loop") },
+            save = { _, value, _ -> persisted = value }, preparedPages = 3)
+        repo.load("one", false); runCurrent()
+        assertEquals(1, calls); assertEquals(listOf(Shelf("Ready")), persisted!!.tail)
+        assertNull(repo.loadMore())
+    }
+
+    @Test fun freshDiskSnapshotNeedsNoNetworkUntilExplicitRefresh() = runTest {
+        var calls = 0
+        val repo = repository({ calls++; HomeBatch(listOf(Shelf("Refreshed")), null) },
+            read = { HomeSnapshot(listOf(Shelf("Ready")), null, emptyList(), 89_999) })
+        repo.load("one", false); runCurrent()
+        assertEquals(0, calls); assertEquals("Ready", repo.state.value.sections.single().title)
+        repo.load("one", false, force = true); runCurrent()
+        assertEquals(1, calls); assertEquals("Refreshed", repo.state.value.sections.single().title)
     }
 
 }

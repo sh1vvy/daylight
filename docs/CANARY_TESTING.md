@@ -6,7 +6,63 @@ Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.m
 Original authors' notices and licenses remain applicable to their material.
 -->
 
-# Internal candidate: Canary 15
+# Internal candidate: Canary 16
+
+**0.2.2-canary.16 · Android code 37 · manual testing only**
+
+- Rewritten Home presentation with direct artwork/captions, consistent headings
+  and spacing, circular artist portraits, shared theme colours and spring press
+  feedback. Quick Picks uses a centered cover carousel with scaled, angled
+  neighbours inside the 16dp page gutters, a soft focused-cover shadow, native
+  velocity-based coasting and song/artist captions. Gentle swipes move one cover;
+  faster releases coast through up to three before a single soft spring settles
+  the final cover. Extreme speeds are smoothly restrained in item-relative units.
+  Home's other snapping track columns share the same decay and settling spring.
+  The covers follow one continuous
+  path, clear each other at the depth handoff, and fade buffered sleeves in;
+  captions fade through the midpoint. Up to 12 tracks loop
+  continuously with both neighbours present across the first/last track; only
+  nearby pages render. Tap plays a related-song
+  station; hold opens the existing song menu. No extra transport buttons or
+  automatic cycling. Play my mix remains below it for signed-in users.
+- Inter headings use subtle negative letter spacing, ranging from -0.25sp on
+  20sp titles to -0.7sp on 34sp display text; smaller body text stays unchanged.
+- Home uses the account's YouTube Music recommendation feed and history. Up to
+  two continuation pages are prepared before display within a 2.5-second budget;
+  personalized pages precede the lower-priority new-release supplement. Home no
+  longer requests global Explore shelves or independent seed radios on startup.
+- Scrolling triggers no Home provider requests and inserts no shelves. A changed
+  snapshot waits until return to rest at the top. Duplicate displayed tracks,
+  duplicate shelves and unsupported podcast destinations are omitted. The view
+  is bounded to 12 shelves/12 previews per shelf; Discover remains available.
+- Five-minute fresh metadata reuse includes cold process restoration. Explicit
+  refresh still fetches updates. Optional failures preserve retained content;
+  prefetch timeouts retain completed pages and account isolation remains.
+- Returning from a collection retains Home's displayed snapshot. Playback marks
+  the feed for an ordinary freshness check instead of forcing a visible refresh
+  each time Home reopens. The bottom clearance follows the measured floating
+  controls, including their folded state and system insets; the final shelf has
+  no extra section spacer.
+- Library artist entries open the cached liked tracks credited to that artist,
+  including featured credits and matching channel aliases. Unliking a track
+  updates the open list. Missing artist portraits resolve from a verified
+  artist header or an exact search match, with two concurrent requests, bounded
+  disk/memory storage and reuse across app restarts.
+- Native Compose cache windows retain half a viewport ahead and behind. Up to
+  20 preview images warm with two concurrent requests in the existing bounded
+  image cache. Home image crossfades are disabled; dimensions remain fixed while
+  images arrive. Reduced motion removes touch scaling and carousel rotation.
+  Playback, similar-song
+  queues, Jams and connected cover transitions keep their existing behavior.
+
+Validation and phone measurements are recorded with the local test artifacts.
+Only the canary source branch is backed up; public Dev.9 and stable 0.2.1 stay
+unchanged. The S22 uses USB-only stay-awake as requested; its normal screen timeout,
+refresh rate and system animation settings are unchanged.
+
+---
+
+# Previous candidate: Canary 15
 
 **0.2.2-canary.15 · Android code 36 · manual testing only**
 

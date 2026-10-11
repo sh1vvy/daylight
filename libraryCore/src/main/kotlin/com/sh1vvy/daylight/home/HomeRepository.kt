@@ -34,6 +34,10 @@ class HomeRepository<K, S>(
     private val isRecent: (S) -> Boolean,
     private val now: () -> Long = System::currentTimeMillis,
     private val io: CoroutineDispatcher = Dispatchers.IO,
+    private val preparedPages: Int = 0,
+    private val preparationTimeoutMillis: Long = 2_500,
+    private val freshForMillis: Long = 60_000,
+    private val preparedBeforeExtras: Boolean = false,
 ) {
     private val revision = AtomicLong()
     private val lock = Any()
@@ -47,7 +51,7 @@ class HomeRepository<K, S>(
 
     fun load(key: K, signedIn: Boolean, force: Boolean = false): Job = synchronized(lock) {
         if (!force && _state.value.key == key && loading?.isActive == true) return@synchronized loading!!
-        if (!force && _state.value.key == key && snapshot?.let { now() - it.checkedAt in 0 until 60_000 } == true) return@synchronized scope.launch { }
+        if (!force && _state.value.key == key && snapshot?.let { now() - it.checkedAt in 0 until freshForMillis } == true) return@synchronized scope.launch { }
         val same = _state.value.key == key
         val previous = snapshot.takeIf { same }
         val version = revision.incrementAndGet()
@@ -56,7 +60,7 @@ class HomeRepository<K, S>(
         _state.value = HomeLoad(key, if (same) _state.value.sections else emptyList(), ready = same && _state.value.ready,
             pending = 1 + extras.size, recentLoading = signedIn)
         loading = scope.launch(io, start = CoroutineStart.LAZY) {
-            bootstrap(key, signedIn, version, previous)
+            bootstrap(key, signedIn, version, previous, force)
         }.also { it.start() }
         loading!!
     }
@@ -105,7 +109,7 @@ class HomeRepository<K, S>(
         seenTokens.clear(); _state.value = HomeLoad()
     }
 
-    private suspend fun bootstrap(key: K, signedIn: Boolean, version: Long, existing: HomeSnapshot<S>?) {
+    private suspend fun bootstrap(key: K, signedIn: Boolean, version: Long, existing: HomeSnapshot<S>?, force: Boolean) {
         val owner = currentCoroutineContext()
         fun current() = owner.isActive && revision.get() == version
         try {
@@ -115,6 +119,7 @@ class HomeRepository<K, S>(
                 snapshot = cached ?: HomeSnapshot(emptyList(), null, List(extras.size) { emptyList() }, 0)
                 if (cached != null) publish()
             }
+            if (!force && cached != null && now() - cached.checkedAt in 0 until freshForMillis) return
             // Cached content stays available; network results commit as one settled feed.
             // No late source may insert a section ahead of the shelf being scrolled.
             supervisorScope {
@@ -123,6 +128,11 @@ class HomeRepository<K, S>(
                     runCatchingCancellable { withTimeout(4_000) { source(key) } }
                 } }
                 val core = runCatchingCancellable { primary(key) }
+                // Prepare a bounded continuation ahead of display. Scrolling is never
+                // a network trigger, and one slow page cannot hold the feed indefinitely.
+                val prepared = core.getOrNull()?.let { batch ->
+                    prepareTail(key, batch.next)
+                }
                 val leading = history?.await()
                 val additions = optional.map { it.await() }
                 synchronized(lock) {
@@ -132,10 +142,10 @@ class HomeRepository<K, S>(
                         primary = core.getOrNull()?.sections ?: old.primary,
                         recent = when { !signedIn -> null; leading?.isSuccess == true -> leading.getOrNull(); else -> old.recent },
                         extras = additions.mapIndexed { index, result -> result.getOrNull() ?: old.extras.getOrNull(index).orEmpty() },
-                        tail = if (core.isSuccess) emptyList() else old.tail,
+                        tail = if (core.isSuccess) prepared?.first.orEmpty() else old.tail,
                         checkedAt = if (core.isSuccess) now() else old.checkedAt,
                     )
-                    if (core.isSuccess) continuation = core.getOrThrow().next
+                    if (core.isSuccess) continuation = prepared?.second
                     _state.value = _state.value.copy(pending = 0, recentLoading = false,
                         failure = core.exceptionOrNull().takeIf { !_state.value.ready })
                     publish()
@@ -147,10 +157,29 @@ class HomeRepository<K, S>(
         }
     }
 
+    private suspend fun prepareTail(key: K, initialToken: String?): Pair<List<S>, String?> {
+        if (preparedPages <= 0) return emptyList<S>() to initialToken
+        var token = initialToken
+        val tokens = HashSet<String>()
+        val sections = ArrayList<S>()
+        // Retain completed pages even if a later page fails or times out.
+        withTimeoutOrNull(preparationTimeoutMillis) {
+            repeat(preparedPages.coerceAtMost(3)) {
+                val next = token?.takeIf { tokens.add(it) } ?: return@withTimeoutOrNull
+                val batch = runCatchingCancellable { more(key, next) }.getOrNull()
+                    ?: return@withTimeoutOrNull
+                sections += batch.sections
+                token = batch.next
+            }
+        }
+        return sections to token?.takeUnless { it in tokens }
+    }
+
     private fun publish() {
         val value = snapshot ?: return
         val base = if (_state.value.recentLoading || value.recent != null) value.primary.filterNot(isRecent) else value.primary
-        val sections = unique(listOfNotNull(value.recent) + base + value.extras.flatten() + value.tail)
+        val rest = if (preparedBeforeExtras) value.tail + value.extras.flatten() else value.extras.flatten() + value.tail
+        val sections = unique(listOfNotNull(value.recent) + base + rest)
         _state.value = _state.value.copy(sections = sections, ready = sections.isNotEmpty() || value.checkedAt > 0,
             failure = _state.value.failure.takeIf { sections.isEmpty() })
     }

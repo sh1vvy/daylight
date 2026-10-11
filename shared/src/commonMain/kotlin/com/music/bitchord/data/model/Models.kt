@@ -539,6 +539,8 @@ data class DetailPage(
     val creator: PlaylistCreator? = null,
     /** Non-null for a creator profile occupying this navigation stack entry. */
     val creatorProfile: CreatorProfilePage? = null,
+    /** A Library artist shows only liked tracks; catalogue artist routes stay separate. */
+    val libraryArtist: ArtistRef? = null,
 )
 
 /**

@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-09.
+ * Daylight changes: 2026-10-08 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -29,8 +29,8 @@ class PinkCloudSurfaceTest {
     fun homeAndNavigationKeepTheSelectedPinkSurface() {
         assertSame(pink, daylightHomeColorScheme(pink, pinkCloud = true))
         assertEquals(pink.background, daylightHomeBackground(pink.background, pinkCloud = true))
-        assertEquals(Color(0xFFFFF8F4), daylightHomeBackground(Color.White))
-        assertEquals(Color(0xFF19151D), daylightHomeBackground(Color.Black))
+        assertEquals(Color.White, daylightHomeBackground(Color.White))
+        assertEquals(Color.Black, daylightHomeBackground(Color.Black))
     }
 
     @Test

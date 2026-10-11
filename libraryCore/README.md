@@ -58,20 +58,27 @@ and `DiscoveryRepository`:
 - Home has a separate 4 MiB metadata store with 2,000 warm cards/four records.
   Cached content remains while refreshing. Core, history and supplementary
   responses settle together, with four-second timeouts for optional requests.
-  Pagination appends after existing supplements, retries failures and stops
-  repeated continuation tokens. The screen defers replacements while away from
-  the top of the feed.
-- Quick Picks uses up to three seeds from recents, loaded likes and existing
-  discovery shelves, preferring different artists. Up to two requests run at
-  once, with four-second timeouts. A ten-minute, 24-pool cache retains at most
-  32 tracks per seed. Results mix in rounds and exclude recently heard tracks;
-  the adapter applies existing dislike/language filters. Guests use one seed.
+  The current Home adapter prepares at most two continuation pages within a
+  shared 2.5-second budget, ahead of global release supplements. Completed pages
+  survive a later timeout and repeated tokens cannot loop. Fresh snapshots skip
+  network work for five minutes unless an explicit refresh is requested.
+- Home Quick Picks now blends history with the same snapshot's account-tailored
+  YouTube recommendations. No independent radio request changes it after display.
+  The independently implemented `DiscoveryRepository` remains available for
+  bounded seed-based discovery, but is no longer an automatic Home request.
 
 Active collection listings remain complete for their readers; reusable inactive
 listings are bounded to six entries/8,000 rows. Cached metadata is separate from
 audio. The current UI, liked pagination, Spotify matching, playback, Jams,
-animations and endless mix playback remain in their existing layers. The Home
-layout is preserved during this foundation stage.
+animations and endless mix playback remain in their existing layers. The rewritten Home presentation consumes the retained snapshot without scroll-triggered network paging.
+
+The Android `LibraryArtistPortraits` adapter stores public portrait URLs in the
+same independent snapshot format: 1 MiB on disk, 384 records on disk and 192 in
+memory. Requests are limited to two at a time and five seconds each. Successful
+portraits stay fresh for seven days; empty/error responses have shorter retry
+windows, and stale artwork survives failed refreshes. Visible-row cancellation
+stops unnecessary work. Artist song lists use the existing full liked metadata
+instead of fetching an artist catalogue.
 
 ## Provenance and verification
 

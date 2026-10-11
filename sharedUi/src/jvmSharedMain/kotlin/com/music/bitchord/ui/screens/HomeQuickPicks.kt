@@ -31,17 +31,25 @@ internal fun homeQuickPickShelves(shelves: List<HomeShelf>, recommendedTracks: L
         listOfNotNull(recentCollections.takeIf { it.isNotEmpty() }?.let { HomeShelf("Back in rotation", it) })).map { it.copy(subtitle = "") }
 }
 
-/** Refreshes may replace a feed at its top; paging may only extend its existing tail. */
-internal fun stableHomeShelves(current: List<HomeShelf>, incoming: List<HomeShelf>, atRestAtTop: Boolean): List<HomeShelf> {
-    if (atRestAtTop || current.isEmpty()) return incoming
-    if (!homeTailCompatible(current, incoming)) return current
-    val keys = com.music.bitchord.ui.components.homeShelfKeys(current).toHashSet()
-    return current + incoming.zip(com.music.bitchord.ui.components.homeShelfKeys(incoming)).filter { it.second !in keys }.map { it.first }
-}
+/** A visible feed is a reading session: every refresh, including its tail, waits for the top. */
+internal fun settledHomeShelves(current: List<HomeShelf>, incoming: List<HomeShelf>, atRestAtTop: Boolean): List<HomeShelf> =
+    if (atRestAtTop || current.isEmpty()) incoming else current
 
-internal fun homeTailCompatible(current: List<HomeShelf>, incoming: List<HomeShelf>): Boolean {
-    // The generated collection shelf follows the feed; keep its existing position when paging.
-    fun keys(shelves: List<HomeShelf>) = com.music.bitchord.ui.components.homeShelfKeys(shelves.filterNot { it.title == "Back in rotation" })
-    val before = keys(current)
-    return keys(incoming).take(before.size) == before
+/** Preserve YouTube's account-specific ranking and labels, with a bounded reading surface. */
+internal fun prepareDaylightHome(shelves: List<HomeShelf>): List<HomeShelf> {
+    val seen = HashSet<String>()
+    val visibleTracks = HashSet<String>()
+    return homeQuickPickShelves(shelves).asSequence().mapNotNull { shelf ->
+        val items = shelf.items.filter { item ->
+            // Keep unsupported podcasts and blank destinations out of this music-only screen.
+            (item.videoId != null || item.browseId != null) &&
+                item.browseId?.startsWith("MPSP") != true
+        }.distinctBy { it.videoId ?: it.browseId }
+            .filter { it.videoId == null || it.videoId !in visibleTracks }.take(12)
+        items.mapNotNullTo(visibleTracks) { it.videoId }
+        if (items.isEmpty()) null else {
+            val signature = items.map { it.videoId ?: it.browseId }.sortedBy { it }.joinToString("|")
+            if (!seen.add(signature)) null else shelf.copy(items = items, subtitle = "")
+        }
+    }.take(12).toList()
 }

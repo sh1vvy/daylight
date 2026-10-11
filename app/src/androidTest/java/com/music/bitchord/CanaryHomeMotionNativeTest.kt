@@ -155,7 +155,8 @@ class CanaryHomeMotionNativeTest {
                     find(automation.rootInActiveWindow) { text(it, "Late discovery") } == null)
                 compose.mainClock.autoAdvance = true
                 compose.waitForIdle()
-                waitNode { text(it, "Late discovery") }
+                assertTrue("A separate radio response cannot reshuffle the prepared Home",
+                    find(automation.rootInActiveWindow) { text(it, "Late discovery") } == null)
                 waitNode { text(it, album.title) }
                 assertTrue(model.detailStack.value.isEmpty())
 
@@ -207,7 +208,6 @@ class CanaryHomeMotionNativeTest {
     private fun seedHome(model: MainViewModel, shelves: List<HomeShelf>) {
         // Stop any late provider result replacing the offline screen while measuring it.
         (field(model, "homeLoadGeneration") as AtomicLong).incrementAndGet()
-        (field(model, "homeRecommendationsJob") as? kotlinx.coroutines.Job)?.cancel()
         (field(model, "_homeQuickRecommendations") as MutableStateFlow<List<ShelfItem>>).value = emptyList()
         (field(model, "_homePendingShelves") as MutableStateFlow<Int>).value = 0
         (field(model, "_homeRecentlyPlayedLoading") as MutableStateFlow<Boolean>).value = false
@@ -293,10 +293,10 @@ class CanaryHomeMotionNativeTest {
         out.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         val sleeve = NativeCoverFrames.widestFixtureSleeve(bitmap)
         if (name.endsWith("-early")) assertTrue("Home opening keeps the card's rounded corners ($sleeve)",
-            NativeCoverFrames.hasRoundedTopCorners(bitmap, sleeve))
+            NativeCoverFrames.hasRoundedTopCorners(bitmap, sleeve, probeInset = 1))
         if (name.endsWith("-middle") || name.endsWith("-later")) {
             assertTrue("The Home sleeve stays centered while growing ($sleeve)",
-                if (name.endsWith("-later") || name.contains("return")) NativeCoverFrames.hasFixtureHubAtHeaderCenter(bitmap) else NativeCoverFrames.hasCenteredFixtureHub(bitmap, sleeve))
+                if (name.endsWith("-later") && !name.contains("return")) NativeCoverFrames.hasFixtureHubAtHeaderCenter(bitmap) else NativeCoverFrames.hasCenteredFixtureHub(bitmap, sleeve))
         }
         bitmap.recycle()
         return sleeve

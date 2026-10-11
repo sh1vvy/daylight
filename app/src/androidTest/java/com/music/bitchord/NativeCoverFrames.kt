@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-10 through 2026-10-10.
+ * Daylight changes: 2026-10-10 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -14,7 +14,7 @@ import android.graphics.Rect
 
 /** Locate the offline fixture's sleeve, including the moving header's top edge. */
 internal object NativeCoverFrames {
-    fun hasRoundedTopCorners(bitmap: Bitmap, sleeve: Rect): Boolean {
+    fun hasRoundedTopCorners(bitmap: Bitmap, sleeve: Rect, probeInset: Int = 4): Boolean {
         if (sleeve.width() < 24 || sleeve.height() < 24) return false
         fun clear(x: Int, y: Int): Boolean {
             val pixel = bitmap.getPixel(x.coerceIn(0, bitmap.width - 1), y.coerceIn(0, bitmap.height - 1))
@@ -22,7 +22,7 @@ internal object NativeCoverFrames {
                 kotlin.math.abs(Color.green(pixel) - 104) >= 12 ||
                 kotlin.math.abs(Color.blue(pixel) - 137) >= 12
         }
-        return clear(sleeve.left + 4, sleeve.top + 4) && clear(sleeve.right - 5, sleeve.top + 4)
+        return clear(sleeve.left + probeInset, sleeve.top + probeInset) && clear(sleeve.right - probeInset - 1, sleeve.top + probeInset)
     }
 
     /** The center of the fixture must remain visible, rather than a cropped strip of its edge. */

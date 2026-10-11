@@ -38,6 +38,11 @@ import com.music.bitchord.data.library.CollectionSnapshot
 import com.music.bitchord.data.library.likedMetadataScope
 import com.music.bitchord.data.library.spotifyMetadataScope
 import com.sh1vvy.daylight.library.LibraryOverviewStore
+import com.sh1vvy.daylight.library.LibraryArtistPortraits
+import com.music.bitchord.data.model.ArtistRef
+import com.music.bitchord.data.model.LIBRARY_ARTIST_SONGS_PREFIX
+import com.music.bitchord.data.model.likedSongsForArtist
+import com.music.bitchord.data.model.normalizedArtistName
 import com.sh1vvy.daylight.library.RefreshRequests
 import com.sh1vvy.daylight.library.DaylightCollections
 import com.sh1vvy.daylight.library.DaylightPlaylistDirectory
@@ -45,8 +50,6 @@ import com.sh1vvy.daylight.library.DaylightPlaylistDirectoryStorage
 import com.sh1vvy.daylight.home.DaylightHome
 import com.sh1vvy.daylight.home.DaylightHomeStorage
 import com.sh1vvy.daylight.home.HomeContext
-import com.sh1vvy.daylight.home.DiscoveryRepository
-import com.sh1vvy.daylight.home.DiscoverySeed
 import kotlinx.coroutines.flow.takeWhile
 import com.music.bitchord.data.lyrics.EmbeddedLyrics
 import com.music.bitchord.data.lyrics.LyricLine
@@ -143,18 +146,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _homeQuickRecommendations = MutableStateFlow<List<ShelfItem>>(emptyList())
     val homeQuickRecommendations = _homeQuickRecommendations.asStateFlow()
-    private var homeRecommendationsJob: Job? = null
-    private var homeRecommendationSeed: String? = null
 
 
 
     private val _homeLoadingMore = MutableStateFlow(false)
 
     /**
-     * Requests still filling out the first Play page. The core feed and each
-     * supplement browse run in parallel and publish as they land, so the list
-     * goes Success while several shelves are still on the wire — counted here
-     * so the feed can say more is coming instead of just ending mid-load.
+     * Home preparation progress. The repository retains cached content and
+     * commits the core, history and bounded discovery pages together.
      */
     private val _homePendingShelves = MutableStateFlow(0)
 
@@ -168,8 +167,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val homeLoadGeneration = AtomicLong(0L)
     private var homeRepositoryGeneration = 0L
     private val daylightHome = DaylightHome(viewModelScope, app) { listenerKey() }
-    private val homeDiscovery = DiscoveryRepository<HomeContext, Song>(viewModelScope,
-        fetch = { _, id -> YtMusicRepository.homeRecommendations(id).getOrThrow() }, id = { it.videoId })
+    private val libraryArtistPortraits = LibraryArtistPortraits(java.io.File(app.filesDir, "daylight-artist-portraits-v1"))
+
+    suspend fun libraryArtistArtwork(item: ShelfItem) = libraryArtistPortraits.artworkFor(item)
 
     private val _explore = MutableStateFlow<UiState<List<MoodGenreSection>>>(UiState.Loading)
     val explore: StateFlow<UiState<List<MoodGenreSection>>> = _explore.asStateFlow()
@@ -813,7 +813,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
         _detailStack.value = _detailStack.value.map { page ->
             val songs = (page.songs as? UiState.Success)?.data
-            if (page.browseId != YtMusicRepository.LIKED_MUSIC || songs == null) {
+            if ((page.browseId != YtMusicRepository.LIKED_MUSIC && page.libraryArtist == null) || songs == null) {
                 page
             } else {
                 page.copy(songs = UiState.Success(songs.filterNot { it.videoId == videoId }))
@@ -1634,7 +1634,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * The feed leads with listening history, so it's out of date the moment a
      * track starts — but re-fetching there would rearrange the page under
      * whoever is reading it, and the tab is usually in the background anyway.
-     * It's re-fetched when the tab is next opened instead.
+     * Returning to the tab checks normal cache freshness instead. A registered
+     * play must not force a provider refresh or display a pull spinner each time.
      */
     private var homeStale = false
 
@@ -1642,8 +1643,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun onHomeShown() {
         if (!homeStale) return
         homeStale = false
-        // A first load already in flight will pick the new play up by itself.
-        if (_home.value is UiState.Success) refresh(Feed.HOME)
+        // Explicit pull-to-refresh remains available for immediate updates.
+        if (_home.value is UiState.Success) loadHome()
     }
 
     private fun loadAccount() {
@@ -1788,8 +1789,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun prepareHomeLoad() {
-        homeRecommendationsJob?.cancel()
-        homeRecommendationSeed = null
         val key = HomeContext(listenerKey(), Innertube.currentLanguage, Innertube.responseCacheScope)
         if (daylightHome.state.value.key != key) _homeQuickRecommendations.value = emptyList()
         homeRepositoryGeneration = homeLoadGeneration.incrementAndGet()
@@ -1809,7 +1808,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 _homePendingShelves.value = state.pending
                 _homeLoadingMore.value = state.paging
                 _homeRecentlyPlayedLoading.value = state.recentLoading
-                if (state.ready && !state.recentLoading) enrichHomeQuickPicks(key.identity, homeRepositoryGeneration)
+                _homeQuickRecommendations.value = if (state.ready) {
+                    com.music.bitchord.data.model.homeDiscoveryTracks(state.sections)
+                } else emptyList()
             }
         }
     }
@@ -1817,37 +1818,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun loadHome() {
         prepareHomeLoad()
         daylightHome.load(_signedIn.value)
-        if (daylightHome.state.value.ready && !daylightHome.state.value.recentLoading) {
-            enrichHomeQuickPicks(listenerKey(), homeRepositoryGeneration)
-        }
     }
-
-    private fun enrichHomeQuickPicks(identity: String?, generation: Long) {
-        val shelves = (_home.value as? UiState.Success)?.data.orEmpty()
-        val recent = com.music.bitchord.data.model.homeRecentTracks(shelves)
-        val familiar = recent.take(2).mapNotNull { item -> item.videoId?.let { DiscoverySeed(it, item.subtitle) } }
-        val liked = if (_signedIn.value) likedSnapshot?.songs.orEmpty().take(12).map { DiscoverySeed(it.videoId, it.artist) } else emptyList()
-        val other = recent.drop(2).mapNotNull { item -> item.videoId?.let { DiscoverySeed(it, item.subtitle) } } +
-            com.music.bitchord.data.model.homeDiscoveryTracks(shelves).mapNotNull { item -> item.videoId?.let { DiscoverySeed(it, item.subtitle) } }
-        val seeds = DiscoveryRepository.selectSeeds(familiar + liked + other).let { if (_signedIn.value) it else it.take(1) }
-        if (seeds.isEmpty()) return
-        val signature = seeds.joinToString("|") { it.id }
-        if (homeRecommendationSeed == signature) return
-        homeRecommendationSeed = signature
-        homeRecommendationsJob?.cancel()
-        val key = HomeContext(identity, Innertube.currentLanguage, Innertube.responseCacheScope)
-        homeRecommendationsJob = viewModelScope.launch {
-            val result = homeDiscovery.discover(key, seeds, recent.mapNotNullTo(HashSet()) { it.videoId })
-            if (!isCurrentHomeLoad(identity, generation) || key.sourceRevision != Innertube.responseCacheScope) return@launch
-            _homeQuickRecommendations.value = result.filter {
-                LikeState.overrides.value[it.videoId] != LikeStatus.DISLIKE &&
-                    com.music.bitchord.data.RecommendationLanguages.allows(it, AppSettings.excludedRecommendationLanguages.value)
-            }.map { ShelfItem(it.title, it.artist, it.thumbnailUrl, it.videoId, null) }
-        }
-    }
-
-    private fun isCurrentHomeLoad(identity: String?, generation: Long) =
-        identity == listenerKey() && generation == homeLoadGeneration.get()
 
     private suspend fun refreshHome(identity: String?) {
         if (identity != listenerKey()) return
@@ -1929,10 +1900,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (page.browseId == YtMusicRepository.LIKED_MUSIC) page.copy(
                 songs = UiState.Success(snapshot.songs), thumbnailUrl = snapshot.thumbnailUrl ?: page.thumbnailUrl,
                 creator = snapshot.creator ?: page.creator,
+            ) else if (page.libraryArtist != null) page.copy(
+                songs = UiState.Success(likedSongsForArtist(snapshot.songs, requireNotNull(page.libraryArtist))),
             ) else page
         }
-        if (daylightHome.state.value.ready && !daylightHome.state.value.recentLoading &&
-            homeRepositoryGeneration == homeLoadGeneration.get()) enrichHomeQuickPicks(listenerKey(), homeRepositoryGeneration)
     }
 
     /** Reuse the existing sequential liked sync, retaining metadata instead of discarding it. */
@@ -2800,6 +2771,31 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Artist membership belongs to the liked list, so opening never waits for a catalogue request. */
+    fun openLibraryArtist(item: ShelfItem) {
+        val artist = ArtistRef(item.title, item.browseId?.takeIf { it.startsWith("UC") })
+        val route = LIBRARY_ARTIST_SONGS_PREFIX + normalizedArtistName(artist.name)
+        if (_detailStack.value.lastOrNull()?.browseId == route) return
+        val identity = listenerKey()
+        val saved = likedSnapshot ?: CollectionMetadataStore.peek(likedMetadataScope(identity), YtMusicRepository.LIKED_MUSIC)
+        val rows = saved?.songs ?: (_library.value as? UiState.Success)?.data?.likedSongs
+        val instance = detailInstanceIds.incrementAndGet()
+        _detailStack.value += DetailPage(route, item.title, text(R.string.auto_liked), item.thumbnailUrl,
+            rows?.let { UiState.Success(likedSongsForArtist(it, artist)) } ?: UiState.Loading,
+            instanceId = instance, libraryArtist = artist)
+        detailJobs[instance] = viewModelScope.launch {
+            restoreLikedSnapshot(identity)
+            if (identity != listenerKey()) return@launch
+            likedSnapshot?.songs?.let { liked -> _detailStack.update { stack -> stack.map {
+                if (it.instanceId == instance) it.copy(songs = UiState.Success(likedSongsForArtist(liked, artist))) else it
+            } } }
+            val artwork = libraryArtistArtwork(item)
+            if (identity == listenerKey() && !artwork.isNullOrBlank()) _detailStack.update { stack -> stack.map {
+                if (it.instanceId == instance) it.copy(thumbnailUrl = artwork) else it
+            } }
+        }
+    }
+
     /** A persistent full list is painted before any refresh, and stays usable on refresh failure. */
     private fun openLikedPage(title: String, subtitle: String, thumbnailUrl: String?) {
         val identity = listenerKey()
@@ -3552,15 +3548,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         playlistDirectory.clear()
         daylightHome.clear()
         daylightCollections.clear()
-        homeDiscovery.clear()
         libraryRequests.cancelAll()
         libraryVerifiedAt = 0
         libraryStale = false
         likedSnapshot = null
         likedRevision++
         clearSearchState()
-        homeRecommendationsJob?.cancel()
-        homeRecommendationSeed = null
         _homeQuickRecommendations.value = emptyList()
         com.music.bitchord.playback.DaylightMixRepository.clear()
         latestLibraryRequest.invalidate()
@@ -3620,7 +3613,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         forgetAccountMetadata(current)
         daylightHome.clear()
         daylightCollections.clear()
-        homeDiscovery.clear()
         libraryRequests.cancelAll()
         libraryVerifiedAt = 0
         libraryStale = false

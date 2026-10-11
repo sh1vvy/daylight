@@ -76,6 +76,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -331,6 +332,7 @@ fun LibraryGridPage(
     createdPlaylistIds: List<String> = emptyList(),
     listState: LazyListState = rememberLazyListState(),
     searchQuery: MutableState<String> = rememberSaveable(shelf.title) { mutableStateOf("") },
+    resolveArtistArtwork: (suspend (ShelfItem) -> String?)? = null,
 ) {
     val pins by AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
     val sort by AppUi.host.librarySort.collectAsStateWithLifecycle()
@@ -412,7 +414,7 @@ fun LibraryGridPage(
                     Text(stringResource(Res.string.library_collection_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (groups.isEmpty()) itemsIndexed(filtered, key = { index, _ -> keys[index] }, contentType = { _, _ -> "collection-row" }) { index, item ->
-                    LibraryCollectionRow(item, artists, "list:${keys[index]}", { onItemClick(item) }, { onItemLongPress(item) })
+                    LibraryCollectionRow(item, artists, "list:${keys[index]}", { onItemClick(item) }, { onItemLongPress(item) }, resolveArtistArtwork)
                 } else groups.forEach { (letter, entries) ->
                     val entryKeys = shelfItemKeys(entries)
                     item(key = "initial:$letter", contentType = "initial") {
@@ -420,7 +422,7 @@ fun LibraryGridPage(
                             modifier = Modifier.padding(top = 14.dp, bottom = 8.dp))
                     }
                     itemsIndexed(entries, key = { index, _ -> "artist:$letter:${entryKeys[index]}" }, contentType = { _, _ -> "artist-row" }) { index, item ->
-                        LibraryCollectionRow(item, true, "artist:$letter:${entryKeys[index]}", { onItemClick(item) }, { onItemLongPress(item) })
+                        LibraryCollectionRow(item, true, "artist:$letter:${entryKeys[index]}", { onItemClick(item) }, { onItemLongPress(item) }, resolveArtistArtwork)
                     }
                 }
             }
@@ -443,8 +445,12 @@ fun LibraryGridPage(
 }
 
 @Composable
-private fun LibraryCollectionRow(item: ShelfItem, artist: Boolean, key: String, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun LibraryCollectionRow(item: ShelfItem, artist: Boolean, key: String, onClick: () -> Unit, onLongClick: () -> Unit,
+    resolveArtwork: (suspend (ShelfItem) -> String?)? = null) {
     val motion = LocalLibraryCoverMotion.current
+    val artwork by produceState(item.thumbnailUrl, item.browseId, item.thumbnailUrl, item.title, resolveArtwork) {
+        if (artist && value.isNullOrBlank()) value = resolveArtwork?.invoke(item)
+    }
     Column {
     Row(Modifier.fillMaxWidth().longPressMenuClickable(onClick = {
         if (!artist) item.browseId?.let { motion?.onSelectCard?.invoke(it, key, 10f) }
@@ -454,9 +460,9 @@ private fun LibraryCollectionRow(item: ShelfItem, artist: Boolean, key: String, 
         Box(Modifier.size(54.dp).then(if (artist) Modifier.clip(CircleShape) else Modifier.libraryCoverMotion(item.browseId, key, 10f))
             .then(if (!artist && motion?.source != true) Modifier.clip(RoundedCornerShape(10.dp)) else Modifier)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
-            if (item.thumbnailUrl == null) Icon(if (artist) Icons.Rounded.Person else Icons.Rounded.LibraryMusic, null,
+            if (artwork.isNullOrBlank()) Icon(if (artist) Icons.Rounded.Person else Icons.Rounded.LibraryMusic, null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(26.dp))
-            else AsyncImage(item.thumbnailUrl.artworkAt(ROW_ART_PX), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            else AsyncImage(artwork.artworkAt(ROW_ART_PX), null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
         Column(Modifier.weight(1f)) {
             Text(item.title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface,

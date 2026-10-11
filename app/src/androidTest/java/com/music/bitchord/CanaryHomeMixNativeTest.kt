@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-10 through 2026-10-10.
+ * Daylight changes: 2026-10-10 through 2026-10-11.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -13,6 +13,7 @@ package com.music.bitchord
 import android.content.ComponentName
 import android.graphics.Bitmap
 import android.os.Build
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.lifecycle.ViewModelProvider
@@ -76,7 +77,7 @@ class CanaryHomeMixNativeTest {
                 lateinit var model: MainViewModel
                 scenario.onActivity {
                     model = ViewModelProvider(it)[MainViewModel::class.java]
-                    seed(model, listOf(HomeShelf("Recents", recent), HomeShelf("For you", emptyList(), "Unneeded description")), discovery, saved)
+                    seed(model, listOf(HomeShelf("Recents", recent), HomeShelf("For you", discovery, "Unneeded description")), discovery, saved)
                 }
                 compose.onAllNodesWithText("Play my mix").assertCountEquals(0)
                 compose.onAllNodesWithText("Sign in to YouTube Music").assertCountEquals(0)
@@ -95,17 +96,21 @@ class CanaryHomeMixNativeTest {
                 assertTrue("The brand marks have generous space between them", wordmark.left > butterfly.right + wordmark.width)
                 val root = compose.onRoot().fetchSemanticsNode().boundsInRoot
                 assertEquals("The two marks use matching page gutters", butterfly.left - root.left, root.right - wordmark.right, 2f)
-                val first = compose.onNodeWithText("Recent 1").fetchSemanticsNode().boundsInRoot
-                val second = compose.onNodeWithText("Discovery 1").fetchSemanticsNode().boundsInRoot
-                val third = compose.onNodeWithText("Discovery 2").fetchSemanticsNode().boundsInRoot
-                assertTrue(first.bottom < second.top && second.bottom < third.top)
+                compose.onNodeWithTag("quick-pick-title").assertTextEquals("Recent 1")
+                val first = compose.onNodeWithTag("quick-cover:recent-1").fetchSemanticsNode().boundsInRoot
+                assertEquals(root.center.x, first.center.x, 2f)
+                compose.onNodeWithTag("home-quick-picks-pages").performTouchInput {
+                    swipe(Offset(width * .85f, height * .5f), Offset(width * .20f, height * .5f), 650)
+                }
+                compose.waitForIdle()
+                compose.onNodeWithTag("quick-pick-title").assertTextEquals("Discovery 1")
                 screenshot("home-signed-out-$theme")
                 scenario.onActivity { signedIn(model, true) }
                 compose.onAllNodesWithText("Sign in").assertCountEquals(0)
                 compose.onNodeWithTag("home-play-my-mix").performScrollTo().assertIsDisplayed()
                 val mix = compose.onNodeWithTag("home-play-my-mix").fetchSemanticsNode().boundsInRoot
-                val lastPick = compose.onNodeWithText("Discovery 2").fetchSemanticsNode().boundsInRoot
-                assertTrue("Play my mix belongs below the quick listening rows", mix.top > lastPick.bottom)
+                val lastPick = compose.onNodeWithTag("quick-pick-artist").fetchSemanticsNode().boundsInRoot
+                assertTrue("Play my mix belongs below the cover carousel", mix.top > lastPick.bottom)
                 screenshot("home-$theme")
                 scenario.onActivity { signedIn(model, false) }
                 compose.onAllNodesWithText("Play my mix").assertCountEquals(0)

@@ -692,6 +692,24 @@ object YtMusicRepository {
             ?.browseId
     }
 
+    /** Public portrait only. Never loads the artist's full songs/discography for a Library row. */
+    suspend fun libraryArtistPortrait(browseId: String?, name: String): Result<String?> = call("artist:portrait") {
+        val channel = browseId?.takeIf { it.startsWith("UC") }
+        if (channel != null) {
+            val header = try { InnertubeParser.parseArtistPage(Innertube.browse(channel)) }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { null }
+            header?.thumbnailUrl?.takeIf(String::isNotBlank)?.let { return@call it }
+        }
+        if (normalizedArtistName(name).isEmpty()) return@call null
+        val matches = InnertubeParser.parseSearchPage(Innertube.search(name, SearchFilter.ARTISTS.params)).rows
+            .filterIsInstance<SearchResult.Browse>().map { it.item }
+            .filter { it.type == BrowseType.ARTIST && isExactArtistMatch(it.title, name) }
+            .distinctBy { it.browseId }
+        // Ambiguous names must not acquire an unrelated artist's photograph.
+        (matches.firstOrNull { it.browseId == channel } ?: matches.singleOrNull())?.thumbnailUrl
+    }
+
     /**
      * The artist and album pages a track links out to.
      *

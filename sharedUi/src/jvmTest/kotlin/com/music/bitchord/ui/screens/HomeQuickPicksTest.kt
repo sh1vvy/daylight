@@ -46,25 +46,33 @@ class HomeQuickPicksTest {
     @Test fun lateRefreshCannotInsertOrReplaceRowsUnderAScrollingFinger() {
         val old = listOf(HomeShelf("Quick picks", listOf(track("old"))), HomeShelf("Listen again", listOf(track("listen"))))
         val fresh = listOf(HomeShelf("Quick picks", listOf(track("new"))), HomeShelf("Inserted", listOf(track("insert"))), old.last())
-        assertEquals(old, stableHomeShelves(old, fresh, false))
-        assertEquals(fresh, stableHomeShelves(old, fresh, true))
+        assertEquals(old, settledHomeShelves(old, fresh, false))
+        assertEquals(fresh, settledHomeShelves(old, fresh, true))
     }
-    @Test fun paginationExtendsTheBottomWithoutReplacingVisibleCards() {
-        val old = listOf(HomeShelf("Quick picks", listOf(track("old"))), HomeShelf("Extra", listOf(track("extra"))))
-        val tail = HomeShelf("More", listOf(track("tail")))
-        val incoming = listOf(old.first().copy(items = listOf(track("new"))), old.last(), tail)
-        assertEquals(old + tail, stableHomeShelves(old, incoming, false))
-        assertEquals(incoming, stableHomeShelves(emptyList(), incoming, false))
+    @Test fun newTailWaitsUntilReturnToTopAsWell() {
+        val old = listOf(HomeShelf("Quick picks", listOf(track("old"))))
+        val incoming = old + HomeShelf("More", listOf(track("new")))
+        assertEquals(old, settledHomeShelves(old, incoming, false))
+        assertEquals(incoming, settledHomeShelves(old, incoming, true))
     }
 
-    @Test fun generatedCollectionShelfDoesNotBlockOrJumpOverNewPages() {
-        val picks = HomeShelf("Quick picks", listOf(track("one")))
-        val collections = HomeShelf("Back in rotation", listOf(ShelfItem("Album", "", null, null, "MPREone")))
-        val more = HomeShelf("More", listOf(track("tail")))
-        val old = listOf(picks, collections)
-        val incoming = listOf(picks, more, collections)
-        assertTrue(homeTailCompatible(old, incoming))
-        assertEquals(old + more, stableHomeShelves(old, incoming, false))
+    @Test fun preparedHomeKeepsProviderOrderAndBoundsWorkWithoutUnsupportedItems() {
+        val shelves = (1..50).map { index -> HomeShelf("Personal $index", (1..50).map {
+            ShelfItem("Album $index-$it", "Artist", null, null, "MPRE-$index-$it")
+        }, "Long description") }
+        val result = prepareDaylightHome(shelves)
+        assertEquals((1..12).map { "Personal $it" }, result.map { it.title })
+        assertTrue(result.all { it.items.size == 12 && it.subtitle.isEmpty() })
+        val duplicate = result.first().copy(title = "Duplicate")
+        assertEquals(1, prepareDaylightHome(listOf(result.first(), duplicate)).size)
+        assertTrue(prepareDaylightHome(listOf(HomeShelf("Shows", listOf(ShelfItem("Podcast", "", null, null, "MPSPshow"))))).isEmpty())
+    }
+
+    @Test fun songsAlreadyInQuickPicksDoNotClutterOtherShelves() {
+        val picks = (1..12).map { track("$it") }
+        val more = (1..20).map { track("$it") }
+        val result = prepareDaylightHome(listOf(HomeShelf("Quick picks", picks), HomeShelf("Recommended", more)))
+        assertEquals(listOf("13", "14", "15", "16", "17", "18", "19", "20"), result.last().items.map { it.videoId })
     }
 
 }

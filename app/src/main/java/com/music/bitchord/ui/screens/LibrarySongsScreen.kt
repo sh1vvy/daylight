@@ -9,12 +9,20 @@
 package com.music.bitchord.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
+import com.music.bitchord.data.model.artworkAt
+import com.music.bitchord.data.model.ROW_ART_PX
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.*
@@ -46,19 +54,35 @@ fun LibrarySongsScreen(
     onSongSwipe: (Song) -> Unit,
     onPlay: (List<Song>) -> Unit,
     onShuffle: (List<Song>) -> Unit,
-    onMore: (List<Song>) -> Unit,
+    onMore: ((List<Song>) -> Unit)?,
     contentPadding: PaddingValues,
+    artistHeader: Boolean = false,
+    artistArtworkUrl: String? = null,
 ) {
     val raw = (state as? UiState.Success)?.data.orEmpty()
     val songs = remember(raw, sort) { raw.sortedForDetail(sort) }
     LazyColumn(state = listState, contentPadding = contentPadding,
-        modifier = Modifier.fillMaxSize().testTag("library-liked-list")) {
+        modifier = Modifier.fillMaxSize().testTag(if (artistHeader) "library-artist-liked-list" else "library-liked-list")) {
         item(key = "liked-header", contentType = "header") {
             Column(Modifier.padding(horizontal = PAGE_GUTTER + 4.dp).padding(bottom = 20.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(title, style = MaterialTheme.typography.displayLarge, color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f))
-                    IconButton(onClick = { onMore(songs) }, enabled = songs.isNotEmpty()) {
+                    if (artistHeader) {
+                        Box(Modifier.size(64.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer),
+                            contentAlignment = Alignment.Center) {
+                            if (artistArtworkUrl.isNullOrBlank()) Icon(Icons.Rounded.Person, null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            else AsyncImage(artistArtworkUrl.artworkAt(ROW_ART_PX), null, contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize())
+                        }
+                        Spacer(Modifier.width(14.dp))
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(title, style = if (artistHeader) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.displayLarge,
+                            color = MaterialTheme.colorScheme.onSurface)
+                        if (artistHeader) Text(stringResource(R.string.auto_liked), style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+                    }
+                    if (onMore != null) IconButton(onClick = { onMore(songs) }, enabled = songs.isNotEmpty()) {
                         Icon(Icons.Rounded.MoreHoriz, stringResource(R.string.more), tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }

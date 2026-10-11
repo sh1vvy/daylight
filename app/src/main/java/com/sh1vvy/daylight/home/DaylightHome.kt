@@ -61,13 +61,16 @@ class DaylightHome(scope: CoroutineScope, context: Context, private val identity
     private val repository = HomeRepository<HomeContext, HomeShelf>(scope,
         primary = { YtMusicRepository.home().getOrThrow().let { HomeBatch(it.shelves, it.continuation) } },
         recent = { YtMusicRepository.homeRecentlyPlayed().getOrThrow() },
-        extras = YtMusicRepository.HOME_SUPPLEMENT_BROWSE_IDS.map { id -> { _: HomeContext -> YtMusicRepository.homeSupplement(id).getOrThrow() } },
+        // Signed-in Home already supplies account-tailored discovery. Global charts
+        // belong in Discover; a new-release supplement is only a lower-priority fallback.
+        extras = listOf({ _: HomeContext -> YtMusicRepository.homeSupplement("FEmusic_new_releases").getOrThrow() }),
         more = { _, token -> YtMusicRepository.moreHome(token).getOrThrow().let { HomeBatch(it.shelves, it.continuation) } },
         read = { DaylightHomeStorage.read(it) },
         save = { key, value, current -> DaylightHomeStorage.save(key, value) {
             current() && key.identity == identity() && key.sourceRevision == Innertube.responseCacheScope
-        } }, title = { it.title }, browseIds = { shelf -> shelf.items.mapNotNullTo(HashSet()) { it.browseId } },
-        itemCount = { it.items.size }, isRecent = { it.title.equals("Recents", true) || it.title.equals("Recently played", true) })
+        } }, title = { it.title }, browseIds = { shelf -> shelf.items.mapNotNullTo(HashSet()) { it.browseId ?: it.videoId?.let { id -> "track:$id" } } },
+        itemCount = { it.items.size }, isRecent = { it.title.equals("Recents", true) || it.title.equals("Recently played", true) },
+        preparedPages = 2, preparationTimeoutMillis = 2_500, freshForMillis = 5 * 60_000, preparedBeforeExtras = true)
     val state get() = repository.state
     fun load(signedIn: Boolean, force: Boolean = false) = repository.load(HomeContext(identity(), Innertube.currentLanguage, Innertube.responseCacheScope), signedIn, force)
     fun loadMore() = repository.loadMore()

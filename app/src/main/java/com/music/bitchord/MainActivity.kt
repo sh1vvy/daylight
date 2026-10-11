@@ -122,6 +122,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -297,6 +298,7 @@ import com.music.bitchord.ui.screens.DetailScreen
 import com.music.bitchord.ui.screens.ExploreScreen
 import com.music.bitchord.ui.screens.LocalMusicScreen
 import com.music.bitchord.ui.screens.HomeScreen
+import com.music.bitchord.ui.screens.rememberHomeFeedPresentation
 import com.music.bitchord.ui.theme.daylightHomeBackground
 import com.music.bitchord.ui.theme.LocalPinkCloud
 import com.music.bitchord.ui.screens.LibrarySongsScreen
@@ -454,7 +456,7 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun BitChordApp(
     darkTheme: Boolean,
@@ -490,6 +492,9 @@ private fun BitChordApp(
     // rather than inside the bar because the page's scroll is what drives it,
     // and the page is a sibling of the bar rather than a child.
     val navBarScroll = rememberFloatingTabBarScrollConnection()
+    // Shared by Home's measured bottom clearance and the floating tap guard.
+    // Read during layout, so folding the controls does not recompose the feed.
+    val floatingBarsHeight = remember { mutableIntStateOf(0) }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     /**
      * Whether the player's sheet is up. The player is always a full-screen
@@ -692,8 +697,6 @@ private fun BitChordApp(
     val homeQuickRecommendations = remember(rawQuickRecommendations, excludedLanguages) {
         rawQuickRecommendations.filter { com.music.bitchord.data.RecommendationLanguages.allows(it, excludedLanguages) }
     }
-    val homeLoadingMore by viewModel.homeLoadingMore.collectAsStateWithLifecycle()
-    val homeRecentlyPlayedLoading by viewModel.homeRecentlyPlayedLoading.collectAsStateWithLifecycle()
 
     // The top bar's icon is the quiet, always-there nudge; this is the
     // once-per-launch popup version of the same news. `updateDialogShown`
@@ -784,6 +787,7 @@ private fun BitChordApp(
             playedSpotifyCache.second.map { it.shelfItem() } else emptyList()
     }
     val coverScope = activeAccountId?.let { "$it:${activeProfileId.orEmpty()}" }
+    val homePresentation = rememberHomeFeedPresentation(coverScope, excludedLanguages)
     val coverFor: (String?) -> String? = { id -> id?.let { playlistCovers[com.music.bitchord.data.library.PlaylistCoverStore.key(coverScope, it)] } }
     val coverShelf: (HomeShelf) -> HomeShelf = { shelf -> shelf.copy(items = shelf.items.map { item ->
         coverFor(item.browseId)?.let { item.copy(thumbnailUrl = it) } ?: item
@@ -792,6 +796,7 @@ private fun BitChordApp(
         (rawHomeState as? UiState.Success)?.let { UiState.Success(com.music.bitchord.data.library.withPlayedCollections(
             com.music.bitchord.data.RecommendationLanguages.filter(it.data, excludedLanguages), playedSpotifyItems).map(coverShelf)) } ?: rawHomeState
     }
+    com.sh1vvy.daylight.home.HomeArtworkWarmup(homeState)
     val libraryState = remember(rawLibraryState, playlistCovers, coverScope) {
         (rawLibraryState as? UiState.Success)?.let { UiState.Success(it.data.copy(shelves = it.data.shelves.map(coverShelf))) } ?: rawLibraryState
     }
@@ -1052,7 +1057,9 @@ private fun BitChordApp(
         }
     }
 
-    val homeListState = rememberLazyListState()
+    val homeListState = rememberLazyListState(cacheWindow = remember {
+        androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow(aheadFraction = 0.5f, behindFraction = 0.5f)
+    })
     val exploreListState = rememberLazyListState()
     val moodGenreListState = rememberLazyListState()
     val libraryListState = rememberLazyListState()
@@ -2097,12 +2104,8 @@ private fun BitChordApp(
     // card opens the same way from either.
     val onLibraryItemClick: (ShelfItem) -> Unit = { item ->
         item.browseId?.let { id ->
-            if (id.startsWith(com.music.bitchord.ui.screens.LIKED_ARTIST_LOOKUP_PREFIX)) {
-                scope.launch {
-                    val artistId = YtMusicRepository.findArtistPageId(item.title).getOrNull()
-                    if (artistId != null) viewModel.openDetail(artistId, item.title, "Artist", item.thumbnailUrl, BrowseType.ARTIST)
-                    else AppFeedback.makeText(context, R.string.couldnt_load_tracks, AppFeedback.LENGTH_SHORT).show()
-                }
+            if (libraryShowAll?.title == "Artists" || id.startsWith(com.music.bitchord.ui.screens.LIKED_ARTIST_LOOKUP_PREFIX)) {
+                viewModel.openLibraryArtist(item)
                 return@let
             }
             if (id == SPOTIFY_BROWSE_ID) {
@@ -2281,6 +2284,20 @@ private fun BitChordApp(
         top = topBarContentPadding(),
         bottom = if (player.song != null) 210.dp else 140.dp,
     )
+    val homeDensity = LocalDensity.current
+    val homeListPadding = remember(listPadding, homeDensity) {
+        object : PaddingValues {
+            override fun calculateLeftPadding(layoutDirection: LayoutDirection) =
+                listPadding.calculateLeftPadding(layoutDirection)
+            override fun calculateRightPadding(layoutDirection: LayoutDirection) =
+                listPadding.calculateRightPadding(layoutDirection)
+            override fun calculateTopPadding() = listPadding.calculateTopPadding()
+            override fun calculateBottomPadding() =
+                if (floatingBarsHeight.intValue > 0) {
+                    with(homeDensity) { floatingBarsHeight.intValue.toDp() } + 16.dp
+                } else listPadding.calculateBottomPadding()
+        }
+    }
 
     // What colour the page currently under the bars is. The fades either end
     // of the screen are flat colour wherever their blur has least to say, so
@@ -2559,7 +2576,9 @@ private fun BitChordApp(
                     PlaybackSourceType.BROWSE -> {
                         val id = sourceId ?: return@openSource
                         viewModel.closeMoodGenre()
-                        viewModel.openDetail(id, sourceTitle)
+                        if (id.startsWith(com.music.bitchord.data.model.LIBRARY_ARTIST_SONGS_PREFIX)) {
+                            viewModel.openLibraryArtist(ShelfItem(sourceTitle, "", null, null, id))
+                        } else viewModel.openDetail(id, sourceTitle)
                     }
                     PlaybackSourceType.HOME -> {
                         viewModel.closeMoodGenre()
@@ -2811,6 +2830,7 @@ private fun BitChordApp(
                                 else -> shelf
                             }
                             LibraryGridPage(
+                                resolveArtistArtwork = remember(viewModel) { viewModel::libraryArtistArtwork },
                                 shelf = coverShelf(liveShelf),
                                 createdPlaylistIds = createdPlaylistIds,
                                 gridState = libraryShowAllGridState,
@@ -2962,15 +2982,16 @@ private fun BitChordApp(
                             },
                             onRetry = { viewModel.retryCreatorProfile(page.instanceId) },
                         )
-                    } else if (page != null && page.browseId == YtMusicRepository.LIKED_MUSIC) {
+                    } else if (page != null && (page.browseId == YtMusicRepository.LIKED_MUSIC || page.libraryArtist != null)) {
                         LibrarySongsScreen(
-                            title = context.getString(R.string.auto_liked), state = page.songs,
+                            title = if (page.libraryArtist != null) page.title else context.getString(R.string.auto_liked), state = page.songs,
+                            artistHeader = page.libraryArtist != null, artistArtworkUrl = page.thumbnailUrl,
                             listState = pageDetailListState, sort = songSort, currentSong = player.song, isPlaying = player.isPlaying,
                             onSongClick = { songs, index -> playFrom(songs, index, QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId)) },
                             onSongLongPress = openSongMenu, onSongSwipe = onSongSwipe,
                             onPlay = { songs -> playCollectionFrom(songs, QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId)) },
                             onShuffle = { songs -> playCollectionFrom(songs, QueueSource(page.title, PlaybackSourceType.BROWSE, page.browseId), shuffle = true) },
-                            onMore = { songs -> browseActions = BrowseTarget(page.browseId, page.title, page.subtitle, page.thumbnailUrl,
+                            onMore = if (page.libraryArtist != null) null else { songs -> browseActions = BrowseTarget(page.browseId, page.title, page.subtitle, page.thumbnailUrl,
                                 page.type, songs = songs, fromCard = false, downloadId = downloadIdFor(page.browseId)) },
                             contentPadding = listPadding,
                         )
@@ -3176,9 +3197,9 @@ private fun BitChordApp(
                         }
                     } else when (key.removePrefix(TAB_KEY).toIntOrNull() ?: selectedTab) {
                         TAB_HOME -> HomeScreen(
+                            presentation = homePresentation,
                             brandContent = { com.music.bitchord.ui.components.DaylightWordmark() },
                             state = homeState,
-                            recommendedTracks = homeQuickRecommendations,
                             onPlayMix = playMyMix,
                             mixLoading = mixLoading,
                             listState = homeListState,
@@ -3206,10 +3227,7 @@ private fun BitChordApp(
                             refreshing = MainViewModel.Feed.HOME in refreshing,
                             onRefresh = { viewModel.refresh(MainViewModel.Feed.HOME) },
                             pullState = homePull,
-                            contentPadding = listPadding,
-                            onLoadMore = viewModel::loadMoreHome,
-                            loadingMore = homeLoadingMore,
-                            recentlyPlayedLoading = homeRecentlyPlayedLoading,
+                            contentPadding = homeListPadding,
                         )
                         TAB_EXPLORE -> selectedMoodGenre?.let { category ->
                             MoodGenrePlaylistsScreen(
@@ -3911,9 +3929,8 @@ private fun BitChordApp(
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
 
-                // Whichever bar is drawing reports its height here, for the
-                // guard to read at layout — never in composition, see the guard.
-                val floatingBarsHeight = remember { mutableIntStateOf(0) }
+                // The bar reports its height for the guard and Home's clearance
+                // to read at layout, including accessibility and system insets.
                 FloatingBarsTapGuard(
                     barsHeight = { floatingBarsHeight.intValue },
                     modifier = Modifier.align(Alignment.BottomCenter),
@@ -3949,6 +3966,7 @@ private fun BitChordApp(
                         .align(Alignment.BottomCenter)
                         .widthIn(max = FLOATING_BAR_MAX_WIDTH)
                         .fillMaxWidth()
+                        .testTag("floating-player-navigation")
                         .onSizeChanged { floatingBarsHeight.intValue = it.height },
                 ) {
                     // One player/tab component in both material modes, with

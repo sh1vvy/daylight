@@ -2,7 +2,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-11.
+Daylight changes: 2026-10-08 through 2026-10-12.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -1336,4 +1336,8 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="library_liked_empty">השירים שאהבת יופיעו כאן.</string>
     <string name="player_style">סגנון הנגן</string>
     <string name="player_style_current">נוכחי</string>
+    <string name="daylight_search_all">הכול</string>
+    <string name="daylight_search_videos">סרטונים</string>
+    <string name="daylight_search_library_hint">שירים, אמנים ואלבומים</string>
+    <string name="daylight_search_matches">התאמות</string>
 </resources>

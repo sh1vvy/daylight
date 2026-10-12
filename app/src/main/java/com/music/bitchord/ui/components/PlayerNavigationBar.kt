@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-09 through 2026-10-11.
+ * Daylight changes: 2026-10-09 through 2026-10-12.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -129,6 +129,7 @@ fun PlayerNavigationBar(
         if (com.music.bitchord.ui.theme.LocalPinkCloud.current) MaterialTheme.colorScheme.primary else contentColor
     val unselectedColor = if (useGlass) contentColor.copy(alpha = 0.65f) else tonal.secondaryContent
     val haptics = rememberHaptics()
+    val searchMorph = com.sh1vvy.daylight.search.LocalSearchDockSurfaceMorph.current
 
     // The tab content lambdas below are captured once per contentKey and held
     // until it changes, so a click handler that reached back to this call's
@@ -145,12 +146,18 @@ fun PlayerNavigationBar(
     // Each surface owns its effect/shape cache instead of sharing a modifier
     // instance between the differently sized tabs, Search and player.
     val barSurface: @Composable () -> Modifier = {
-        if (useGlass) {
+        val origin = searchMorph?.record() ?: Modifier
+        origin.then(if (searchMorph?.suppressOriginalSurfaces == true) Modifier else if (useGlass) {
             Modifier.liquidGlass(shape = pillShape)
         } else {
             Modifier.clip(pillShape)
                 .background(if (reduceDynamicBlur) tonal.surface.copy(alpha = 1f) else tonal.surface)
-        }
+        })
+    }
+    val playerSurface: @Composable (Boolean) -> Modifier = { inline ->
+        val origin = searchMorph?.record(com.sh1vvy.daylight.search.SearchDockSurface.PLAYER, inline == scrollConnection.isInline) ?: Modifier
+        origin.then(if (searchMorph?.suppressOriginalSurfaces == true) Modifier else if (useGlass) Modifier.liquidGlass(pillShape)
+            else Modifier.clip(pillShape).background(if (reduceDynamicBlur) tonal.surface.copy(alpha = 1f) else tonal.surface))
     }
 
     FloatingTabBar(
@@ -178,7 +185,7 @@ fun PlayerNavigationBar(
                     onBlockedControl = onBlockedControl,
                     dock = dock,
                     pull = pull,
-                    modifier = accessoryModifier.then(barSurface()),
+                    modifier = accessoryModifier.then(playerSurface(true)),
                 )
             }
         },
@@ -198,7 +205,7 @@ fun PlayerNavigationBar(
                     onBlockedControl = onBlockedControl,
                     dock = dock,
                     pull = pull,
-                    modifier = accessoryModifier.fillMaxWidth().then(barSurface()),
+                    modifier = accessoryModifier.fillMaxWidth().then(playerSurface(false)),
                 )
             }
         },

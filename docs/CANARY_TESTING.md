@@ -6,7 +6,35 @@ Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.m
 Original authors' notices and licenses remain applicable to their material.
 -->
 
-# Internal candidate: Canary 19
+# Internal candidate: Canary 20
+
+**0.2.2-canary.20 · Android code 41 · manual testing only**
+
+- Rewritten Android Search with a bottom editor and connected dock transition.
+  YouTube Music/Library source controls sit above the field in the same bottom
+  lane. Both follow the keyboard; results and suggestions stay above them.
+  The mini-player, navigation and Search circle morph into the source selector,
+  field and Close control using their measured bounds, including the collapsed
+  dock. Labels travel with these surfaces; search-result scrolling preserves
+  their original geometry for the return.
+- Close restores the previous tab and its scroll. Playing a result restores
+  the mini-player/navigation while preserving the query and results for return.
+  Existing radio queues, local playback, browse pages and row menus remain.
+- Independent request coordinator with cancellable suggestion/preview lanes,
+  scoped bounded caches, stale-response rejection and deduplicated pagination.
+  Failed pages keep existing rows and expose Retry. Reopening an oversized
+  result set resumes from its matching cached continuation.
+- Theme-adaptive history and results, rounded artwork and playing highlights,
+  inset menu targets, swipe-to-queue, stable lazy-list rows and static loading
+  placeholders. New labels are translated in all supported locales.
+- Optimized manual Canary; no public Dev release or update tag.
+
+Rewrite boundaries: `docs/SEARCH_REWRITE.md`. Local APKs and validation:
+`output/canary-0.2.2-canary.20/`.
+
+---
+
+# Previous candidate: Canary 19
 
 **0.2.2-canary.19 · Android code 40 · manual testing only**
 

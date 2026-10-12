@@ -1,7 +1,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-11.
+Daylight changes: 2026-10-08 through 2026-10-12.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -1288,4 +1288,8 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="library_liked_empty">Beğendiğiniz şarkılar burada görünür.</string>
     <string name="player_style">Oynatıcı stili</string>
     <string name="player_style_current">Mevcut</string>
+    <string name="daylight_search_all">Tümü</string>
+    <string name="daylight_search_videos">Videolar</string>
+    <string name="daylight_search_library_hint">Şarkılar, sanatçılar ve albümler</string>
+    <string name="daylight_search_matches">Eşleşmeler</string>
 </resources>

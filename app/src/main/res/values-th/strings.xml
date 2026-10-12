@@ -1,7 +1,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-11.
+Daylight changes: 2026-10-08 through 2026-10-12.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -1314,4 +1314,8 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="library_liked_empty">เพลงที่คุณชอบจะแสดงที่นี่</string>
     <string name="player_style">รูปแบบเครื่องเล่น</string>
     <string name="player_style_current">ปัจจุบัน</string>
+    <string name="daylight_search_all">ทั้งหมด</string>
+    <string name="daylight_search_videos">วิดีโอ</string>
+    <string name="daylight_search_library_hint">เพลง ศิลปิน และอัลบั้ม</string>
+    <string name="daylight_search_matches">ผลลัพธ์ที่ตรงกัน</string>
 </resources>

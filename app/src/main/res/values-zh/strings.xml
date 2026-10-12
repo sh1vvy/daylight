@@ -1,7 +1,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-11.
+Daylight changes: 2026-10-08 through 2026-10-12.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -1308,4 +1308,8 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="library_liked_empty">你喜欢的歌曲会显示在这里。</string>
     <string name="player_style">播放器样式</string>
     <string name="player_style_current">当前</string>
+    <string name="daylight_search_all">全部</string>
+    <string name="daylight_search_videos">视频</string>
+    <string name="daylight_search_library_hint">歌曲、艺人和专辑</string>
+    <string name="daylight_search_matches">匹配结果</string>
 </resources>

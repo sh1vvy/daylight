@@ -1,7 +1,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-11.
+Daylight changes: 2026-10-08 through 2026-10-12.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -1270,4 +1270,8 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="library_liked_empty">I brani che ti piacciono vengono mostrati qui.</string>
     <string name="player_style">Stile del lettore</string>
     <string name="player_style_current">Attuale</string>
+    <string name="daylight_search_all">Tutto</string>
+    <string name="daylight_search_videos">Video</string>
+    <string name="daylight_search_library_hint">Brani, artisti e album</string>
+    <string name="daylight_search_matches">Corrispondenze</string>
 </resources>

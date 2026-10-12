@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight changes: 2026-10-08 through 2026-10-12.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -32,6 +32,7 @@ import com.music.bitchord.ui.components.LibraryNavigation
 import com.music.bitchord.ui.components.LibraryCoverSelection
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -114,7 +115,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -148,8 +148,6 @@ import com.music.bitchord.data.model.BrowseType
 import com.music.bitchord.data.model.HomeShelf
 import com.music.bitchord.data.model.LikeStatus
 import com.music.bitchord.data.model.PlaybackSourceType
-import com.music.bitchord.data.model.SearchFilter
-import com.music.bitchord.data.model.SearchResult
 import com.music.bitchord.data.model.ShelfItem
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.isUnresolvedSpotify
@@ -158,6 +156,8 @@ import com.music.bitchord.data.model.UserPlaylist
 import com.music.bitchord.data.model.playlistCreationOrderKey
 import com.music.bitchord.data.model.EntityType
 import com.music.bitchord.data.model.SearchHistoryEntity
+import com.music.bitchord.data.model.SearchFilter
+import com.music.bitchord.data.model.SearchResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.music.bitchord.data.model.durationMillis
@@ -258,8 +258,6 @@ import com.music.bitchord.ui.components.backdrop.backdrops.rememberLayerBackdrop
 import com.music.bitchord.ui.components.isGlassSupported
 import com.music.bitchord.ui.feedback.AppFeedbackHost
 import com.music.bitchord.ui.components.TopBarAccountButton
-import com.music.bitchord.ui.components.SearchField
-import com.music.bitchord.ui.components.SearchSourceTabs
 import com.music.bitchord.sharedui.resources.Res as SharedRes
 import com.music.bitchord.sharedui.resources.search_hint
 import com.music.bitchord.sharedui.resources.search_library_hint
@@ -310,7 +308,6 @@ import com.music.bitchord.ui.screens.collectionTitle
 import com.music.bitchord.ui.screens.libraryCollections
 import com.music.bitchord.ui.screens.LibraryScreen
 import com.music.bitchord.ui.screens.MoodGenrePlaylistsScreen
-import com.music.bitchord.ui.screens.SearchScreen
 import com.music.bitchord.data.settings.SongSort
 import com.music.bitchord.ui.replay.ReplayScreen
 import com.music.bitchord.ui.replay.ReplayShareSheet
@@ -676,10 +673,19 @@ private fun BitChordApp(
     // turned the party's setting on while the label already said so.
     val autoplayEnabled = autoplayEnabledFor(partyState, autoplay)
     val partyServerStatus by ListenTogether.serverConnectionState.collectAsStateWithLifecycle()
-    // Set each time the search tab is tapped, which SearchScreen uses as a
-    // signal to focus the input field.
+    // Each tap of Search focuses the bottom editor without resetting the query.
     var searchFocusRequested by remember { mutableStateOf(false) }
-    val searchFieldFocus = remember { FocusRequester() }
+    var searchDockOpen by rememberSaveable { mutableStateOf(false) }
+    var searchReturnTab by rememberSaveable { mutableIntStateOf(TAB_HOME) }
+    val searchKeyboard = LocalSoftwareKeyboardController.current
+    val searchFocusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    val searchStatusInset = WindowInsets.statusBars
+    val finishSearchEditing = {
+        searchDockOpen = false
+        searchFocusRequested = false
+        searchFocusManager.clearFocus()
+        searchKeyboard?.hide()
+    }
     // Invalidates an in-flight radio lookup when a later play request wins.
     var playRequestGeneration by remember { mutableIntStateOf(0) }
     // Starting radio from the item already playing must not replace that media
@@ -2282,6 +2288,9 @@ private fun BitChordApp(
     // under the status bar inset, and that inset varies by device and by window,
     // so a fixed number only ever lines up on the one device it was picked on.
     // See [topBarContentPadding].
+    val searchPageVisible = selectedTab == TAB_SEARCH && detail == null && selectedMoodGenre == null &&
+        libraryShowAll == null && !showSettings && !showAccountScrobbling && !showListenTogether && !showEqualizer &&
+        !showDiscord && !showSpotify && !showHistory && !showReplay
     val listPadding = PaddingValues(
         top = topBarContentPadding(),
         bottom = if (player.song != null) 210.dp else 140.dp,
@@ -2715,7 +2724,10 @@ private fun BitChordApp(
                 !showListenTogether && !showEqualizer && !showReplay && selectedMoodGenre == null &&
                 selectedTab != TAB_HOME,
         ) {
-            selectedTab = TAB_HOME
+            if (selectedTab == TAB_SEARCH) {
+                finishSearchEditing()
+                selectedTab = searchReturnTab
+            } else selectedTab = TAB_HOME
         }
         BackHandler(enabled = showUpdateDialog) { showUpdateDialog = false }
         BackHandler(enabled = showLastfmLogin) { showLastfmLogin = false }
@@ -2772,12 +2784,18 @@ private fun BitChordApp(
                     onSelectCard = { sourceRoute, browseId, cardKey, radius ->
                         libraryCoverSelection = LibraryCoverSelection(browseId, cardKey, sourceRoute, cornerRadiusDp = radius)
                     },
-                    transitionSpec = { appPageTransition() },
+                    transitionSpec = {
+                        if (initialState == "$TAB_KEY$TAB_SEARCH" || targetState == "$TAB_KEY$TAB_SEARCH") {
+                            androidx.compose.animation.fadeIn(tween(180)) togetherWith androidx.compose.animation.fadeOut(tween(150))
+                        } else appPageTransition()
+                    },
                     modifier = Modifier
                         .hazeSource(hazeState)
                         // Folding is shared by both materials. Only liquid glass
                         // records the extra backdrop layer used for refraction.
-                        .nestedScroll(navBarScroll)
+                        // Keep the captured dock geometry while Search owns the
+                        // surfaces. Result scrolling must not fold the hidden bar.
+                        .then(if (searchDockOpen && searchPageVisible) Modifier else Modifier.nestedScroll(navBarScroll))
                         .then(
                             if (glassSamplesBackdrop) Modifier.layerBackdrop(appBackdrop)
                             else Modifier,
@@ -3277,163 +3295,56 @@ private fun BitChordApp(
                             pullState = explorePull,
                             contentPadding = listPadding,
                         )
-                        TAB_SEARCH -> SearchScreen(
-                            query = query,
-                            onQueryChange = viewModel::onQueryChange,
-                            filter = filter,
-                            // Keep the tapped result selected when its video/audio rendition swaps.
+                        TAB_SEARCH -> com.sh1vvy.daylight.search.SearchExperience(
+                            state = viewModel.searchState.collectAsStateWithLifecycle().value,
+                            query = query, filter = filter,
+                            library = searchSource == SearchSource.LIBRARY, libraryResults = libraryResults,
                             currentSong = convertedFromVideo?.takeIf { convertedAudioId == player.song?.videoId }
-                                ?: convertedFromAudio?.takeIf { convertedVideoId == player.song?.videoId }
-                                ?: player.song,
-                            isPlaying = player.isPlaying,
-                            onFilterChange = viewModel::onFilterChange,
-                            results = results,
-                            loadingMore = searchLoadingMore,
-                            onLoadMore = viewModel::loadMoreSearchResults,
-                            listState = searchListState,
-                            scrollResetTrigger = searchScrollReset,
-                            focusRequested = searchFocusRequested,
-                            onFocusHandled = { searchFocusRequested = false },
-                            // Search hits are alternatives to each other, not a running
-                            // order — play the one tapped and build a station from it.
-                            onSongClick = { songs, index ->
-                                songs.getOrNull(index)?.let { song ->
-                                    viewModel.recordEntity(SearchHistoryEntity(
-                                        id = song.videoId,
-                                        title = song.title,
-                                        subtitle = song.artist.ifEmpty { "" },
-                                        artworkUrl = song.thumbnailUrl,
-                                        entityType = EntityType.TRACK,
-                                    ))
-                                    playRadio(song, QueueSource(searchLabel, PlaybackSourceType.SEARCH))
-                                }
-                            },
-                            onSongLongPress = openSongMenu,
-                            onSongSwipe = onSongSwipe,
-                            onTopResultPlay = { song ->
-                                viewModel.recordEntity(SearchHistoryEntity(
-                                    id = song.videoId,
-                                    title = song.title,
-                                    subtitle = song.artist.ifEmpty { "" },
-                                    artworkUrl = song.thumbnailUrl,
-                                    entityType = EntityType.TRACK,
-                                ))
+                                ?: convertedFromAudio?.takeIf { convertedVideoId == player.song?.videoId } ?: player.song,
+                            history = searchHistory, onFilter = viewModel::onFilterChange,
+                            onSong = { song ->
+                                viewModel.recordEntity(SearchHistoryEntity(song.videoId, song.title, song.artist, song.thumbnailUrl, EntityType.TRACK))
+                                finishSearchEditing()
                                 playRadio(song, QueueSource(searchLabel, PlaybackSourceType.SEARCH))
                             },
-                            onTopResultPlaylist = { song ->
-                                viewModel.recordEntity(SearchHistoryEntity(
-                                    id = song.videoId,
-                                    title = song.title,
-                                    subtitle = song.artist.ifEmpty { "" },
-                                    artworkUrl = song.thumbnailUrl,
-                                    entityType = EntityType.TRACK,
-                                ))
-                                viewModel.loadPlaylists()
-                                playlistTarget = song
+                            onLocalSong = { songs, index ->
+                                finishSearchEditing()
+                                playFrom(songs, index, QueueSource(context.getString(R.string.local_music), PlaybackSourceType.BROWSE, "local:all"))
                             },
-                            onBrowseClick = { item ->
-                                viewModel.recordEntity(SearchHistoryEntity(
-                                    id = item.browseId ?: "",
-                                    title = item.title,
-                                    subtitle = item.subtitle.ifBlank { "" },
-                                    artworkUrl = item.thumbnailUrl,
-                                    entityType = when (item.type) {
-                                        BrowseType.ALBUM -> EntityType.ALBUM
-                                        BrowseType.ARTIST -> EntityType.ARTIST
-                                        BrowseType.PLAYLIST -> EntityType.PLAYLIST
-                                        else -> EntityType.TRACK
-                                    },
-                                ))
-                                viewModel.openDetail(
-                                    browseId = item.browseId,
-                                    title = item.title,
-                                    subtitle = item.subtitle,
-                                    thumbnailUrl = item.thumbnailUrl,
-                                    type = item.type,
-                                )
+                            onSongMenu = { searchFocusManager.clearFocus(); searchKeyboard?.hide(); openSongMenu(it) },
+                            onSongQueue = onSongSwipe,
+                            onBrowse = { item ->
+                                viewModel.recordEntity(SearchHistoryEntity(item.browseId, item.title, item.subtitle, item.thumbnailUrl,
+                                    when (item.type) { BrowseType.ALBUM -> EntityType.ALBUM; BrowseType.ARTIST -> EntityType.ARTIST
+                                        BrowseType.PLAYLIST -> EntityType.PLAYLIST; else -> EntityType.TRACK }))
+                                finishSearchEditing()
+                                viewModel.openDetail(item.browseId, item.title, item.subtitle, item.thumbnailUrl, item.type)
                             },
-                            onBrowseLongPress = { item ->
-                                // A search row does say what it is, so its own type is
-                                // better than what the browse id can be read to mean.
-                                if (item.type != BrowseType.ARTIST) {
-                                    openBrowseMenu(
-                                        BrowseTarget(
-                                            browseId = item.browseId,
-                                            title = item.title,
-                                            subtitle = item.subtitle,
-                                            thumbnailUrl = item.thumbnailUrl,
-                                            type = item.type,
-                                            downloadId = downloadIdFor(item.browseId),
-                                        ),
-                                    )
-                                }
+                            onBrowseMenu = { item ->
+                                searchFocusManager.clearFocus(); searchKeyboard?.hide()
+                                if (item.type != BrowseType.ARTIST) openBrowseMenu(
+                                    BrowseTarget(browseId = item.browseId, title = item.title, subtitle = item.subtitle, thumbnailUrl = item.thumbnailUrl, type = item.type, downloadId = downloadIdFor(item.browseId)))
                             },
-                            history = searchHistory,
-                            suggestions = searchSuggestions,
-                            typeaheadResults = viewModel.typeaheadResults.collectAsStateWithLifecycle().value,
-                            onSubmit = viewModel::submitSearch,
-                            // Suggestions land in search history via searchFor → recordSearch.
-                            // History items (onHistoryClick) navigate/play without re-logging.
-                            onSuggestionClick = viewModel::searchFor,
-                            onHistoryClick = { entity ->
-                                // Tap a history entity: navigate to it or play it directly.
-                                // Do NOT recordEntity here — tapping an existing history item
-                                // must not update its timestamp and push it to the top.
-                                when (entity.entityType) {
-                                    EntityType.TRACK -> {
-                                        // Play the track by its video id
-                                        playRadio(
-                                            com.music.bitchord.data.model.Song(
-                                                videoId = entity.id,
-                                                title = entity.title,
-                                                artist = entity.subtitle,
-                                                thumbnailUrl = entity.artworkUrl,
-                                            ),
-                                            QueueSource(entity.title, PlaybackSourceType.SEARCH),
-                                        )
-                                    }
-                                    EntityType.ALBUM, EntityType.ARTIST, EntityType.PLAYLIST -> {
-                                        viewModel.openDetail(
-                                            browseId = entity.id,
-                                            title = entity.title,
-                                            subtitle = entity.subtitle,
-                                            thumbnailUrl = entity.artworkUrl,
-                                        )
+                            onHistory = { entity ->
+                                if (entity.id.startsWith("q:")) { viewModel.searchFor(entity.title); searchFocusManager.clearFocus(); searchKeyboard?.hide() }
+                                else {
+                                    finishSearchEditing()
+                                    when (entity.entityType) {
+                                        EntityType.TRACK -> playRadio(Song(videoId = entity.id, title = entity.title, artist = entity.subtitle,
+                                            thumbnailUrl = entity.artworkUrl), QueueSource(entity.title, PlaybackSourceType.SEARCH))
+                                        else -> viewModel.openDetail(entity.id, entity.title, entity.subtitle, entity.artworkUrl)
                                     }
                                 }
                             },
-                            onHistoryRemove = viewModel::removeSearch,
-                            onHistoryClear = viewModel::clearSearchHistory,
-                            onTypeaheadLongPress = openSongMenu,
-                            contentPadding = listPadding,
-                            topPadding = topBarContentPadding(),
-                            // The field is in the top bar; see the bar's accessory.
-                            showField = false,
-                            // Capsule source tabs match the search field and filters.
-                            sourceSwitcher = {
-                                SearchSourceTabs(
-                                    options = listOf(
-                                        stringResource(R.string.search_source_youtube),
-                                        stringResource(R.string.library),
-                                    ),
-                                    selectedIndex = searchSource.ordinal,
-                                    onSelect = { index -> onSearchSourceChange(SearchSource.entries[index]) },
-                                )
-                            },
-                            searchingLibrary = searchSource == SearchSource.LIBRARY,
-                            libraryResults = libraryResults,
-                            // The same queue opening the Local Music folder and
-                            // tapping the row there would give.
-                            onLibrarySongClick = { songs, index ->
-                                playFrom(
-                                    songs,
-                                    index,
-                                    QueueSource(
-                                        context.getString(R.string.local_music),
-                                        PlaybackSourceType.BROWSE,
-                                        "local:all",
-                                    ),
-                                )
+                            onRemoveHistory = viewModel::removeSearch, onClearHistory = viewModel::clearSearchHistory,
+                            onSuggestion = { viewModel.searchFor(it); searchFocusManager.clearFocus(); searchKeyboard?.hide() },
+                            onLoadMore = viewModel::loadMoreSearchResults, onRetry = viewModel::retrySearch,
+                            onRetryPage = viewModel::retrySearchPage, listState = searchListState,
+                            padding = object : PaddingValues {
+                                override fun calculateLeftPadding(layoutDirection: LayoutDirection) = 0.dp
+                                override fun calculateRightPadding(layoutDirection: LayoutDirection) = 0.dp
+                                override fun calculateTopPadding() = with(homeDensity) { searchStatusInset.getTop(homeDensity).toDp() }
+                                override fun calculateBottomPadding() = with(homeDensity) { floatingBarsHeight.intValue.toDp() } + 16.dp
                             },
                         )
                         else -> LibraryScreen(
@@ -3645,7 +3556,7 @@ private fun BitChordApp(
                         .graphicsLayer { alpha = topFadeAlpha },
                 )
 
-                FrostedTopBar(
+                if (!searchPageVisible) FrostedTopBar(
                     profileOnly = pageKey == "$TAB_KEY$TAB_HOME",
                     title = when {
                         settingsSubScreen == "credits" -> stringResource(R.string.credits)
@@ -3715,39 +3626,7 @@ private fun BitChordApp(
                     },
                     modifier = Modifier.align(Alignment.TopCenter),
                     // Only on the Search tab itself, not on anything pushed over it.
-                    accessory = if (
-                        selectedTab == TAB_SEARCH && detail == null && selectedMoodGenre == null &&
-                        libraryShowAll == null && !showSettings && !showAccountScrobbling &&
-                        !showListenTogether && !showEqualizer && !showDiscord &&
-                        !showSpotify && !showHistory && !showReplay
-                    ) {
-                        {
-                            // The search field lives up here in the bar, beside the
-                            // account photo, so it answers the nav bar's Search tap
-                            // itself: focus and keyboard, the way the page used to.
-                            val keyboard = LocalSoftwareKeyboardController.current
-                            LaunchedEffect(searchFocusRequested) {
-                                if (searchFocusRequested) {
-                                    searchFieldFocus.requestFocus()
-                                    keyboard?.show()
-                                    searchFocusRequested = false
-                                }
-                            }
-                            SearchField(
-                                query = query,
-                                onQueryChange = viewModel::onQueryChange,
-                                onSubmit = viewModel::submitSearch,
-                                focusRequester = searchFieldFocus,
-                                placeholder = org.jetbrains.compose.resources.stringResource(
-                                    if (searchSource == SearchSource.LIBRARY) {
-                                        SharedRes.string.search_library_hint
-                                    } else {
-                                        SharedRes.string.search_hint
-                                    },
-                                ),
-                            )
-                        }
-                    } else null,
+                    accessory = null,
                     actions = {
                         // This is intentionally scoped to Listen together: the
                         // round-trip time is meaningful while coordinating a
@@ -3961,14 +3840,12 @@ private fun BitChordApp(
                     showHistory = false
                     libraryShowAll = null
                     detailActiveShelf = null
+                    if (index == TAB_SEARCH && selectedTab != TAB_SEARCH) searchReturnTab = selectedTab
                     selectedTab = index
-
-                    // Every search tab tap resets the field, focuses it, and opens
-                    // the keyboard through SearchScreen's focus request.
                     if (index == TAB_SEARCH) {
-                        viewModel.onQueryChange("")
+                        searchDockOpen = true
                         searchFocusRequested = true
-                    }
+                    } else finishSearchEditing()
                 }
 
                 Column(
@@ -3981,10 +3858,22 @@ private fun BitChordApp(
                 ) {
                     // One player/tab component in both material modes, with
                     // the same folding, transport and player-opening gestures.
+                    com.sh1vvy.daylight.search.SearchDock(
+                        active = searchDockOpen && searchPageVisible, query = query,
+                        sources = listOf(stringResource(R.string.daylight_search_youtube), stringResource(R.string.library)),
+                        selectedSource = searchSource.ordinal, onSource = { onSearchSourceChange(SearchSource.entries[it]) },
+                        placeholder = stringResource(if (searchSource == SearchSource.LIBRARY) R.string.daylight_search_library_hint else R.string.search_hint),
+                        searchLabel = stringResource(R.string.search), closeLabel = stringResource(R.string.close),
+                        clearLabel = stringResource(R.string.clear_search), focusRequested = searchFocusRequested,
+                        onFocusHandled = { searchFocusRequested = false }, onQuery = viewModel::onQueryChange,
+                        onSubmit = viewModel::submitSearch,
+                        onClose = { finishSearchEditing(); selectedTab = searchReturnTab },
+                        reduceMotion = reducePlayerMotion,
+                    ) {
                     PlayerNavigationBar(
                         hazeState = hazeState,
                         tabs = tabs,
-                        selectedIndex = selectedTab,
+                        selectedIndex = if (searchDockOpen && searchPageVisible) searchReturnTab else selectedTab,
                         onTabSelected = onTabSelected,
                         scrollConnection = navBarScroll,
                         song = player.song,
@@ -4006,6 +3895,7 @@ private fun BitChordApp(
                         pull = playerSheetMotion.takeIf { !reducePlayerMotion },
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    }
                 }
             }
 

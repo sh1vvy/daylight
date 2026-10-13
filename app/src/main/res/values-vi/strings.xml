@@ -2,7 +2,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-12.
+Daylight changes: 2026-10-08 through 2026-10-13.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -1253,4 +1253,13 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="daylight_search_videos">Video</string>
     <string name="daylight_search_library_hint">Bài hát, nghệ sĩ và album</string>
     <string name="daylight_search_matches">Kết quả phù hợp</string>
+    <string name="welcome_title">Chào mừng đến với Daylight</string>
+    <string name="welcome_body">Kết nối âm nhạc để truy cập thư viện, đề xuất và nghe cùng nhau.</string>
+    <string name="welcome_youtube_login">Đăng nhập bằng YouTube</string>
+    <string name="welcome_continue_guest">Tiếp tục với tư cách khách</string>
+    <string name="welcome_sign_in_later">Bạn có thể đăng nhập sau trong Cài đặt.</string>
+    <string name="welcome_guest">Khách</string>
+    <string name="welcome_screen">Màn hình chào mừng</string>
+    <string name="settings_filtered_by">Kết quả cho “%1$s”</string>
+    <string name="settings_show_all">Hiện tất cả</string>
 </resources>

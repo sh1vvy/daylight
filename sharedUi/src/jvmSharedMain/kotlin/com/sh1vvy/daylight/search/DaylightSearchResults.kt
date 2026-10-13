@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-12 through 2026-10-12.
+ * Daylight changes: 2026-10-12 through 2026-10-13.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -25,6 +25,8 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import com.sh1vvy.daylight.motion.SwipeActionGate
+import com.sh1vvy.daylight.motion.observeSwipeRelease
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
@@ -158,11 +160,12 @@ fun DaylightSearchResults(
 private fun HitRow(hit: SearchHit, onClick: () -> Unit, onMore: () -> Unit, moreLabel: String, remove: Boolean = false, onQueue: (() -> Unit)? = null) {
     if (onQueue != null) {
         val queue by rememberUpdatedState(onQueue)
+        val commitGate = remember(hit.key) { SwipeActionGate() }
         val swipe = rememberSwipeToDismissBoxState(confirmValueChange = { direction ->
-            if (direction == SwipeToDismissBoxValue.StartToEnd) queue()
+            if (direction == SwipeToDismissBoxValue.StartToEnd) commitGate.commit { queue() }
             false
         })
-        SwipeToDismissBox(state = swipe, enableDismissFromStartToEnd = true, enableDismissFromEndToStart = false,
+        SwipeToDismissBox(state = swipe, modifier = Modifier.observeSwipeRelease(commitGate), enableDismissFromStartToEnd = true, enableDismissFromEndToStart = false,
             backgroundContent = {
                 Box(Modifier.fillMaxSize().drawWithContent {
                     val exposed = runCatching { swipe.requireOffset() }.getOrDefault(0f).let { kotlin.math.abs(it) }.coerceAtMost(size.width)

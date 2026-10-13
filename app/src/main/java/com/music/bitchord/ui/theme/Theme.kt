@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight changes: 2026-10-08 through 2026-10-13.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -20,33 +20,31 @@ import androidx.core.view.WindowCompat
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.R
 import com.music.bitchord.ui.player.LocalLyricsFontFamily
 
-/** Inter 4.1, with its text-size spacing for controls and longer passages. */
-val DaylightFont = FontFamily(
-    Font(R.font.inter_regular, FontWeight.Normal),
-    Font(R.font.inter_medium, FontWeight.Medium),
-    Font(R.font.inter_semibold, FontWeight.SemiBold),
-    Font(R.font.inter_bold, FontWeight.Bold),
-    Font(R.font.inter_extrabold, FontWeight.ExtraBold),
+/** Bundled Google Sans Flex. Fixed axes are cached by Compose; text never fetches a font. */
+@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
+private fun googleSansFlex(opticalSize: Float, roundness: Float): FontFamily = FontFamily(
+    listOf(400, 500, 600, 700, 800).map { weight ->
+        Font(R.font.google_sans_flex, FontWeight(weight), variationSettings = FontVariation.Settings(
+            FontVariation.weight(weight), FontVariation.Setting("opsz", opticalSize), FontVariation.Setting("ROND", roundness),
+        ))
+    },
 )
 
-/** Inter Display 4.1, bundled under the SIL Open Font License in docs/licenses. */
-val DaylightLyricsFont = FontFamily(
-    Font(R.font.inter_display_regular, FontWeight.Normal),
-    Font(R.font.inter_display_semibold, FontWeight.SemiBold),
-    Font(R.font.inter_display_bold, FontWeight.Bold),
-)
+val DaylightFont = googleSansFlex(opticalSize = 18f, roundness = 15f)
+val DaylightLyricsFont = googleSansFlex(opticalSize = 32f, roundness = 20f)
 
 // Clear headings, lighter controls, and open line spacing at reading sizes.
 private val DaylightTypography = Typography(
-    displayLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 34.sp, lineHeight = 42.sp, letterSpacing = (-0.7).sp),
-    displayMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 40.sp, letterSpacing = (-0.6).sp),
+    displayLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 34.sp, lineHeight = 42.sp, letterSpacing = (-0.35).sp),
+    displayMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 40.sp, letterSpacing = (-0.3).sp),
     displaySmall = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 28.sp, lineHeight = 36.sp, letterSpacing = (-0.45).sp),
-    headlineLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 30.sp, lineHeight = 38.sp, letterSpacing = (-0.55).sp),
+    headlineLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 30.sp, lineHeight = 38.sp, letterSpacing = (-0.25).sp),
     headlineMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 22.sp, lineHeight = 30.sp, letterSpacing = (-0.35).sp),
     headlineSmall = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 28.sp, letterSpacing = (-0.25).sp),
     titleLarge = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 28.sp, letterSpacing = (-0.25).sp),

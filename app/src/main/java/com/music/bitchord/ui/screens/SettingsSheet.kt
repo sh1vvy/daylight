@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight changes: 2026-10-08 through 2026-10-13.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -199,7 +199,9 @@ import java.util.Locale
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(
+fun SettingsControls(
+    section: String,
+    searchQuery: String,
     /** The window's width, for the gates that depend on it. */
     windowWidth: Dp,
     signedIn: Boolean,
@@ -252,8 +254,8 @@ fun SettingsScreen(
         AutomixEligibility.canActivateNow()
     val loudnessNormalization by AppSettings.loudnessNormalization.collectAsStateWithLifecycle()
     val loudnessOffOnSpeaker by AppSettings.loudnessOffOnSpeaker.collectAsStateWithLifecycle()
-    val outputStatus by AudioOutputStatus.current.collectAsStateWithLifecycle()
-    val playingFormat by NerdStats.current.collectAsStateWithLifecycle()
+    val outputStatus = if (section == "playback") AudioOutputStatus.current.collectAsStateWithLifecycle().value else AudioOutputStatus.current.value
+    val playingFormat = if (section == "playback") NerdStats.current.collectAsStateWithLifecycle().value else NerdStats.current.value
     val playingDolbyAtmos = playingFormat?.isDolbyAtmos == true
     val cacheLimitBytes by AppSettings.audioCacheLimitBytes.collectAsStateWithLifecycle()
     val showCacheFolder by AppSettings.showCacheFolder.collectAsStateWithLifecycle()
@@ -293,10 +295,6 @@ fun SettingsScreen(
 
     // Filters the rows below — see [SettingsSearch]. Blank shows everything,
     // exactly as if the field weren't there.
-    var searchQuery by rememberSaveable { mutableStateOf("") }
-    var categoryExpansion by rememberSaveable(stateSaver = SettingsCategoryExpansion.Saver) {
-        mutableStateOf(SettingsCategoryExpansion())
-    }
     var picking by remember { mutableStateOf<QualityTarget?>(null) }
     val excludedLanguages by AppSettings.excludedRecommendationLanguages.collectAsStateWithLifecycle()
     var pickingRecommendationLanguages by remember { mutableStateOf(false) }
@@ -404,58 +402,12 @@ fun SettingsScreen(
             .verticalScroll(scrollState)
             .padding(contentPadding),
     ) {
-        Text(
-            text = stringResource(R.string.settings),
-            style = MaterialTheme.typography.displayLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 14.dp),
-        )
-        SearchField(
-            query = searchQuery,
-            onQueryChange = { searchQuery = it },
-            onSubmit = {},
-            placeholder = stringResource(R.string.settings_search_hint),
-            modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 4.dp),
-        )
-
-        SearchableSettingsGroup(search, topSpacing = 12.dp) {
-            val accountTitle = stringResource(R.string.account_integrations)
-            // What the row opens is the scrobbling screen, so the services it
-            // signs into are worth typing at this field even though none of
-            // them is named on the row itself.
-            row(accountTitle, "scrobbling", "last.fm", "spotify", "youtube", "credits", "bitchord", "artwork", "copyright") {
-                SettingsRow(
-                    icon = Icons.Rounded.Person,
-                    title = accountTitle,
-                    subtitle = account?.email?.takeIf { it.isNotBlank() }
-                        ?: stringResource(if (signedIn) R.string.signed_in else R.string.not_signed_in),
-                    onClick = onAccountScrobbling,
-                )
-            }
-            // Sits with the account rather than with Playback: a party is up to
-            // five signed-in people, and being signed in is the whole of what
-            // the row needs before it will do anything.
-            val listenTogetherTitle = stringResource(R.string.listen_together)
-            row(listenTogetherTitle, "jam", "party", "sync", "friends") {
-                SettingsRow(
-                    icon = Icons.Rounded.Groups,
-                    title = listenTogetherTitle,
-                    subtitle = party.code?.let {
-                        stringResource(R.string.listen_together_in_party, it)
-                    } ?: stringResource(R.string.listen_together_subtitle),
-                    badge = party.members.size.takeIf { party.inParty && it > 1 }?.toString(),
-                    onClick = onListenTogether,
-                )
-            }
-        }
-
-        CollapsibleSettingsGroup(
+        if (section == "appearance") SettingsControlGroup(
             search = search,
             header = stringResource(R.string.appearance),
             icon = Icons.Rounded.Palette,
             summary = stringResource(R.string.settings_category_appearance_subtitle),
-            expanded = categoryExpansion.isExpanded("appearance", searchQuery),
-            onToggle = { categoryExpansion = categoryExpansion.toggle("appearance") },
+
         ) {
             val themeTitle = stringResource(R.string.theme)
             row(themeTitle, "dark mode", "light mode", "pink cloud", "colours", "colors") {
@@ -585,13 +537,12 @@ fun SettingsScreen(
             }
         }
 
-        CollapsibleSettingsGroup(
+        if (section == "playback") SettingsControlGroup(
             search = search,
             header = stringResource(R.string.playback),
             icon = Icons.Rounded.Headphones,
             summary = stringResource(R.string.settings_category_playback_subtitle),
-            expanded = categoryExpansion.isExpanded("playback", searchQuery),
-            onToggle = { categoryExpansion = categoryExpansion.toggle("playback") },
+
         ) {
             val onWifiTitle = stringResource(R.string.on_wifi)
             row(onWifiTitle, "wi-fi", "streaming quality", "lossless", "flac", "hi-res") {
@@ -962,13 +913,12 @@ fun SettingsScreen(
             }
         }
 
-        CollapsibleSettingsGroup(
+        if (section == "lyrics_accessibility") SettingsControlGroup(
             search = search,
             header = stringResource(R.string.settings_category_lyrics_accessibility),
             icon = Icons.Rounded.AccessibilityNew,
             summary = stringResource(R.string.settings_category_lyrics_subtitle),
-            expanded = categoryExpansion.isExpanded("lyrics_accessibility", searchQuery),
-            onToggle = { categoryExpansion = categoryExpansion.toggle("lyrics_accessibility") },
+
         ) {
             val syncedLyricsTitle = stringResource(R.string.synced_lyrics)
             row(syncedLyricsTitle, "lyrics", "translation", "lrclib", "musixmatch") {
@@ -1087,13 +1037,12 @@ fun SettingsScreen(
             }
         }
 
-        CollapsibleSettingsGroup(
+        if (section == "downloads_storage") SettingsControlGroup(
             search = search,
             header = stringResource(R.string.settings_category_downloads_storage),
             icon = Icons.Rounded.FolderOpen,
             summary = stringResource(R.string.settings_category_downloads_subtitle),
-            expanded = categoryExpansion.isExpanded("downloads_storage", searchQuery),
-            onToggle = { categoryExpansion = categoryExpansion.toggle("downloads_storage") },
+
         ) {
             val downloadQualityTitle = stringResource(R.string.download_quality)
             row(downloadQualityTitle, "offline", "youtube") {
@@ -1245,13 +1194,12 @@ fun SettingsScreen(
             }
         }
 
-        CollapsibleSettingsGroup(
+        if (section == "performance") SettingsControlGroup(
             search = search,
             header = stringResource(R.string.performance),
             icon = Icons.Rounded.Speed,
             summary = stringResource(R.string.settings_category_performance_subtitle),
-            expanded = categoryExpansion.isExpanded("performance", searchQuery),
-            onToggle = { categoryExpansion = categoryExpansion.toggle("performance") },
+
         ) {
             val highPerformanceModeTitle = stringResource(R.string.high_performance_mode)
             row(highPerformanceModeTitle, "frame rate", "refresh rate", "hz", "battery", "smooth") {
@@ -1350,13 +1298,12 @@ fun SettingsScreen(
             }
         }
 
-        CollapsibleSettingsGroup(
+        if (section == "your_data") SettingsControlGroup(
             search = search,
             header = stringResource(R.string.your_data),
             icon = Icons.Rounded.Backup,
             summary = stringResource(R.string.settings_category_data_subtitle),
-            expanded = categoryExpansion.isExpanded("your_data", searchQuery),
-            onToggle = { categoryExpansion = categoryExpansion.toggle("your_data") },
+
         ) {
             val workOutGenresTitle = stringResource(R.string.work_out_genres)
             row(workOutGenresTitle, "genre", "replay") {
@@ -1407,36 +1354,7 @@ fun SettingsScreen(
             MessageState(stringResource(R.string.settings_search_empty, searchQuery))
         }
 
-        // The version line is the page's colophon, not a setting: it belongs to
-        // the whole list, so it goes when the list is narrowed to a few rows.
-        if (searchQuery.isBlank()) {
-            Text(
-                text = buildAnnotatedString {
-                    append("Daylight $version  ")
-                    val linkStyles = TextLinkStyles(
-                        style = SpanStyle(
-                            color = MaterialTheme.colorScheme.primary,
-                            textDecoration = TextDecoration.Underline,
-                        ),
-                    )
-                    withLink(LinkAnnotation.Url("https://github.com/sh1vvy/daylight", linkStyles)) {
-                        append("GitHub")
-                    }
-                    append("  ")
-                    withLink(LinkAnnotation.Url("https://github.com/sh1vvy", linkStyles)) {
-                        append("Developer")
-                    }
-                    append("\nGPLv3 · Daylight by sh1vvy")
-                    append("\n$madeWithLove")
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 24.dp, bottom = 8.dp),
-            )
-        }
+
     }
 
     picking?.let { target ->
@@ -2057,7 +1975,7 @@ private fun DownloadQualitySheet(
 
 // ---- Building blocks --------------------------------------------------------
 
-internal val GroupShape = RoundedCornerShape(22.dp)
+internal val GroupShape = RoundedCornerShape(26.dp)
 internal val GROUP_INSET = 16.dp
 internal val ROW_INSET = 16.dp
 internal val ICON_SIZE = 22.dp
@@ -2116,97 +2034,19 @@ private fun SearchableSettingsGroup(
     }
 }
 
-/** A category stays compact until opened; searching reveals its matching rows. */
+/** Only the selected category is composed; controls retain their existing persistence. */
 @Composable
-private fun CollapsibleSettingsGroup(
+private fun SettingsControlGroup(
     search: SettingsSearch,
     header: String,
     icon: ImageVector,
     summary: String,
-    expanded: Boolean,
-    onToggle: () -> Unit,
     content: @Composable SettingsGroupScope.() -> Unit,
 ) {
     val scope = SettingsGroupScope(search, header, summary)
     scope.content()
     if (scope.entries.isEmpty()) return
-    val reduceMotion by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
-    SettingsGroup(topSpacing = 12.dp) {
-        SettingsCategoryHeader(
-            icon = icon,
-            title = header,
-            summary = summary,
-            expanded = expanded,
-            onClick = onToggle.takeUnless { search.active },
-        )
-        AnimatedVisibility(
-            visible = expanded,
-            enter = if (reduceMotion) EnterTransition.None else
-                expandVertically(tween(240, easing = AppMotionEasing)) + fadeIn(tween(160)),
-            exit = if (reduceMotion) ExitTransition.None else
-                shrinkVertically(tween(200, easing = AppMotionEasing)) + fadeOut(tween(120)),
-        ) {
-            SettingsEntries(scope.entries)
-        }
-    }
-}
-
-@Composable
-private fun SettingsCategoryHeader(
-    icon: ImageVector,
-    title: String,
-    summary: String,
-    expanded: Boolean,
-    onClick: (() -> Unit)?,
-) {
-    val reduceMotion by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
-    val chevronRotation by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        animationSpec = if (reduceMotion) snap() else tween(200, easing = AppMotionEasing),
-        label = "settings category",
-    )
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = ROW_INSET, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.09f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-        }
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = summary,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Spacer(Modifier.width(10.dp))
-        Icon(
-            imageVector = Icons.Rounded.ExpandMore,
-            contentDescription = stringResource(
-                if (expanded) R.string.settings_collapse_category else R.string.settings_expand_category,
-                title,
-            ),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.size(20.dp).rotate(chevronRotation),
-        )
-    }
+    SettingsEntries(scope.entries)
 }
 
 @Composable
@@ -2216,16 +2056,9 @@ private fun SettingsEntries(entries: List<SettingsGroupScope.Entry>) {
         if (sections.isEmpty() || entry.divided) sections.add(mutableListOf(entry))
         else sections.last().add(entry)
     }
-    Column(Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
-        sections.forEachIndexed { index, section ->
-            if (index > 0) Spacer(Modifier.height(8.dp))
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(lerp(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surface, 0.5f)),
-            ) {
-                if (!section.first().divided) Spacer(Modifier.height(10.dp))
+    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        sections.forEach { section ->
+            com.sh1vvy.daylight.settings.SettingsSurface {
                 section.forEach { it.content() }
             }
         }
@@ -2264,8 +2097,7 @@ internal fun SettingsGroup(
             .fillMaxWidth()
             .padding(horizontal = GROUP_INSET)
             .clip(GroupShape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(0.75.dp, settingsOutlineColor(), GroupShape)
+            .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .72f))
             .padding(vertical = 4.dp),
     ) {
         content()

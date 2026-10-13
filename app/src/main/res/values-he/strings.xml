@@ -2,7 +2,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-12.
+Daylight changes: 2026-10-08 through 2026-10-13.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -1340,4 +1340,13 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="daylight_search_videos">סרטונים</string>
     <string name="daylight_search_library_hint">שירים, אמנים ואלבומים</string>
     <string name="daylight_search_matches">התאמות</string>
+    <string name="welcome_title">ברוכים הבאים ל-Daylight</string>
+    <string name="welcome_body">חברו את המוזיקה שלכם לספרייה, להמלצות ולהאזנה משותפת.</string>
+    <string name="welcome_youtube_login">כניסה עם YouTube</string>
+    <string name="welcome_continue_guest">המשך כאורח</string>
+    <string name="welcome_sign_in_later">אפשר להתחבר מאוחר יותר בהגדרות.</string>
+    <string name="welcome_guest">אורח</string>
+    <string name="welcome_screen">מסך פתיחה</string>
+    <string name="settings_filtered_by">תוצאות עבור ״%1$s״</string>
+    <string name="settings_show_all">הצגת הכול</string>
 </resources>

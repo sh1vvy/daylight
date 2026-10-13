@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-09 through 2026-10-10.
+ * Daylight changes: 2026-10-09 through 2026-10-13.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -550,11 +550,12 @@ fun TopBarAccountButton(
  * status bar. Its position is the pull state's own distance fraction — which
  * the pull box holds at 1 while refreshing and animates back to 0 when done —
  * so the slide down, the rest while loading and the slide back up are all one
- * value. The arc fills with the drag, then spins once the refresh is away.
+ * value. The expressive shape morphs with the drag, then cycles only while refreshing.
  *
  * Laid out at zero height, so the bar keeps its size and the puck overhangs
  * the content without taking any touches from it.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun RefreshPuck(refreshing: Boolean, pullFraction: () -> Float, modifier: Modifier = Modifier) {
     val currentFraction by rememberUpdatedState(pullFraction)
@@ -588,32 +589,25 @@ private fun RefreshPuck(refreshing: Boolean, pullFraction: () -> Float, modifier
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            val indicatorModifier = Modifier.size(22.dp)
-            if (refreshing) {
-                CircularProgressIndicator(
+            val reduceMotion by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
+            val indicatorModifier = Modifier.size(32.dp)
+            if (refreshing && !reduceMotion) {
+                androidx.compose.material3.LoadingIndicator(
                     modifier = indicatorModifier,
                     color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 2.5.dp,
-                    strokeCap = StrokeCap.Round,
                 )
             } else {
-                CircularProgressIndicator(
-                    progress = { (currentFraction() * 0.8f).coerceIn(0f, 0.8f) },
-                    modifier = indicatorModifier.graphicsLayer {
-                        rotationZ = currentFraction().coerceIn(0f, 2f) * 180f
-                    },
+                androidx.compose.material3.LoadingIndicator(
+                    progress = { if (refreshing) 1f else currentFraction().coerceIn(0f, 1f) },
+                    modifier = indicatorModifier,
                     color = MaterialTheme.colorScheme.primary,
-                    trackColor = Color.Transparent,
-                    strokeWidth = 2.5.dp,
-                    strokeCap = StrokeCap.Round,
-                    gapSize = 0.dp,
                 )
             }
         }
     }
 }
 
-private val PUCK_SIZE = 40.dp
+private val PUCK_SIZE = 44.dp
 
 /** How far below the bar's edge the puck rests while a refresh runs. */
 private val PUCK_REST = 16.dp

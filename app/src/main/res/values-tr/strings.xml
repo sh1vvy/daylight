@@ -1,7 +1,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-12.
+Daylight changes: 2026-10-08 through 2026-10-13.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -1292,4 +1292,13 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="daylight_search_videos">Videolar</string>
     <string name="daylight_search_library_hint">Şarkılar, sanatçılar ve albümler</string>
     <string name="daylight_search_matches">Eşleşmeler</string>
+    <string name="welcome_title">Daylight’a hoş geldiniz</string>
+    <string name="welcome_body">Kitaplığınız, öneriler ve birlikte dinlemek için müziğinizi bağlayın.</string>
+    <string name="welcome_youtube_login">YouTube ile giriş yap</string>
+    <string name="welcome_continue_guest">Misafir olarak devam et</string>
+    <string name="welcome_sign_in_later">Daha sonra Ayarlar’dan giriş yapabilirsiniz.</string>
+    <string name="welcome_guest">Misafir</string>
+    <string name="welcome_screen">Karşılama ekranı</string>
+    <string name="settings_filtered_by">“%1$s” için sonuçlar</string>
+    <string name="settings_show_all">Tümünü göster</string>
 </resources>

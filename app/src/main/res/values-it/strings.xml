@@ -1,7 +1,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-12.
+Daylight changes: 2026-10-08 through 2026-10-13.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -1274,4 +1274,13 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="daylight_search_videos">Video</string>
     <string name="daylight_search_library_hint">Brani, artisti e album</string>
     <string name="daylight_search_matches">Corrispondenze</string>
+    <string name="welcome_title">Benvenuto in Daylight</string>
+    <string name="welcome_body">Collega la tua musica per la libreria, i consigli e l’ascolto insieme.</string>
+    <string name="welcome_youtube_login">Accedi con YouTube</string>
+    <string name="welcome_continue_guest">Continua come ospite</string>
+    <string name="welcome_sign_in_later">Puoi accedere più tardi dalle impostazioni.</string>
+    <string name="welcome_guest">Ospite</string>
+    <string name="welcome_screen">Schermata di benvenuto</string>
+    <string name="settings_filtered_by">Risultati per “%1$s”</string>
+    <string name="settings_show_all">Mostra tutto</string>
 </resources>

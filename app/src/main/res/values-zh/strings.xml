@@ -1,7 +1,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-12.
+Daylight changes: 2026-10-08 through 2026-10-13.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -1312,4 +1312,13 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="daylight_search_videos">视频</string>
     <string name="daylight_search_library_hint">歌曲、艺人和专辑</string>
     <string name="daylight_search_matches">匹配结果</string>
+    <string name="welcome_title">欢迎使用 Daylight</string>
+    <string name="welcome_body">连接音乐，使用你的音乐库、个性化推荐和一起听功能。</string>
+    <string name="welcome_youtube_login">使用 YouTube 登录</string>
+    <string name="welcome_continue_guest">以访客身份继续</string>
+    <string name="welcome_sign_in_later">你可以稍后在设置中登录。</string>
+    <string name="welcome_guest">访客</string>
+    <string name="welcome_screen">欢迎页面</string>
+    <string name="settings_filtered_by">“%1$s”的结果</string>
+    <string name="settings_show_all">显示全部</string>
 </resources>

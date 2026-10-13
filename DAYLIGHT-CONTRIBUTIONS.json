@@ -100,10 +100,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "ca2ce59ca43659ab74115b43d56377a4c3b40bbe",
-      "source_sha256": "9f6f65b5533347a7b049df2e0b520a76edb34fbb6a568470aa5f545e9c90fe30"
+      "source_sha256": "82f17f8f76cc9780ac3b50fce39866bd1fbbfcf03fc183716d74957d4ea71fef"
     },
     {
       "path": "app/src/androidTest/java/com/music/bitchord/CanaryAppFeedbackNativeTest.kt",
@@ -320,10 +320,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-10",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "d53604fad7c08b2ef1e3f01f86d85acdbd706da6cc8f03a8265f404e2c18c528"
+      "source_sha256": "382a86b808918a5281403d8b597dc9c18e9bb23fdaa924f781e5a1dc1f91e182"
     },
     {
       "path": "app/src/androidTest/java/com/music/bitchord/CanaryQuickPicksNativeTest.kt",
@@ -401,6 +401,17 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
       "source_sha256": "4b3282b4656fd322a159945940372b38138887bbf342d6f4bdd198aabc1f569e"
+    },
+    {
+      "path": "app/src/androidTest/java/com/music/bitchord/CanaryWelcomeSettingsNativeTest.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-13",
+      "last_modified": "2026-10-13",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "a9f42c1504ed14225377d48e2e055c3fcb1362d8bcf6d1ff781e47e6be8367f9"
     },
     {
       "path": "app/src/androidTest/java/com/music/bitchord/Dev8DiscoverNativeTest.kt",
@@ -529,10 +540,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "a1f42d5faa2d8c91a370cd66080fec0f2377aa67",
-      "source_sha256": "d3eac270d9e4e9548d581544d6899898c2d5704ce9a401d2aba30b012b741628"
+      "source_sha256": "932d723c0e36bfb51b62ca48686d4248160ab212d40eaa98e0f607efc2255f16"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/auth/AuthStore.kt",
@@ -1464,10 +1475,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-09",
-      "last_modified": "2026-10-10",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "45745303d8cb33e21373fed8cf0381c339cd0096",
-      "source_sha256": "a8ec55539b88a62e5ea65e3486c6f337b0602000c2595749d2a9faf5c152c8fb"
+      "source_sha256": "f18ff29a570e6fbb00a80841faddbaf1ddab467edd0d245f352440f3640b2079"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/ui/components/HeldContextMenu.kt",
@@ -1794,10 +1805,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-11",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "215251d3cb041d933c0e4a7bec820a09416b1ef645a1f226233efc33d27eec99"
+      "source_sha256": "74c280d4a48970141360436d1e775a6199627e00b8759b3029fee60e4219d308"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/ui/screens/DaylightLegalCredits.kt",
@@ -1915,10 +1926,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-08",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "421722d4a43f665bcc09ed4d49101ec55a82cc2cb5c376910a65dab862463c96"
+      "source_sha256": "a5ae89aa3f50cb4963f07ffd66c5bce49ddc27b72422ba15be2d12d4a3e08db5"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/ui/screens/SettingsSheet.kt",
@@ -1926,10 +1937,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-11",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "f420deaddaaafe6f31648b6e395deee454b31cd0",
-      "source_sha256": "f398c42e3214c87d9f34c9e1e8ed5e5a7ef1ebd83ac3322a547f28403e296565"
+      "source_sha256": "9a8bfcb16d04e4b725b1a982e8b27daace856d986bdb9dc41215021bdd0d77e3"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/ui/screens/SpotifyLibraryScreen.kt",
@@ -1948,10 +1959,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-11",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "87cd1b64d9d4806c7175e974e0f089dcbd089ea3",
-      "source_sha256": "e093673c46d442be7cec851d6f61d0b188d5f8bc7627149b50a9e08f86f77bab"
+      "source_sha256": "6127fce26861516d0f9c863f3847f0c7acbabb96b608c53ecdd1f286ea546b4a"
     },
     {
       "path": "app/src/main/java/com/music/bitchord/widget/MaterialWidgetLayout.kt",
@@ -2194,6 +2205,50 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
       "source_sha256": "564398186264d9790b10faa87a3ac689a3c8663f9f9fb420455cf9c8e4482e62"
+    },
+    {
+      "path": "app/src/main/java/com/sh1vvy/daylight/settings/SettingsExperience.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-13",
+      "last_modified": "2026-10-13",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "c1dd75f7800f221bc42db297bc09f9fbe3c1960d39a369ea7f119c3441ea4e8c"
+    },
+    {
+      "path": "app/src/main/java/com/sh1vvy/daylight/settings/SettingsSection.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-13",
+      "last_modified": "2026-10-13",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "7aec9566d8dd1f5820a6b2c940c1583c00c64bac9b59fa517671ef57f1988c60"
+    },
+    {
+      "path": "app/src/main/java/com/sh1vvy/daylight/welcome/WelcomePreferences.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-13",
+      "last_modified": "2026-10-13",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "b53f5a3ec03f41100e50b823014eb1b611b350204dde424844639aa6a3c79391"
+    },
+    {
+      "path": "app/src/main/java/com/sh1vvy/daylight/welcome/WelcomeScreen.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-13",
+      "last_modified": "2026-10-13",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "09098de000300a23a917f7a010c22a1a1a654d17f560b7e0580b67c6a970b7a7"
     },
     {
       "path": "app/src/main/res/drawable/daylight_wordmark.xml",
@@ -2564,10 +2619,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "9f425c38a59f4d333a3c051bef25c92c548dfeda",
-      "source_sha256": "fa1b4b76001b5c9a33b2864fbbd5e249d0ebeb1834911fc6e436ceddcf2c834a"
+      "source_sha256": "a3b07c33b6dbbf05a9cff6e9bf1307549d22ca3306907a8c45dc624282e82345"
     },
     {
       "path": "app/src/main/res/values-es/strings.xml",
@@ -2575,10 +2630,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "902ed59c1ac6a81fdce85dede24f8330bb49ab9e",
-      "source_sha256": "248f995bd9c66f27eebf1a4a082026a35d6b5bab216b784b620c75ebee868bd0"
+      "source_sha256": "ca71a9b3b87cbd975c2eb5683aac87ce98afdc357c29152708c5a96d5392d68b"
     },
     {
       "path": "app/src/main/res/values-fr/strings.xml",
@@ -2586,10 +2641,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "5a5b60a7ebffb34ce43c44367583506443f98da2",
-      "source_sha256": "ce64fd878ff5b90030e5440c0accd326f8d37c9826bd9e7bb6d813534db1395a"
+      "source_sha256": "dfbd7093be99483030ac8e929d350d2686b5805cd9374ce46c5c17b04016b929"
     },
     {
       "path": "app/src/main/res/values-he/strings.xml",
@@ -2597,10 +2652,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "e5332bcf800368466afefa446089ca487450c0a1",
-      "source_sha256": "7ecb3ed09ff1513f4a0287cf7d48e86a6db9e0b1b3c960fc5ac4f81f7a2e21ef"
+      "source_sha256": "abab6742722552f70c56bb7a43fb830b61a6776bad0c1803c2dc4af4b60036a0"
     },
     {
       "path": "app/src/main/res/values-hi/strings.xml",
@@ -2608,10 +2663,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "d684cde18b144e66fea54c3555f9ad89504fa45b",
-      "source_sha256": "cd29f46736585b064eec133bdd34b585a4264412f1694d48551248471dd72b73"
+      "source_sha256": "45498703e1375b75c8ddc4876939dc341f4045261b550cba5d8e7d31bd35fb05"
     },
     {
       "path": "app/src/main/res/values-id/strings.xml",
@@ -2619,10 +2674,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "619eb45a74c71e14777ca60b30a085d7e5a98fc8",
-      "source_sha256": "c29ebaf18dd926c0998762d385ba9ee1f1088a1b55cd49a0cd86cd18cf0683bc"
+      "source_sha256": "c40b8d6c3deb00cae1e850372681c1189d32152d446b0d7997af260f4edec614"
     },
     {
       "path": "app/src/main/res/values-it/strings.xml",
@@ -2630,10 +2685,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "1ffc1f5ec8add3d1898cc6c86a00b5ef43191f4a",
-      "source_sha256": "679bf7e977bf72300077c554ad96e746ee68442fbe2330c4b7ee0701be07aca5"
+      "source_sha256": "16d0a7a8aec871fdbf6f08548476fcbdd296dc7d17111cfc512c5eb3aad09bd5"
     },
     {
       "path": "app/src/main/res/values-ja/strings.xml",
@@ -2641,10 +2696,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "f2ed0ee00ccc0ed553b52206cf7db12397ffe357",
-      "source_sha256": "53fd91bad2d9ea717143174a0cd41509b4b7d1a0bc9c44f3240f55ca8d45df8f"
+      "source_sha256": "a04a17ccf10b1e7bc89874757d095beafa44849c57bed296e72adc508c46654c"
     },
     {
       "path": "app/src/main/res/values-night-v31/widget_record.xml",
@@ -2696,10 +2751,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "42882b5e3109598f1be7b446372ee9a20cfc92f2",
-      "source_sha256": "977f9d467b5fc44f77d59e9c8cecef978f0a4dd4a72a44185022d6be2d0d60ae"
+      "source_sha256": "a9465fe3a11d87f76fa01751149670fbf7c3a12955a22e911987c925c1c6f856"
     },
     {
       "path": "app/src/main/res/values-pt/strings.xml",
@@ -2707,10 +2762,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "1cf65e612765b12a463efe0d9a782d980ab946d9",
-      "source_sha256": "6a049ee7e96595f00ce92c914f393b5b1c72ec5f6b12b6152328313de98b3ba4"
+      "source_sha256": "dfbb30c0cdae5a614331e467ef58b8379cbe48ec4443b2197d9ea267898cdf75"
     },
     {
       "path": "app/src/main/res/values-ru/strings.xml",
@@ -2718,10 +2773,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "712fa3156d3a795320587d63b836aa50ab2dd441",
-      "source_sha256": "57bf513f1f32b1dfbd3af2c0d6b213636bd0c4aca25f501bf75da04a1d1ca711"
+      "source_sha256": "5226dd32651f24bf422ae98c57ebe23204339acd70dc5d336b39fdeb6bca72b6"
     },
     {
       "path": "app/src/main/res/values-th/strings.xml",
@@ -2729,10 +2784,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "9dc901742ef4b635a7f32a2347a5f37f2d4935b3",
-      "source_sha256": "8885ab4ee26fa763e1f1530b894161a41116dc77bc8577714a94336e36547df4"
+      "source_sha256": "322d2de35f200cb213a3a6d48be031aece5f549b0f0a840cd01b29639ab76d72"
     },
     {
       "path": "app/src/main/res/values-tr/strings.xml",
@@ -2740,10 +2795,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "26e068ff7f3056d3a32e01b13604d7597ebea30f",
-      "source_sha256": "04d2ac406124ebed248c4871f81abf292990acd0d296f2cf4731e7c9735ff225"
+      "source_sha256": "3fe4b379a6150e4701b690e940915f6d7f4954b642c60f757459197d3555a321"
     },
     {
       "path": "app/src/main/res/values-v31/dimens.xml",
@@ -2784,10 +2839,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "5babe6ff85a3bd4aa6d4a207b122fe9e38aa79d4",
-      "source_sha256": "17ba173e3e9f18964b5163b2e835ac166ae4eb1a5659102cb7966b43dc57ff3d"
+      "source_sha256": "fec63de232db0aa381b7c0ab993084e38e745830ad98ffefddbd0a4d4c471b46"
     },
     {
       "path": "app/src/main/res/values-zh/strings.xml",
@@ -2795,10 +2850,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "8b8b912a98cdb7f889a15fc1ca1b5635c98db790",
-      "source_sha256": "ae71be01907f903114d979b235f118d7a827e39270ab93bcc885d98a432b3359"
+      "source_sha256": "29030b22276f63965f06bf27cd7679566aa2e41ce2333780391354841d7e3d47"
     },
     {
       "path": "app/src/main/res/values/dimens.xml",
@@ -2817,10 +2872,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "c0021f4fef3adf4c1c8845090b852a91d65629a8",
-      "source_sha256": "b8eddf7a088cd80f036d60c186512db10b705581ee58778763d1b8f765d19e6d"
+      "source_sha256": "414a60eeda17ba0566f13c2fb7f5ed8383f80fbe9a60c5ae223e99adfaced560"
     },
     {
       "path": "app/src/main/res/values/widget_record.xml",
@@ -3466,10 +3521,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-08",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "edf2bbb0cffb0ed4948e32f61558bdebf242c175a60b548eaf0d47ec2fd3cf5f"
+      "source_sha256": "af7718deeb37f5320fb2f81340a62a4021148a659bd4ad7f5dde41e29c04d999"
     },
     {
       "path": "app/src/test/java/com/music/bitchord/ui/theme/PinkCloudContrastTest.kt",
@@ -3514,6 +3569,17 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
       "source_sha256": "1e42ac4f190a5f8756f926ce5ba3b0c82c5f33441fa6c0da0ed099dcbaebfd04"
+    },
+    {
+      "path": "app/src/test/java/com/sh1vvy/daylight/settings/SettingsSectionTest.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-13",
+      "last_modified": "2026-10-13",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "1054cd885c704f645456172a70aad5a713e30c0dc84d31c04eac966d25eeb73b"
     },
     {
       "path": "build.gradle.kts",
@@ -3807,10 +3873,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-10",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "ded5615ac297c03a317cd90b6a8a958f9f9f3d65b80f550701bccfea7d39c181"
+      "source_sha256": "98cc59183297d148965c7ce96e5c1c615c698cbd4c0403b274da8ce9649e38dd"
     },
     {
       "path": "docs/DESIGN_LANGUAGE.md",
@@ -3888,6 +3954,17 @@
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
       "source_sha256": "f10ae447de71a1efa9eeb07d0c9a2afe4a6d96dd49689ff895da3ccab81441d6"
+    },
+    {
+      "path": "docs/WELCOME_SETTINGS_REWRITE.md",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-13",
+      "last_modified": "2026-10-13",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "62bafbd812d3fd2674472454aeaf86e6b5b760008191daa8199eaf26a5bb0193"
     },
     {
       "path": "docs/releases/0.2.2-dev.7.md",
@@ -4951,10 +5028,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-08",
-      "last_modified": "2026-10-11",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": "19d64ac034dfd073e8d76c607fe7cba8e921cf40",
-      "source_sha256": "1324f5ecffa150a12dab31247587a5021684954aa07ee4e8494575279aea5067"
+      "source_sha256": "53e77291bc3eae95c4eef4f149bea550e9bddf2746e3c967530f41d9fa427a18"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/components/LibraryCoverMotion.kt",
@@ -5463,6 +5540,17 @@
       "source_sha256": "d0e9c72b462e1dbe81e970376d6eb6970d2e8138f1a7929be0c04abfc2c05d2f"
     },
     {
+      "path": "sharedUi/src/jvmSharedMain/kotlin/com/sh1vvy/daylight/motion/SwipeActionGate.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-13",
+      "last_modified": "2026-10-13",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "287ac03facd90b2050e45c467017eca1d37aa97a893b548e468a618eef64d0ba"
+    },
+    {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/sh1vvy/daylight/player/DaylightPlayer.kt",
       "authors": [
         "sh1vvy"
@@ -5479,10 +5567,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-12",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "63091a568e6bdc83211e277a53226044e87886e790c00b7b15f7b49a74e6ddd5"
+      "source_sha256": "bcc9333bb94f0450113b4ded7166ff35fe0d0d89f0a156523b089c6feaa8b5d2"
     },
     {
       "path": "sharedUi/src/jvmSharedMain/kotlin/com/sh1vvy/daylight/player/DaylightTimeline.kt",
@@ -5534,10 +5622,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-12",
-      "last_modified": "2026-10-12",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "5d3107e3a685d2d49adcae612eab98afbf1df983ef296720139b9664737f3aa5"
+      "source_sha256": "d75a1d51a687af367cb419947f447ac28a85d190270a7c0b4c55578568024357"
     },
     {
       "path": "sharedUi/src/jvmTest/kotlin/com/music/bitchord/ui/components/ListKeysTest.kt",
@@ -5694,6 +5782,17 @@
       "source_sha256": "45d8fe4f2740b40b82a98a2261efa8582b4108cdf698370b12063eb3c018a37f"
     },
     {
+      "path": "sharedUi/src/jvmTest/kotlin/com/sh1vvy/daylight/motion/SwipeActionGateTest.kt",
+      "authors": [
+        "sh1vvy"
+      ],
+      "first_modified": "2026-10-13",
+      "last_modified": "2026-10-13",
+      "scope": "daylight-gplv3-additions",
+      "upstream_blob": null,
+      "source_sha256": "7e90b9db02ff92ec9e6219dd3769ddcc99c669ad7fd3bfd531a7d8bec76a99b8"
+    },
+    {
       "path": "sharedUi/src/jvmTest/kotlin/com/sh1vvy/daylight/player/PlayerModelTest.kt",
       "authors": [
         "sh1vvy"
@@ -5721,10 +5820,10 @@
         "sh1vvy"
       ],
       "first_modified": "2026-10-11",
-      "last_modified": "2026-10-11",
+      "last_modified": "2026-10-13",
       "scope": "daylight-gplv3-additions",
       "upstream_blob": null,
-      "source_sha256": "ccb9345a2aab8e69dd80408e31412d211e11c0163b5ad65b913716ee70802bc2"
+      "source_sha256": "01c0e75d89dfbc6d4d020da99a2bfaaf361203658720109ffc93f9b14b108b30"
     },
     {
       "path": "tools/measure_scroll.py",

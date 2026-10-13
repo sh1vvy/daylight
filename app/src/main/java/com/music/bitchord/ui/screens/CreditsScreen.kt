@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight changes: 2026-10-08 through 2026-10-13.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -89,6 +89,19 @@ fun CreditsScreen(
                     append("Discover by M Yudi Maulana · ")
                     withLink(LinkAnnotation.Url("https://thenounproject.com/creator/emwaiem18/", linkStyles)) { append("Noun Project") }
                     append(" · CC BY 3.0. Adapted for Daylight.")
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.fillMaxWidth().padding(18.dp),
+            )
+        }
+        SettingsGroup(header = "Google Sans Flex") {
+            Text(
+                text = buildAnnotatedString {
+                    append("Google LLC and the Google Sans Flex authors · SIL Open Font License 1.1. ")
+                    withLink(LinkAnnotation.Url("https://github.com/googlefonts/googlesans-flex", linkStyles)) {
+                        append("Font source and license")
+                    }
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,

@@ -1,56 +1,18 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-08.
+ * Daylight changes: 2026-10-08 through 2026-10-13.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
 
 package com.music.bitchord.ui.screens
 
-import androidx.compose.runtime.saveable.SaverScope
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SettingsNavigationTest {
-    @Test
-    fun `categories start collapsed and can be opened independently`() {
-        val initial = SettingsCategoryExpansion()
-        assertFalse(initial.isExpanded("appearance", ""))
-        val selected = initial.toggle("appearance").toggle("playback")
-        assertTrue(selected.isExpanded("appearance", ""))
-        assertTrue(selected.isExpanded("playback", ""))
-        assertFalse(selected.isExpanded("downloads_storage", ""))
-        val collapsed = selected.toggle("appearance")
-        assertFalse(collapsed.isExpanded("appearance", ""))
-        assertTrue(collapsed.isExpanded("playback", ""))
-    }
-
-    @Test
-    fun `clearing a search restores manual expansion choices`() {
-        val selected = SettingsCategoryExpansion().toggle("appearance")
-        assertTrue(selected.isExpanded("playback", " equalizer "))
-        assertFalse(selected.isExpanded("playback", ""))
-        assertTrue(selected.isExpanded("appearance", ""))
-        assertFalse(selected.isExpanded("playback", "   "))
-    }
-
-    @Test
-    fun `saved categories restore after returning from another screen or recreation`() {
-        val original = SettingsCategoryExpansion().toggle("appearance").toggle("downloads_storage")
-        val scope = object : SaverScope {
-            override fun canBeSaved(value: Any): Boolean = true
-        }
-        val saved = with(SettingsCategoryExpansion.Saver) { scope.save(original) }
-        assertNotNull(saved)
-        val restored = SettingsCategoryExpansion.Saver.restore(requireNotNull(saved))!!
-        assertTrue(restored.isExpanded("appearance", ""))
-        assertTrue(restored.isExpanded("downloads_storage", ""))
-        assertFalse(restored.isExpanded("playback", ""))
-    }
-
     @Test
     fun `search finds titles and category summaries while ignoring case and keyboard whitespace`() {
         val search = SettingsSearch("  LYRIC  ")
@@ -61,6 +23,13 @@ class SettingsNavigationTest {
         assertTrue(search.anyMatch)
         assertFalse(search.matches("Downloads", "Storage"))
         assertTrue(search.anyMatch)
+    }
+
+    @Test
+    fun `search matches separate words across title and keywords`() {
+        assertTrue(SettingsSearch("  audio  QUALITY ").matches("Audio quality", "Streaming"))
+        assertTrue(SettingsSearch("lyrics BLUR").matches("Lyrics", "Focus blur"))
+        assertFalse(SettingsSearch("lyrics unknown").matches("Lyrics", "Focus blur"))
     }
 
     @Test

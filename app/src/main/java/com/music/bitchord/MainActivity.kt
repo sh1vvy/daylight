@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-12.
+ * Daylight changes: 2026-10-08 through 2026-10-13.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -80,6 +80,7 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Sort
 import androidx.compose.material.icons.rounded.Upgrade
 import com.music.bitchord.data.listentogether.ServerConnectionState
@@ -111,6 +112,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
@@ -182,7 +184,15 @@ import com.music.bitchord.ui.screens.libraryLinks
 import com.music.bitchord.ui.screens.CACHE_FOLDER_BROWSE_ID
 import com.music.bitchord.ui.screens.ListenTogetherScreen
 import com.music.bitchord.ui.screens.PartyServerEditor
-import com.music.bitchord.ui.screens.SettingsScreen
+import com.music.bitchord.ui.screens.SettingsControls
+import com.sh1vvy.daylight.settings.SettingsExperience
+import com.sh1vvy.daylight.settings.SettingsSection
+import com.sh1vvy.daylight.settings.title
+import com.sh1vvy.daylight.welcome.WelcomePreferences
+import com.sh1vvy.daylight.welcome.WelcomeScreen
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import com.music.bitchord.data.sources.TrackMatcher
 import com.music.bitchord.ui.screens.CreatorProfileScreen
 import com.music.bitchord.ui.screens.SpotifyLibraryScreen
@@ -552,6 +562,12 @@ private fun BitChordApp(
      */
     var webSession by remember { mutableStateOf<WebSessionMode?>(null) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    var settingsSectionId by rememberSaveable { mutableStateOf<String?>(null) }
+    val settingsSection = SettingsSection.fromId(settingsSectionId)
+    val welcomePreferences = remember(context) { WelcomePreferences(context) }
+    var welcomeCompleted by remember { mutableStateOf(welcomePreferences.completed) }
+    var welcomePreview by rememberSaveable { mutableStateOf(false) }
+    var signInFromWelcome by rememberSaveable { mutableStateOf(false) }
     // Replay: the page, the stories over it, and the share sheet over those.
     // Three states rather than one enum because they stack — the stories are
     // opened from the page and the share sheet from either, and closing one
@@ -721,8 +737,8 @@ private fun BitChordApp(
      */
     val updateNotice = updateAvailable
 
-    LaunchedEffect(updateNotice) {
-        if (updateNotice != null && !updateDialogShown) {
+    LaunchedEffect(updateNotice, welcomeCompleted, welcomePreview) {
+        if (updateNotice != null && welcomeCompleted && !welcomePreview && !updateDialogShown) {
             updateDialogShown = true
             showUpdateDialog = true
         }
@@ -737,6 +753,13 @@ private fun BitChordApp(
     val searchSource by viewModel.searchSource.collectAsStateWithLifecycle()
     val libraryResults by viewModel.libraryResults.collectAsStateWithLifecycle()
     val signedIn by viewModel.signedIn.collectAsStateWithLifecycle()
+    val welcomeVisible = welcomePreview || (!welcomeCompleted && !signedIn)
+    LaunchedEffect(signedIn) {
+        if (signedIn && !welcomeCompleted) {
+            welcomePreferences.complete()
+            welcomeCompleted = true
+        }
+    }
     val incomingJamInvite by JamInviteLink.pending.collectAsStateWithLifecycle()
     var activeJamInviteCode by rememberSaveable { mutableStateOf<String?>(null) }
     var activeJamInviteServer by rememberSaveable { mutableStateOf<String?>(null) }
@@ -2656,6 +2679,7 @@ private fun BitChordApp(
         libraryShowAll = null
         showAccountScrobbling = accounts
         settingsSubScreen = if (accounts) "account_scrobbling" else null
+        settingsSectionId = null
         showSettings = true
     }
 
@@ -2713,11 +2737,13 @@ private fun BitChordApp(
         // Home rather than exiting — only Home itself hands back to the system,
         // which is what actually closes/minimizes the app.
         BackHandler(enabled = showSettings && settingsSubScreen != "credits" && !showSpotify && !showAccountScrobbling && !showListenTogether && !showEqualizer && !showReplay) {
+            if (settingsSectionId != null) {
+                settingsSectionId = null
+                return@BackHandler
+            }
             showSettings = false
-            // Only when Settings was the whole of what was on screen. Opened
-            // over Replay or over a release page, closing it reveals that again
-            // rather than throwing both away.
-            if (detail == null && !showReplay) selectedTab = TAB_HOME
+            // Retain the tab/detail underneath so both Back affordances return
+            // to the same place, including its scroll and mini-player.
         }
         BackHandler(
             enabled = detail == null && !showSettings && !showAccountScrobbling && !showSpotify &&
@@ -2745,7 +2771,7 @@ private fun BitChordApp(
         // the feed, the frosted bars, the tab row — becomes the left half of
         // a row, and the player is the right. Off a tablet the row has the
         // one child it always had and changes nothing.
-        Row(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxSize().then(if (welcomeVisible) Modifier.clearAndSetSemantics { } else Modifier)) {
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 val pageKey = when {
                     showSpotify -> detail?.detailRouteKey() ?: "spotify"
@@ -2968,31 +2994,35 @@ private fun BitChordApp(
                         EqualizerScreen(contentPadding = listPadding)
                     } else if (key == "settings") {
                         settingsSaveableStateHolder.SaveableStateProvider("settings") {
-                            SettingsScreen(
-                                windowWidth = windowWidth,
-                                signedIn = signedIn,
-                                account = account,
-                                onSignIn = {
-                                    showSettings = false
-                                    webSession = WebSessionMode.SIGN_IN
-                                },
-                                onSignOut = { viewModel.signOut() },
-                                onAccountScrobbling = {
+                            val settingsTheme by AppSettings.themeMode.collectAsStateWithLifecycle()
+                            SettingsExperience(
+                                selectedSection = settingsSection,
+                                onSection = { settingsSectionId = it?.id },
+                                accountName = account?.name, accountPhoto = account?.thumbnailUrl, signedIn = signedIn,
+                                onAccount = {
                                     settingsSubScreen = "account_scrobbling"
                                     showAccountScrobbling = true
                                 },
-                                onEqualizer = {
-                                    settingsSubScreen = "equalizer"
-                                    showEqualizer = true
-                                },
-                                onLyricsSources = { showLyricsSources = true },
-                                onListenTogether = {
-                                    settingsSubScreen = "listen_together"
-                                    showListenTogether = true
-                                },
-                                onAppLanguage = { showAppLanguage = true },
+                                onSignIn = { showSettings = false; webSession = WebSessionMode.SIGN_IN },
+                                onJam = { settingsSubScreen = "listen_together"; showListenTogether = true },
+                                selectedTheme = listOf(ThemeMode.DARK, ThemeMode.LIGHT, ThemeMode.PINK_CLOUD).indexOf(settingsTheme),
+                                onTheme = { AppSettings.setThemeMode(listOf(ThemeMode.DARK, ThemeMode.LIGHT, ThemeMode.PINK_CLOUD)[it]) },
+                                onWelcomePreview = { welcomePreview = true },
+                                version = BuildConfig.VERSION_NAME, reduceMotion = reducePlayerMotion,
                                 contentPadding = listPadding,
-                            )
+                            ) { section, settingsQuery, padding ->
+                                SettingsControls(
+                                    section = section.id, searchQuery = settingsQuery,
+                                    windowWidth = windowWidth, signedIn = signedIn, account = account,
+                                    onSignIn = { showSettings = false; webSession = WebSessionMode.SIGN_IN },
+                                    onSignOut = viewModel::signOut,
+                                    onAccountScrobbling = { settingsSubScreen = "account_scrobbling"; showAccountScrobbling = true },
+                                    onEqualizer = { settingsSubScreen = "equalizer"; showEqualizer = true },
+                                    onLyricsSources = { showLyricsSources = true },
+                                    onListenTogether = { settingsSubScreen = "listen_together"; showListenTogether = true },
+                                    onAppLanguage = { showAppLanguage = true }, contentPadding = padding,
+                                )
+                            }
                         }
                     } else if (page?.creatorProfile != null) {
                         CreatorProfileScreen(
@@ -3567,7 +3597,7 @@ private fun BitChordApp(
                         showAccountScrobbling -> stringResource(R.string.account_scrobbling)
                         showListenTogether -> stringResource(R.string.listen_together)
                         showEqualizer -> stringResource(R.string.equalizer)
-                        showSettings -> stringResource(R.string.settings)
+                        showSettings -> settingsSection?.title() ?: stringResource(R.string.settings)
                         showReplay -> stringResource(R.string.replay)
                         detail != null && detailActiveShelf != null -> detailActiveShelf?.title.orEmpty()
                         detail != null -> detail.title
@@ -3613,11 +3643,11 @@ private fun BitChordApp(
                         showDiscord -> ({ showDiscord = false })
                         showHistory -> ({ showHistory = false })
                         libraryShowAll != null && detail == null -> ({ libraryShowAll = null })
-                        showAccountScrobbling -> ({ showAccountScrobbling = false })
-                        showListenTogether -> ({ showListenTogether = false })
-                        showEqualizer -> ({ showEqualizer = false })
+                        showAccountScrobbling -> ({ showAccountScrobbling = false; if (settingsSubScreen == "account_scrobbling") settingsSubScreen = null })
+                        showListenTogether -> ({ showListenTogether = false; if (settingsSubScreen == "listen_together") settingsSubScreen = null })
+                        showEqualizer -> ({ showEqualizer = false; if (settingsSubScreen == "equalizer") settingsSubScreen = null })
                         settingsSubScreen != null -> ({ settingsSubScreen = null })
-                        showSettings -> ({ showSettings = false })
+                        showSettings -> ({ if (settingsSectionId != null) settingsSectionId = null else showSettings = false })
                         showReplay -> ({ showReplay = false })
                         detailActiveShelf != null -> ({ detailActiveShelf = null })
                         detail != null -> ({ viewModel.closeDetail(); Unit })
@@ -3794,6 +3824,11 @@ private fun BitChordApp(
                                     onClick = { webSession = WebSessionMode.SIGN_IN },
                                 )
                             }
+                            if (detail == null && libraryShowAll == null && !showReplay && !showHistory && !showSpotify && !showDiscord) {
+                                IconButton(onClick = { openProfileSettings() }, modifier = Modifier.testTag("daylight-open-settings")) {
+                                    Icon(Icons.Rounded.Settings, stringResource(R.string.settings), tint = MaterialTheme.colorScheme.onSurface)
+                                }
+                            }
                             TopBarAccountButton(
                                 account = account,
                                 onClick = {
@@ -3925,13 +3960,15 @@ private fun BitChordApp(
                 saver = SheetState.Saver(
                     skipPartiallyExpanded = true,
                     confirmValueChange = confirmSheetValue,
-                    density = sheetDensity,
+                    positionalThreshold = { with(sheetDensity) { 56.dp.toPx() } },
+                    velocityThreshold = { with(sheetDensity) { 125.dp.toPx() } },
                     skipHiddenState = false,
                 ),
             ) {
                 SheetState(
                     skipPartiallyExpanded = true,
-                    density = sheetDensity,
+                    positionalThreshold = { with(sheetDensity) { 56.dp.toPx() } },
+                    velocityThreshold = { with(sheetDensity) { 125.dp.toPx() } },
                     // Already open when the app is the one raising it: its
                     // content is held down, and slid up, by the motion.
                     initialValue = if (playerSheetMotion.holding) SheetValue.Expanded else SheetValue.Hidden,
@@ -4825,9 +4862,31 @@ private fun BitChordApp(
             }
         }
 
+        AnimatedVisibility(
+            visible = welcomeVisible,
+            enter = fadeIn(tween(if (reducePlayerMotion) 0 else 220)),
+            exit = fadeOut(tween(if (reducePlayerMotion) 0 else 280)),
+        ) {
+            WelcomeScreen(reduceMotion = reducePlayerMotion,
+                onYouTube = {
+                    signInFromWelcome = true
+                    showUpdateDialog = false
+                    webSession = WebSessionMode.SIGN_IN
+                },
+                onGuest = {
+                    if (!welcomeCompleted) welcomePreferences.complete()
+                    welcomeCompleted = true
+                    welcomePreview = false
+                    signInFromWelcome = false
+                })
+        }
+        BackHandler(enabled = welcomeVisible && webSession == null) {
+            if (welcomePreview) welcomePreview = false else (context as? android.app.Activity)?.finish()
+        }
+
         // ---- Google sign-in (full screen WebView) ----
         webSession?.let { mode ->
-            BackHandler { webSession = null }
+            BackHandler { webSession = null; signInFromWelcome = false }
             // Raised by "Use this channel", read by the browser as "take the
             // session from the page as it now stands". A counter rather than a
             // flag so a second tap, after a failed first one, is still a new
@@ -4845,7 +4904,7 @@ private fun BitChordApp(
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        IconButton(onClick = { webSession = null }) {
+                        IconButton(onClick = { webSession = null; signInFromWelcome = false }) {
                             Icon(
                                 Icons.Rounded.Close,
                                 contentDescription = stringResource(R.string.close),
@@ -4903,7 +4962,15 @@ private fun BitChordApp(
                                 confirmingProfile = false
                                 if (accepted) {
                                     webSession = null
-                                    if (mode == WebSessionMode.SIGN_IN) selectedTab = 2
+                                    if (mode == WebSessionMode.SIGN_IN) {
+                                        if (signInFromWelcome) {
+                                            welcomePreferences.complete()
+                                            welcomeCompleted = true
+                                            welcomePreview = false
+                                            selectedTab = TAB_HOME
+                                            signInFromWelcome = false
+                                        } else selectedTab = TAB_LIBRARY
+                                    }
                                 } else {
                                     captureFailed = true
                                 }

@@ -1,12 +1,34 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-10 through 2026-10-12.
+Daylight changes: 2026-10-10 through 2026-10-13.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
 
-# Internal candidate: Canary 20
+# Internal candidate: Canary 21
+
+**0.2.2-canary.21 · Android code 42 · manual testing only**
+
+- First-use welcome with a finite theme-colored butterfly reveal, official YouTube
+  sign-in icon and Continue as guest. Existing signed-in users bypass it; guest
+  choice is remembered. Available for preview from Settings.
+- Rewritten settings hub with search, theme previews and separate category pages.
+  A compact button beside the profile provides direct access. Existing preferences,
+  integrations, equalizer, lyric settings and backup behavior are retained.
+- Bundled Google Sans Flex with licensed credits and fixed cached variations.
+  Selective Material 3 Expressive styling preserves Daylight's themes and existing
+  player flow. Native morphing refresh shapes replace the previous circular glyph.
+- Reduced-motion entry/transitions and non-animated refresh fallback; larger type,
+  theme-adaptive surfaces, safe padding and accessible touch targets.
+- Optimized internal Canary only. Public Dev and stable releases are unchanged.
+
+Rewrite boundaries and font/indicator sources: `docs/WELCOME_SETTINGS_REWRITE.md`.
+Local APKs and validation: `output/canary-0.2.2-canary.21/`.
+
+---
+
+# Previous candidate: Canary 20
 
 **0.2.2-canary.20 · Android code 41 · manual testing only**
 

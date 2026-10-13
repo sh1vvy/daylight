@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-08 through 2026-10-11.
+ * Daylight changes: 2026-10-08 through 2026-10-13.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -79,6 +79,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import com.sh1vvy.daylight.motion.SwipeActionGate
+import com.sh1vvy.daylight.motion.observeSwipeRelease
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
@@ -359,14 +361,17 @@ fun SongRow(
 
     val currentOnSwipeToQueue by rememberUpdatedState(onSwipeToQueue)
 
+    val commitGate = remember { SwipeActionGate() }
     val swipeState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value != SwipeToDismissBoxValue.Settled) {
                 val offset = try { swipeStateHolder.value?.requireOffset() ?: 0f } catch (e: Exception) { 0f }
                 // Only queue if the physical drag reached half the box width, ignoring short accidental flings.
                 if (abs(offset) >= boxWidth * 0.45f) {
-                    haptics.play(Haptic.Select)
-                    currentOnSwipeToQueue()
+                    commitGate.commit {
+                        haptics.play(Haptic.Select)
+                        currentOnSwipeToQueue()
+                    }
                 }
             }
             false // never actually dismiss; snap back
@@ -401,7 +406,7 @@ fun SongRow(
 
     SwipeToDismissBox(
         state = swipeState,
-        modifier = modifier.clip(SONG_ROW_SHAPE).onSizeChanged { boxWidth = it.width.toFloat() },
+        modifier = modifier.observeSwipeRelease(commitGate).clip(SONG_ROW_SHAPE).onSizeChanged { boxWidth = it.width.toFloat() },
         backgroundContent = { QueueSwipeBackground(swipeState) },
     ) {
         SongRowContent(

@@ -1,7 +1,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-12.
+Daylight changes: 2026-10-08 through 2026-10-13.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -1318,4 +1318,13 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="daylight_search_videos">วิดีโอ</string>
     <string name="daylight_search_library_hint">เพลง ศิลปิน และอัลบั้ม</string>
     <string name="daylight_search_matches">ผลลัพธ์ที่ตรงกัน</string>
+    <string name="welcome_title">ยินดีต้อนรับสู่ Daylight</string>
+    <string name="welcome_body">เชื่อมต่อเพลงเพื่อใช้คลังเพลง คำแนะนำ และฟังร่วมกัน</string>
+    <string name="welcome_youtube_login">ลงชื่อเข้าใช้ด้วย YouTube</string>
+    <string name="welcome_continue_guest">ดำเนินการต่อในฐานะผู้เยี่ยมชม</string>
+    <string name="welcome_sign_in_later">คุณสามารถลงชื่อเข้าใช้ภายหลังได้ในการตั้งค่า</string>
+    <string name="welcome_guest">ผู้เยี่ยมชม</string>
+    <string name="welcome_screen">หน้าต้อนรับ</string>
+    <string name="settings_filtered_by">ผลลัพธ์สำหรับ “%1$s”</string>
+    <string name="settings_show_all">แสดงทั้งหมด</string>
 </resources>

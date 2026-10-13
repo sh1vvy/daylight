@@ -2,7 +2,7 @@
 # DAYLIGHT-ATTRIBUTION
 # Daylight modifications by sh1vvy.
 # Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-# Daylight changes: 2026-10-11 through 2026-10-11.
+# Daylight changes: 2026-10-11 through 2026-10-13.
 # Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 # Original authors' notices and licenses remain applicable to their material.
 # END DAYLIGHT-ATTRIBUTION
@@ -32,6 +32,7 @@ EXCLUDED_FILES = {"docs/UPSTREAM_MAINTAINERS.md",
                   "app/src/main/res/drawable/ic_launcher_foreground.xml",
                   "app/src/main/res/drawable/ic_launcher_monochrome.xml",
                   "app/src/main/res/drawable/ic_logo.xml",
+                  "app/src/main/res/drawable/ic_youtube_brand.xml",
                   "app/src/main/res/drawable/ic_notification_logo.xml",
                   "sharedUi/src/commonMain/composeResources/drawable/ic_logo.xml"}
 

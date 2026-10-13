@@ -1,7 +1,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-12.
+Daylight changes: 2026-10-08 through 2026-10-13.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -1313,4 +1313,13 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="daylight_search_videos">動画</string>
     <string name="daylight_search_library_hint">曲、アーティスト、アルバム</string>
     <string name="daylight_search_matches">一致する結果</string>
+    <string name="welcome_title">Daylightへようこそ</string>
+    <string name="welcome_body">音楽を連携してライブラリやおすすめを利用し、一緒に聴きましょう。</string>
+    <string name="welcome_youtube_login">YouTubeでログイン</string>
+    <string name="welcome_continue_guest">ゲストとして続ける</string>
+    <string name="welcome_sign_in_later">あとで設定からログインできます。</string>
+    <string name="welcome_guest">ゲスト</string>
+    <string name="welcome_screen">ウェルカム画面</string>
+    <string name="settings_filtered_by">「%1$s」の結果</string>
+    <string name="settings_show_all">すべて表示</string>
 </resources>

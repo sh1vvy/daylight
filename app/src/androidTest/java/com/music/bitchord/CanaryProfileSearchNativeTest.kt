@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-10 through 2026-10-10.
+ * Daylight changes: 2026-10-10 through 2026-10-13.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -104,7 +104,7 @@ class CanaryProfileSearchNativeTest {
                 waitText(text(R.string.theme))
                 waitText(text(R.string.liquid_glass))
                 screenshot("settings-expanded-native")
-                clickText(text(R.string.appearance))
+                back()
                 waitAbsent { hasText(it, text(R.string.theme)) }
                 back()
                 waitAbsent { hasText(it, text(R.string.appearance)) }

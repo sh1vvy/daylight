@@ -1,7 +1,7 @@
 /* DAYLIGHT-ATTRIBUTION
  * Daylight modifications by sh1vvy.
  * Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
- * Daylight changes: 2026-10-12 through 2026-10-12.
+ * Daylight changes: 2026-10-12 through 2026-10-13.
  * Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
  * Original authors' notices and licenses remain applicable to their material.
  */
@@ -26,6 +26,8 @@ import androidx.compose.material.icons.rounded.RemoveCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import com.sh1vvy.daylight.motion.SwipeActionGate
+import com.sh1vvy.daylight.motion.observeSwipeRelease
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -120,8 +122,9 @@ internal fun DaylightQueue(queue: List<PlayerTrack>, playingIndex: Int, locked: 
                     val currentRemove by rememberUpdatedState<() -> Unit>({
                         if (mutable) liveIndex(entry.key)?.let(actions.remove)
                     })
+                    val commitGate = remember(entry.key) { SwipeActionGate() }
                     val swipe = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
-                        if (value == SwipeToDismissBoxValue.EndToStart) currentRemove()
+                        if (value == SwipeToDismissBoxValue.EndToStart) commitGate.commit { currentRemove() }
                         false
                     }, positionalThreshold = { it * .4f })
                     val accessibility = listOf(
@@ -129,7 +132,7 @@ internal fun DaylightQueue(queue: List<PlayerTrack>, playingIndex: Int, locked: 
                         CustomAccessibilityAction(labels.moveEarlier) { moveAccessible(entry, -1) },
                         CustomAccessibilityAction(labels.moveLater) { moveAccessible(entry, 1) },
                     )
-                    SwipeToDismissBox(swipe, modifier = Modifier
+                    SwipeToDismissBox(swipe, modifier = Modifier.observeSwipeRelease(commitGate)
                         .animateItem(fadeInSpec = null, fadeOutSpec = null, placementSpec = if (reduced || held) null else spring(.9f, 420f))
                         .zIndex(if (held || drag.settling == entry.key) 1f else 0f)
                         .graphicsLayer {

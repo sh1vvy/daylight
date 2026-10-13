@@ -1,7 +1,7 @@
 <!-- DAYLIGHT-ATTRIBUTION
 Daylight modifications by sh1vvy.
 Copyright (C) 2026 sh1vvy, for copyrightable Daylight contributions only.
-Daylight changes: 2026-10-08 through 2026-10-12.
+Daylight changes: 2026-10-08 through 2026-10-13.
 Daylight additions: GNU GPLv3 with attribution/origin terms in DAYLIGHT-NOTICE.md.
 Original authors' notices and licenses remain applicable to their material.
 -->
@@ -1312,4 +1312,13 @@ Original authors' notices and licenses remain applicable to their material.
     <string name="daylight_search_videos">Video</string>
     <string name="daylight_search_library_hint">Lagu, artis, dan album</string>
     <string name="daylight_search_matches">Hasil yang cocok</string>
+    <string name="welcome_title">Selamat datang di Daylight</string>
+    <string name="welcome_body">Hubungkan musik untuk koleksi, rekomendasi, dan mendengarkan bersama.</string>
+    <string name="welcome_youtube_login">Masuk dengan YouTube</string>
+    <string name="welcome_continue_guest">Lanjutkan sebagai tamu</string>
+    <string name="welcome_sign_in_later">Anda dapat masuk nanti di Setelan.</string>
+    <string name="welcome_guest">Tamu</string>
+    <string name="welcome_screen">Layar selamat datang</string>
+    <string name="settings_filtered_by">Hasil untuk “%1$s”</string>
+    <string name="settings_show_all">Tampilkan semua</string>
 </resources>
